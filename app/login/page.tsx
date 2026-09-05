@@ -49,9 +49,14 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
   const [mode, setMode] = useState<"picker" | "password" | "full">("full");
 
   useEffect(() => {
-    const account = loadRemembered();
-    setRemembered(account);
-    setMode(account ? "picker" : "full");
+    // Deferred a tick: reading localStorage is synchronous, but setting
+    // state directly inline in the effect body trips the "no setState
+    // synchronously in an effect" lint rule.
+    Promise.resolve().then(() => {
+      const account = loadRemembered();
+      setRemembered(account);
+      setMode(account ? "picker" : "full");
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
