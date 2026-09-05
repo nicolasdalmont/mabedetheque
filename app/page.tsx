@@ -43,6 +43,17 @@ export default function Home() {
           .some((field) => field!.toLowerCase().includes(q));
       })
       .sort((a, b) => {
+        if (sortKey === "series") {
+          if (!a.series_name && !b.series_name) return a.title.localeCompare(b.title);
+          if (!a.series_name) return -1;
+          if (!b.series_name) return 1;
+          const seriesCmp = a.series_name.localeCompare(b.series_name);
+          if (seriesCmp !== 0) return seriesCmp;
+          const aIssue = a.issue_number ?? Infinity;
+          const bIssue = b.issue_number ?? Infinity;
+          if (aIssue !== bIssue) return aIssue - bIssue;
+          return a.title.localeCompare(b.title);
+        }
         const av = a[sortKey] ?? "";
         const bv = b[sortKey] ?? "";
         return String(av).localeCompare(String(bv));

@@ -67,7 +67,7 @@ export function AlbumForm({
   }
 
   const inputClass =
-    "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:focus:border-white/50";
+    "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-black/40 sm:text-sm dark:border-white/20 dark:focus:border-white/50";
   const labelClass = "text-sm font-medium";
 
   return (

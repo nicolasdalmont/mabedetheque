@@ -39,5 +39,5 @@ export type Database = {
   };
 };
 
-export type SortKey = "title" | "purchase_date" | "legal_deposit";
+export type SortKey = "title" | "series" | "purchase_date" | "legal_deposit";
 export type ViewMode = "grid" | "list";

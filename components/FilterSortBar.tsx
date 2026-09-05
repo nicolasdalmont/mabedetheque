@@ -2,6 +2,7 @@ import type { SortKey, ViewMode } from "@/types/album";
 
 const sortLabels: Record<SortKey, string> = {
   title: "Alphabétique",
+  series: "Série puis tome",
   purchase_date: "Date d'achat",
   legal_deposit: "Dépôt légal",
 };
@@ -30,10 +31,10 @@ export function FilterSortBar({
   onViewModeChange: (value: ViewMode) => void;
 }) {
   const selectClass =
-    "rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:focus:border-white/50";
+    "w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-black/40 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-white/50";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <select
         className={selectClass}
         value={series}
@@ -72,18 +73,18 @@ export function FilterSortBar({
         ))}
       </select>
 
-      <div className="ml-auto flex overflow-hidden rounded-md border border-black/15 dark:border-white/20">
+      <div className="flex overflow-hidden rounded-md border border-black/15 sm:ml-auto dark:border-white/20">
         <button
           type="button"
           onClick={() => onViewModeChange("grid")}
-          className={`px-3 py-1.5 text-sm ${viewMode === "grid" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
+          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "grid" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
         >
           Galerie
         </button>
         <button
           type="button"
           onClick={() => onViewModeChange("list")}
-          className={`px-3 py-1.5 text-sm ${viewMode === "list" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
+          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "list" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
         >
           Liste
         </button>

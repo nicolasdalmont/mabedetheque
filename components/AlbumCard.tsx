@@ -16,10 +16,10 @@ export function AlbumCard({ album }: { album: Album }) {
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
-      <div className="flex flex-col gap-0.5 p-2">
-        <span className="truncate text-sm font-medium">{album.title}</span>
+      <div className="flex flex-col gap-0.5 p-1.5 sm:p-2">
+        <span className="truncate text-xs font-medium sm:text-sm">{album.title}</span>
         {album.series_name ? (
-          <span className="truncate text-xs text-zinc-500">
+          <span className="truncate text-[11px] text-zinc-500 sm:text-xs">
             {album.series_name}
             {album.issue_number ? ` #${album.issue_number}` : ""}
           </span>
