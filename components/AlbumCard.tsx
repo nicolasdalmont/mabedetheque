@@ -1,10 +1,13 @@
 import Link from "next/link";
 import type { Album } from "@/types/album";
+import { LAST_ALBUM_KEY } from "@/lib/constants";
 
 export function AlbumCard({ album }: { album: Album }) {
   return (
     <Link
+      id={`album-${album.id}`}
       href={`/albums/${album.id}/edit`}
+      onClick={() => sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >
       <div className="aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">

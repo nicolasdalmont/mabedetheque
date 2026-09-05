@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
 import { SearchBar } from "@/components/SearchBar";
@@ -9,16 +10,51 @@ import { FilterSortBar } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
 import { AlbumTable } from "@/components/AlbumTable";
 import type { SortKey, ViewMode } from "@/types/album";
+import { LAST_ALBUM_KEY } from "@/lib/constants";
 
-export default function Home() {
+function HomeContent() {
   const { albums, loading, error } = useAlbums();
   const { user, signOut } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [query, setQuery] = useState("");
-  const [series, setSeries] = useState("");
-  const [publisher, setPublisher] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("title");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  // Filters/sort/view live in the URL (not useState): navigating to an
+  // album is a normal push, so going back restores this exact URL — no
+  // extra plumbing needed to keep them across a visit to an album's page.
+  const query = searchParams.get("q") ?? "";
+  const series = searchParams.get("series") ?? "";
+  const publisher = searchParams.get("publisher") ?? "";
+  const sortKey = (searchParams.get("sort") as SortKey | null) ?? "title";
+  const viewMode = (searchParams.get("view") as ViewMode | null) ?? "grid";
+
+  const updateParams = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
+  // Scroll to the album that was open, once its list has loaded.
+  const scrolledRef = useRef(false);
+  useEffect(() => {
+    if (loading || scrolledRef.current) return;
+    scrolledRef.current = true;
+    const lastId = sessionStorage.getItem(LAST_ALBUM_KEY);
+    if (!lastId) return;
+    sessionStorage.removeItem(LAST_ALBUM_KEY);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`album-${lastId}`)
+        ?.scrollIntoView({ block: "center" });
+    });
+  }, [loading]);
 
   const seriesOptions = useMemo(
     () =>
@@ -83,18 +119,18 @@ export default function Home() {
         </div>
       </header>
 
-      <SearchBar value={query} onChange={setQuery} />
+      <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar
         seriesOptions={seriesOptions}
         publisherOptions={publisherOptions}
         series={series}
         publisher={publisher}
-        onSeriesChange={setSeries}
-        onPublisherChange={setPublisher}
+        onSeriesChange={(v) => updateParams({ series: v })}
+        onPublisherChange={(v) => updateParams({ publisher: v })}
         sortKey={sortKey}
-        onSortChange={setSortKey}
+        onSortChange={(v) => updateParams({ sort: v })}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={(v) => updateParams({ view: v })}
       />
 
       {loading ? (
@@ -114,5 +150,13 @@ export default function Home() {
         {filtered.length !== albums.length ? ` · ${filtered.length} affiché${filtered.length > 1 ? "s" : ""}` : ""}
       </p>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

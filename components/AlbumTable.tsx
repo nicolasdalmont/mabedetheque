@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Album } from "@/types/album";
+import { LAST_ALBUM_KEY } from "@/lib/constants";
 
 export function AlbumTable({ albums }: { albums: Album[] }) {
   if (albums.length === 0) {
@@ -26,11 +27,13 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
           {albums.map((album) => (
             <tr
               key={album.id}
+              id={`album-${album.id}`}
               className="border-b border-black/5 last:border-0 hover:bg-zinc-50 dark:border-white/5 dark:hover:bg-zinc-900"
             >
               <td className="px-3 py-2">
                 <Link
                   href={`/albums/${album.id}/edit`}
+                  onClick={() => sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
                   className="font-medium hover:underline"
                 >
                   {album.title}

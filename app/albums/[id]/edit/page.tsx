@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
 import type { Album } from "@/types/album";
@@ -81,7 +80,7 @@ export default function EditAlbumPage() {
         }).catch(() => {});
       }
 
-      router.push("/");
+      router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
@@ -105,7 +104,7 @@ export default function EditAlbumPage() {
         body: JSON.stringify({ coverUrl: album.cover_url }),
       }).catch(() => {});
 
-      router.push("/");
+      router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
       setDeleting(false);
@@ -126,9 +125,13 @@ export default function EditAlbumPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
       <div className="flex items-center gap-3">
-        <Link href="/" className="text-sm text-zinc-500 hover:underline">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-sm text-zinc-500 hover:underline"
+        >
           ← Retour
-        </Link>
+        </button>
         <h1 className="text-lg font-semibold">Modifier l&apos;album</h1>
       </div>
 

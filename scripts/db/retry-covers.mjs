@@ -4,7 +4,7 @@
 // edition of the same book may have a cover even when ours doesn't).
 //
 // Usage: node scripts/db/retry-covers.mjs
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import sharp from "sharp";
@@ -77,33 +77,54 @@ function normalizeTitle(s) {
     .trim();
 }
 
-// A result only counts as a match if its title and ours overlap
-// meaningfully — Open Library's free-text relevance ranking otherwise
-// happily returns an unrelated book (e.g. "Les 24h de la bd" once matched
-// "The Complete Plays of William Shakespeare"). A wrong cover is worse
-// than the placeholder, since nobody will think to double-check it.
+// Exact match only (after normalizing case/accents/punctuation) — a
+// looser "one contains the other" check let short/generic French titles
+// (very common in BD) match unrelated books in Open Library's mixed-
+// language catalog (e.g. "Les 24h de la bd" once matched "The Complete
+// Plays of William Shakespeare"). A wrong cover is worse than the
+// placeholder, since nobody will think to double-check it. This does mean
+// some legitimate matches under a slightly different subtitle are missed —
+// an acceptable trade since recall isn't the priority here.
 function titlesMatch(a, b) {
   const na = normalizeTitle(a);
   const nb = normalizeTitle(b);
-  if (!na || !nb) return false;
-  return na.includes(nb) || nb.includes(na);
+  return na.length >= 3 && na === nb;
 }
 
-async function findCoverByTitleSearch(title) {
-  // Title only, no author: combining "Lastname, Firstname"-formatted authors
+// Extracts the most likely surname from our stored "Lastname, Firstname" (or
+// occasionally "Firstname Lastname") writer field, to cross-check against
+// Open Library's author_name list.
+function authorKey(writer) {
+  if (!writer) return null;
+  const first = writer.split(",")[0] || writer;
+  return normalizeTitle(first).split(" ").filter(Boolean).pop() ?? null;
+}
+
+function authorsMatch(writer, olAuthorNames) {
+  const key = authorKey(writer);
+  if (!key || key.length < 3) return false;
+  return (olAuthorNames ?? []).some((name) => normalizeTitle(name).includes(key));
+}
+
+async function findCoverByTitleSearch(title, writer) {
+  // Title only in the query (no author): combining "Lastname, Firstname"
   // into the free-text query was found to suppress matches entirely rather
   // than narrow them (Open Library's relevance ranking doesn't handle the
-  // comma well).
+  // comma well). The author is instead used afterwards, to confirm a
+  // same-titled result is actually the same book — an exact title match
+  // alone still isn't safe (e.g. our "Ni dieu ni diable" BD once matched an
+  // unrelated Michel Jobert political memoir sharing the same title).
   try {
     const url = new URL("https://openlibrary.org/search.json");
     url.searchParams.set("q", title);
-    url.searchParams.set("fields", "isbn,title");
+    url.searchParams.set("fields", "isbn,title,author_name");
     url.searchParams.set("limit", "5");
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
     const data = await res.json();
     for (const doc of data.docs ?? []) {
       if (!titlesMatch(title, doc.title ?? "")) continue;
+      if (!authorsMatch(writer, doc.author_name)) continue;
       for (const isbn of doc.isbn ?? []) {
         const bytes = await fetchOpenLibraryCoverByIsbn(isbn);
         if (bytes) return bytes;
@@ -118,15 +139,16 @@ async function findCoverByTitleSearch(title) {
 async function findBetterCover(album) {
   if (album.isbn) {
     const direct = await fetchOpenLibraryCoverByIsbn(album.isbn);
-    if (direct) return direct;
+    if (direct) return { bytes: direct, method: "isbn_direct" };
 
     const alt = album.isbn.length === 13 ? isbn13to10(album.isbn) : isbn10to13(album.isbn);
     if (alt) {
       const altCover = await fetchOpenLibraryCoverByIsbn(alt);
-      if (altCover) return altCover;
+      if (altCover) return { bytes: altCover, method: "isbn_alt" };
     }
   }
-  return findCoverByTitleSearch(album.title);
+  const searched = await findCoverByTitleSearch(album.title, album.writer);
+  return searched ? { bytes: searched, method: "title_search" } : null;
 }
 
 async function uploadCover(bytes) {
@@ -151,11 +173,13 @@ async function worker(queue, client, stats) {
   while (queue.length) {
     const album = queue.shift();
     try {
-      const bytes = await findBetterCover(album);
-      if (bytes) {
-        const url = await uploadCover(bytes);
+      const result = await findBetterCover(album);
+      if (result) {
+        const url = await uploadCover(result.bytes);
         await client.query("update albums set cover_url = $1 where id = $2", [url, album.id]);
         stats.found++;
+        stats.byMethod[result.method] = (stats.byMethod[result.method] ?? 0) + 1;
+        stats.matches.push({ title: album.title, method: result.method, url });
       } else {
         stats.stillMissing++;
       }
@@ -186,21 +210,32 @@ async function main() {
 
   const limit = process.argv[2] ? Number(process.argv[2]) : null;
   const { rows } = await client.query(
-    `select id, isbn, title from albums where cover_url = $1${limit ? " limit " + limit : ""}`,
+    `select id, isbn, title, writer from albums where cover_url = $1${limit ? " limit " + limit : ""}`,
     [placeholderUrl],
   );
 
-  const stats = { total: rows.length, done: 0, found: 0, stillMissing: 0, failed: [] };
+  const stats = {
+    total: rows.length,
+    done: 0,
+    found: 0,
+    stillMissing: 0,
+    failed: [],
+    byMethod: {},
+    matches: [],
+  };
   const queue = [...rows];
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker(queue, client, stats)));
 
   await client.end();
   console.log("\n=== Terminé ===");
   console.log(`Total: ${stats.total}, nouvelles couvertures trouvées: ${stats.found}, toujours sans couverture: ${stats.stillMissing}`);
+  console.log(`Par méthode: ${JSON.stringify(stats.byMethod)}`);
   if (stats.failed.length) {
     console.log(`Erreurs (${stats.failed.length}):`);
     for (const f of stats.failed) console.log(` - ${f.id} ${f.title}: ${f.error}`);
   }
+  writeFileSync("/tmp/retry-covers-matches.json", JSON.stringify(stats.matches, null, 2));
+  console.log("Détail des correspondances : /tmp/retry-covers-matches.json");
 }
 
 main().catch((err) => {

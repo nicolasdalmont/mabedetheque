@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
@@ -93,7 +92,7 @@ export default function NewAlbumPage() {
       });
       if (error) throw new Error(error.message);
 
-      router.push("/");
+      router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
@@ -104,9 +103,13 @@ export default function NewAlbumPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
       <div className="flex items-center gap-3">
-        <Link href="/" className="text-sm text-zinc-500 hover:underline">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-sm text-zinc-500 hover:underline"
+        >
           ← Retour
-        </Link>
+        </button>
         <h1 className="text-lg font-semibold">Ajouter un album</h1>
       </div>
 
