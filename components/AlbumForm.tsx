@@ -111,9 +111,8 @@ export function AlbumForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
-          <label className={labelClass}>ISBN *</label>
+          <label className={labelClass}>ISBN</label>
           <input
-            required
             autoComplete="off"
             {...field("isbn")}
             className={inputClass}

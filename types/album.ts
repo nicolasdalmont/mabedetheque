@@ -1,7 +1,7 @@
 export type Album = {
   id: string;
   owner_id: string;
-  isbn: string;
+  isbn: string | null;
   title: string;
   series_name: string | null;
   issue_number: number | null;
@@ -30,7 +30,7 @@ export type Database = {
       albums: {
         Row: Album;
         Insert: Partial<Album> &
-          Pick<Album, "isbn" | "title" | "cover_url" | "owner_id">;
+          Pick<Album, "title" | "cover_url" | "owner_id">;
         Update: Partial<Album>;
       };
     };
