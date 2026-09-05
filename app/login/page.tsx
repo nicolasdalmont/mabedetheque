@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
 
@@ -11,6 +11,27 @@ const inputClass =
 const buttonClass =
   "w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200";
 
+const REMEMBERED_KEY = "mabedetheque:remembered-account";
+
+type RememberedAccount = { email: string; name: string | null };
+
+function loadRemembered(): RememberedAccount | null {
+  try {
+    const raw = localStorage.getItem(REMEMBERED_KEY);
+    return raw ? (JSON.parse(raw) as RememberedAccount) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRemembered(account: RememberedAccount) {
+  try {
+    localStorage.setItem(REMEMBERED_KEY, JSON.stringify(account));
+  } catch {
+    // ignore (private browsing, storage disabled...)
+  }
+}
+
 // Sign-in happens client-side (not a Server Action): the browser's Neon
 // client caches the session's JWT (from the `set-auth-jwt` response header)
 // in memory when IT performs the sign-in. A server-side sign-in sets the
@@ -20,6 +41,18 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // null while unknown (avoids a server/client render mismatch, since
+  // localStorage isn't available during the server render pass).
+  const [remembered, setRemembered] = useState<RememberedAccount | null | undefined>(
+    undefined,
+  );
+  const [mode, setMode] = useState<"picker" | "password" | "full">("full");
+
+  useEffect(() => {
+    const account = loadRemembered();
+    setRemembered(account);
+    setMode(account ? "picker" : "full");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,7 +62,7 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
 
-    const { error } = await safeAuthCall(
+    const { data, error } = await safeAuthCall(
       getNeonClient().auth.signIn.email({ email, password }),
     );
     setPending(false);
@@ -37,31 +70,74 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
       setError(error.message ?? "Connexion impossible.");
       return;
     }
+    saveRemembered({ email, name: data?.user?.name ?? null });
     router.push("/");
   }
+
+  if (mode === "picker" && remembered) {
+    return (
+      <div className={cardClass}>
+        <div>
+          <h1 className="text-xl font-semibold">Ma Bédéthèque</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Connexion à votre collection.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMode("password")}
+          className="flex w-full items-center gap-3 rounded-md border border-black/15 px-3 py-2.5 text-left hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-sm font-medium text-white dark:bg-white dark:text-black">
+            {(remembered.name || remembered.email).slice(0, 1).toUpperCase()}
+          </span>
+          <span className="truncate text-sm font-medium">
+            {remembered.name || remembered.email}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode("full")}
+          className="w-full text-center text-sm text-zinc-500 hover:underline"
+        >
+          Utiliser un autre compte
+        </button>
+      </div>
+    );
+  }
+
+  const isPasswordOnly = mode === "password" && remembered;
 
   return (
     <form onSubmit={handleSubmit} className={cardClass}>
       <div>
         <h1 className="text-xl font-semibold">Ma Bédéthèque</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Connexion à votre collection.
+          {isPasswordOnly
+            ? `Connecté en tant que ${remembered!.name || remembered!.email}.`
+            : "Connexion à votre collection."}
         </p>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          className={inputClass}
-        />
-      </div>
+      {isPasswordOnly ? (
+        <input type="hidden" name="email" value={remembered!.email} />
+      ) : (
+        <div className="space-y-1">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className={inputClass}
+          />
+        </div>
+      )}
 
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium">
@@ -73,6 +149,7 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
           type="password"
           required
           autoComplete="current-password"
+          autoFocus={!!isPasswordOnly}
           className={inputClass}
         />
       </div>
@@ -85,13 +162,26 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
         {pending ? "Connexion..." : "Se connecter"}
       </button>
 
-      <button
-        type="button"
-        onClick={onForgotPassword}
-        className="w-full text-center text-sm text-zinc-500 hover:underline"
-      >
-        Mot de passe oublié ?
-      </button>
+      <div className="flex items-center justify-between text-sm">
+        {isPasswordOnly ? (
+          <button
+            type="button"
+            onClick={() => setMode("picker")}
+            className="text-zinc-500 hover:underline"
+          >
+            ← Retour
+          </button>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          onClick={onForgotPassword}
+          className="text-zinc-500 hover:underline"
+        >
+          Mot de passe oublié ?
+        </button>
+      </div>
     </form>
   );
 }
