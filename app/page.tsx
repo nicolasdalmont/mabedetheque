@@ -104,13 +104,7 @@ function HomeContent() {
           <img
             src="/icons/icon-192.png"
             alt="Ma Bédéthèque"
-            className="h-8 w-8 rounded-md dark:hidden"
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-          <img
-            src="/icons/icon-192-dark.png"
-            alt="Ma Bédéthèque"
-            className="hidden h-8 w-8 rounded-md dark:block"
+            className="h-12 w-12 rounded-md"
           />
         </h1>
         <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppUpdater } from "@/components/AppUpdater";
+import { ManifestThemeSwitcher } from "@/components/ManifestThemeSwitcher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +20,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png" }],
+    // Best-effort light/dark home-screen icon on iOS (Safari's actual
+    // support for switching the *installed* icon via media queries is
+    // undocumented/inconsistent — this affects the icon at most at the
+    // moment the user adds it to their home screen, not afterwards).
+    apple: [
+      { url: "/icons/apple-touch-icon.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icons/apple-touch-icon-dark.png", media: "(prefers-color-scheme: dark)" },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -29,7 +37,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FACC15",
+  themeColor: [
+    { color: "#FACC15", media: "(prefers-color-scheme: light)" },
+    { color: "#111111", media: "(prefers-color-scheme: dark)" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -40,6 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
         <AppUpdater />
+        <ManifestThemeSwitcher />
         {children}
       </body>
     </html>
