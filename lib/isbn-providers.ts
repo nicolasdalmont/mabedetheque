@@ -70,10 +70,21 @@ async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
     if (!marc) continue;
 
     const f200 = subfields(findDatafields(marc, "200")[0]);
-    const f210 = subfields(findDatafields(marc, "210")[0]);
     const f225 = subfields(findDatafields(marc, "225")[0]);
     const f700 = subfields(findDatafields(marc, "700")[0]); // writer (function 070)
     const f702 = subfields(findDatafields(marc, "702")[0]); // illustrator (function 440)
+
+    // Imprint (publisher + date): legacy field 210, or its UNIMARC successor
+    // 214, which BnF has been using for records catalogued roughly since the
+    // 2010s. Field 214 can repeat (publication / manufacture / copyright,
+    // distinguished by ind2), so prefer the "Publication" occurrence
+    // (ind2 "0") and only fall back to whichever comes first.
+    const f210raw = findDatafields(marc, "210")[0];
+    const f214candidates = findDatafields(marc, "214");
+    const f214raw =
+      f214candidates.find((f) => (f as { ["@_ind2"]?: string })?.["@_ind2"] === "0") ??
+      f214candidates[0];
+    const fImprint = subfields(f210raw ?? f214raw);
 
     const title = f200.a?.[0];
     if (!title) continue;
@@ -90,8 +101,8 @@ async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
       title,
       series_name: f225.a?.[0]?.replace(/[.,]\s*$/, ""),
       issue_number: f225.v?.[0] ? parseInt(f225.v[0], 10) || undefined : undefined,
-      publisher: f210.c?.[0],
-      legal_deposit: f210.d?.[0],
+      publisher: fImprint.c?.[0],
+      legal_deposit: fImprint.d?.[0],
       writer,
       illustrator,
     };
