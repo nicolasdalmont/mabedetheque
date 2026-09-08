@@ -139,7 +139,7 @@ export function SeriesDetailModal({
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();
       }}
-      className="w-full max-w-2xl rounded-lg border border-black/10 bg-white p-0 backdrop:bg-black/60 dark:border-white/10 dark:bg-zinc-950"
+      className="w-full max-w-2xl rounded-lg border border-black/10 bg-white p-0 text-zinc-900 backdrop:bg-black/60 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
     >
       <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
         <h2 className="text-sm font-medium">

@@ -180,7 +180,7 @@ export default function EditAlbumPage() {
 
       <dialog
         ref={dialogRef}
-        className="rounded-lg border border-black/10 p-6 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-950"
+        className="rounded-lg border border-black/10 bg-white p-6 text-zinc-900 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
       >
         <p className="mb-4 text-sm">
           Supprimer définitivement « {album.title} » et sa couverture ?
