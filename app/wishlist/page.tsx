@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { WishlistAddForm } from "@/components/WishlistAddForm";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
 
@@ -22,6 +23,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<WishlistStatus | "all">("a_acheter");
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -81,15 +83,38 @@ export default function WishlistPage() {
         ) : null}
       </header>
 
-      <AppTabs />
+      <AppTabs
+        action={
+          !showAddForm ? (
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
+            >
+              + Ajouter
+            </button>
+          ) : undefined
+        }
+      />
 
       <p className="text-xs text-zinc-500">
-        Les tomes manquants s&apos;ajoutent ici depuis l&apos;onglet{" "}
+        Les tomes manquants peuvent aussi s&apos;ajouter directement depuis l&apos;onglet{" "}
         <Link href="/series" className="underline">
           Séries
         </Link>
         .
       </p>
+
+      {showAddForm && user ? (
+        <WishlistAddForm
+          ownerId={user.id}
+          onAdded={(item) => {
+            setItems((prev) => [...prev, item]);
+            setShowAddForm(false);
+          }}
+          onCancel={() => setShowAddForm(false)}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <button
