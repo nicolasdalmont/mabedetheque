@@ -31,7 +31,7 @@ export function FilterSortBar({
   onViewModeChange: (value: ViewMode) => void;
 }) {
   const selectClass =
-    "w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-black/40 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-white/50";
+    "w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -77,14 +77,14 @@ export function FilterSortBar({
         <button
           type="button"
           onClick={() => onViewModeChange("grid")}
-          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "grid" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
+          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "grid" ? "bg-yellow-400 text-black" : ""}`}
         >
           Galerie
         </button>
         <button
           type="button"
           onClick={() => onViewModeChange("list")}
-          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "list" ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}
+          className={`flex-1 px-3 py-2 text-base sm:flex-none sm:py-1.5 sm:text-sm ${viewMode === "list" ? "bg-yellow-400 text-black" : ""}`}
         >
           Liste
         </button>

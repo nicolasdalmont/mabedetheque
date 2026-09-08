@@ -4,8 +4,8 @@
   "description": "Gestionnaire de bibliothèque de bandes dessinées.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#18181b",
+  "background_color": "#FACC15",
+  "theme_color": "#FACC15",
   "icons": [
     {
       "src": "/icons/icon-192.png",

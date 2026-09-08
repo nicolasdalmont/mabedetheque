@@ -103,7 +103,7 @@ function HomeContent() {
         <div className="flex items-center gap-3">
           <Link
             href="/albums/new"
-            className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
           >
             + Ajouter un album
           </Link>

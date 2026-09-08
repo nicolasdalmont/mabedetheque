@@ -1,9 +1,11 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#18181b"/>
-  <g transform="translate(96,120)">
-    <rect x="0" y="0" width="150" height="200" rx="10" fill="#f4f4f5" transform="rotate(-8 75 100)"/>
-    <rect x="120" y="10" width="150" height="210" rx="10" fill="#fafafa"/>
-    <path d="M20 30 h100 M20 55 h100 M20 80 h70" stroke="#a1a1aa" stroke-width="8" stroke-linecap="round" transform="rotate(-8 75 100)"/>
-    <path d="M145 40 h100 M145 65 h100 M145 90 h70" stroke="#71717a" stroke-width="8" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="96" fill="#FACC15"/>
+  <path d="M150 200 a40 40 0 0 1 40 -40 h132 a40 40 0 0 1 40 40 v100 a40 40 0 0 1 -40 40 h-112 l-46 46 v-46 h-14 a40 40 0 0 1 -40 -40 z"
+        fill="none" stroke="#111111" stroke-width="26" stroke-linejoin="round" stroke-linecap="round"/>
+  <g stroke="#111111" stroke-width="24" stroke-linecap="round">
+    <line x1="228" y1="168" x2="212" y2="288"/>
+    <line x1="292" y1="168" x2="276" y2="288"/>
+    <line x1="196" y1="204" x2="316" y2="204"/>
+    <line x1="188" y1="252" x2="308" y2="252"/>
   </g>
 </svg>

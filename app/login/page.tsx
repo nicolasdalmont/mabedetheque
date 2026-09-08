@@ -7,9 +7,9 @@ import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
 const cardClass =
   "w-full max-w-sm space-y-4 rounded-xl border border-black/10 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-zinc-950";
 const inputClass =
-  "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-black/40 sm:text-sm dark:border-white/20 dark:focus:border-white/50";
+  "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
 const buttonClass =
-  "w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200";
+  "w-full rounded-md bg-yellow-400 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-yellow-300 disabled:opacity-50";
 
 const REMEMBERED_KEY = "mabedetheque:remembered-account";
 
@@ -94,7 +94,7 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
           onClick={() => setMode("password")}
           className="flex w-full items-center gap-3 rounded-md border border-black/15 px-3 py-2.5 text-left hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-sm font-medium text-white dark:bg-white dark:text-black">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-sm font-medium text-black">
             {(remembered.name || remembered.email).slice(0, 1).toUpperCase()}
           </span>
           <span className="truncate text-sm font-medium">

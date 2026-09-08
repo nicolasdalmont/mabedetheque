@@ -67,7 +67,7 @@ export function AlbumForm({
   }
 
   const inputClass =
-    "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-black/40 sm:text-sm dark:border-white/20 dark:focus:border-white/50";
+    "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
   const labelClass = "text-sm font-medium";
 
   return (
@@ -194,7 +194,7 @@ export function AlbumForm({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
           >
             {pending ? "Enregistrement..." : submitLabel}
           </button>
