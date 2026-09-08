@@ -1,5 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#FACC15"/>
+  <rect width="512" height="512" fill="#FACC15"/>
   <path d="M256 62
            c-108 0 -196 74 -196 165
            c0 60 39 112 98 141
