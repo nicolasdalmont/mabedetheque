@@ -1,4 +1,5 @@
 import type { Idea } from "./idea";
+import type { WishlistItem } from "./wishlist";
 
 export type Album = {
   id: string;
@@ -39,6 +40,11 @@ export type Database = {
         Row: Idea;
         Insert: Partial<Idea> & Pick<Idea, "content" | "owner_id">;
         Update: Partial<Idea>;
+      };
+      wishlist_items: {
+        Row: WishlistItem;
+        Insert: Partial<WishlistItem> & Pick<WishlistItem, "series_name" | "owner_id">;
+        Update: Partial<WishlistItem>;
       };
     };
     Views: Record<string, never>;

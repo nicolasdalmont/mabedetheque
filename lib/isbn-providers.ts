@@ -1,5 +1,5 @@
-import { XMLParser } from "fast-xml-parser";
 import type { AlbumInput } from "@/types/album";
+import { subfields, findDatafields, datafieldInd2, parseSruRecords } from "./unimarc";
 
 export type IsbnLookupResult = Partial<AlbumInput> & { isbn: string };
 
@@ -20,51 +20,16 @@ function isbn13to10(isbn13: string): string | null {
   return core + check;
 }
 
-// `parseTagValue` defaults to true, which silently turns numeric-looking
-// element text into a JS number — stripping the leading zero from a UNIMARC
-// function code like "070" (Auteur du texte) so it can never match again as
-// a string. Every value is read back through String(...) already, so keep
-// everything as text and skip the auto-coercion entirely.
-const unimarcParser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  parseTagValue: false,
-});
-
-// Normalizes a UNIMARC datafield's subfields into { code: value | value[] }.
-function subfields(field: unknown): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  const arr = Array.isArray(field) ? field : [field];
-  for (const f of arr) {
-    const sub = f?.["mxc:subfield"];
-    if (!sub) continue;
-    const subs = Array.isArray(sub) ? sub : [sub];
-    for (const s of subs) {
-      const code = s?.["@_code"];
-      const value = typeof s === "object" ? s["#text"] : s;
-      if (!code || value == null) continue;
-      (out[code] ??= []).push(String(value));
-    }
-  }
-  return out;
-}
-
-function findDatafields(record: unknown, tag: string): unknown[] {
-  const fields = (record as { ["mxc:datafield"]?: unknown })?.["mxc:datafield"];
-  const arr = Array.isArray(fields) ? fields : fields ? [fields] : [];
-  return arr.filter((f: unknown) => (f as { ["@_tag"]?: string })?.["@_tag"] === tag);
-}
-
 // UNIMARC codes the BnF's own function ($4) subfield to say what a listed
 // contributor actually did — 070 "Auteur du texte" (scenarist/writer), 440
 // "Illustrateur" — regardless of which tag (700/701/702/703) their name
 // happens to sit in. Trusting the tag number instead of $4 breaks e.g. on
 // adaptations, where a 702 can carry the *original novel's* author (tagged
 // with a different function) rather than the BD's illustrator.
-const WRITER_FUNCTION = "070";
-const ILLUSTRATOR_FUNCTION = "440";
+export const WRITER_FUNCTION = "070";
+export const ILLUSTRATOR_FUNCTION = "440";
 
-function contributorsByFunction(marc: unknown, functionCode: string): string[] {
+export function contributorsByFunction(marc: unknown, functionCode: string): string[] {
   const fields = ["700", "701", "702", "703"].flatMap((tag) => findDatafields(marc, tag));
   const names: string[] = [];
   for (const field of fields) {
@@ -74,6 +39,18 @@ function contributorsByFunction(marc: unknown, functionCode: string): string[] {
     if (name) names.push(name);
   }
   return names;
+}
+
+// Imprint (publisher + date): legacy field 210, or its UNIMARC successor
+// 214, which BnF has been using for records catalogued roughly since the
+// 2010s. Field 214 can repeat (publication / manufacture / copyright,
+// distinguished by ind2), so prefer the "Publication" occurrence (ind2 "0")
+// and only fall back to whichever comes first.
+export function extractImprint(marc: unknown): Record<string, string[]> {
+  const f210raw = findDatafields(marc, "210")[0];
+  const f214candidates = findDatafields(marc, "214");
+  const f214raw = f214candidates.find((f) => datafieldInd2(f) === "0") ?? f214candidates[0];
+  return subfields(f210raw ?? f214raw);
 }
 
 async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
@@ -92,27 +69,12 @@ async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) continue;
     const xml = await res.text();
-    const parsed = unimarcParser.parse(xml);
-    const record =
-      parsed?.["srw:searchRetrieveResponse"]?.["srw:records"]?.["srw:record"];
-    const single = Array.isArray(record) ? record[0] : record;
-    const marc = single?.["srw:recordData"]?.["mxc:record"];
+    const marc = parseSruRecords(xml)[0];
     if (!marc) continue;
 
     const f200 = subfields(findDatafields(marc, "200")[0]);
     const f225 = subfields(findDatafields(marc, "225")[0]);
-
-    // Imprint (publisher + date): legacy field 210, or its UNIMARC successor
-    // 214, which BnF has been using for records catalogued roughly since the
-    // 2010s. Field 214 can repeat (publication / manufacture / copyright,
-    // distinguished by ind2), so prefer the "Publication" occurrence
-    // (ind2 "0") and only fall back to whichever comes first.
-    const f210raw = findDatafields(marc, "210")[0];
-    const f214candidates = findDatafields(marc, "214");
-    const f214raw =
-      f214candidates.find((f) => (f as { ["@_ind2"]?: string })?.["@_ind2"] === "0") ??
-      f214candidates[0];
-    const fImprint = subfields(f210raw ?? f214raw);
+    const fImprint = extractImprint(marc);
 
     const title = f200.a?.[0];
     if (!title) continue;
