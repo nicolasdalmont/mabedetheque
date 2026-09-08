@@ -99,7 +99,10 @@ function HomeContent() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">Ma Bédéthèque</h1>
+        <h1>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+          <img src="/icons/icon-192.png" alt="Ma Bédéthèque" className="h-8 w-8 rounded-md" />
+        </h1>
         <div className="flex items-center gap-3">
           <Link
             href="/albums/new"
