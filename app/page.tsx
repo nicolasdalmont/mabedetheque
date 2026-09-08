@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
+import { AppTabs } from "@/components/AppTabs";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterSortBar } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
@@ -109,12 +110,6 @@ function HomeContent() {
         </h1>
         <div className="flex items-center gap-3">
           <Link
-            href="/ideas"
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Idées
-          </Link>
-          <Link
             href="/albums/new"
             className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
           >
@@ -131,6 +126,8 @@ function HomeContent() {
           ) : null}
         </div>
       </header>
+
+      <AppTabs />
 
       <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
+import { AppTabs } from "@/components/AppTabs";
 import { IdeaCard } from "@/components/IdeaCard";
 import type { Idea, IdeaStatus } from "@/types/idea";
 import { IDEA_STATUS_LABEL, IDEA_STATUS_ORDER } from "@/types/idea";
@@ -16,8 +17,7 @@ const chipClass = (active: boolean) =>
   }`;
 
 export default function IdeasPage() {
-  const router = useRouter();
-  const { user } = useSession();
+  const { user, signOut } = useSession();
 
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,17 +83,28 @@ export default function IdeasPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-sm text-zinc-500 hover:underline"
-        >
-          ← Retour
-        </button>
-        <h1 className="text-lg font-semibold">Boîte à idées</h1>
-      </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
+      <header className="flex items-center justify-between gap-3">
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+          <img
+            src="/icons/icon-192.png"
+            alt="Ma Bédéthèque"
+            className="h-12 w-12 rounded-md"
+          />
+        </Link>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-sm text-zinc-500 hover:underline"
+          >
+            Déconnexion
+          </button>
+        ) : null}
+      </header>
+
+      <AppTabs />
 
       <form
         onSubmit={handleSubmit}
