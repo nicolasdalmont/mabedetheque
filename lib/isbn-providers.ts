@@ -20,7 +20,16 @@ function isbn13to10(isbn13: string): string | null {
   return core + check;
 }
 
-const unimarcParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+// `parseTagValue` defaults to true, which silently turns numeric-looking
+// element text into a JS number — stripping the leading zero from a UNIMARC
+// function code like "070" (Auteur du texte) so it can never match again as
+// a string. Every value is read back through String(...) already, so keep
+// everything as text and skip the auto-coercion entirely.
+const unimarcParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  parseTagValue: false,
+});
 
 // Normalizes a UNIMARC datafield's subfields into { code: value | value[] }.
 function subfields(field: unknown): Record<string, string[]> {
@@ -44,6 +53,27 @@ function findDatafields(record: unknown, tag: string): unknown[] {
   const fields = (record as { ["mxc:datafield"]?: unknown })?.["mxc:datafield"];
   const arr = Array.isArray(fields) ? fields : fields ? [fields] : [];
   return arr.filter((f: unknown) => (f as { ["@_tag"]?: string })?.["@_tag"] === tag);
+}
+
+// UNIMARC codes the BnF's own function ($4) subfield to say what a listed
+// contributor actually did — 070 "Auteur du texte" (scenarist/writer), 440
+// "Illustrateur" — regardless of which tag (700/701/702/703) their name
+// happens to sit in. Trusting the tag number instead of $4 breaks e.g. on
+// adaptations, where a 702 can carry the *original novel's* author (tagged
+// with a different function) rather than the BD's illustrator.
+const WRITER_FUNCTION = "070";
+const ILLUSTRATOR_FUNCTION = "440";
+
+function contributorsByFunction(marc: unknown, functionCode: string): string[] {
+  const fields = ["700", "701", "702", "703"].flatMap((tag) => findDatafields(marc, tag));
+  const names: string[] = [];
+  for (const field of fields) {
+    const sf = subfields(field);
+    if (sf["4"]?.[0] !== functionCode) continue;
+    const name = [sf.a?.[0], sf.b?.[0]].filter(Boolean).join(" ");
+    if (name) names.push(name);
+  }
+  return names;
 }
 
 async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
@@ -71,8 +101,6 @@ async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
 
     const f200 = subfields(findDatafields(marc, "200")[0]);
     const f225 = subfields(findDatafields(marc, "225")[0]);
-    const f700 = subfields(findDatafields(marc, "700")[0]); // writer (function 070)
-    const f702 = subfields(findDatafields(marc, "702")[0]); // illustrator (function 440)
 
     // Imprint (publisher + date): legacy field 210, or its UNIMARC successor
     // 214, which BnF has been using for records catalogued roughly since the
@@ -89,12 +117,18 @@ async function lookupBnf(isbn: string): Promise<IsbnLookupResult | null> {
     const title = f200.a?.[0];
     if (!title) continue;
 
-    const writer = f700.a
-      ? [f700.a[0], f700.b?.[0]].filter(Boolean).join(" ")
-      : undefined;
-    const illustrator = f702.a
-      ? [f702.a[0], f702.b?.[0]].filter(Boolean).join(" ")
-      : undefined;
+    const writerNames = contributorsByFunction(marc, WRITER_FUNCTION);
+    const illustratorNames = contributorsByFunction(marc, ILLUSTRATOR_FUNCTION);
+    const writer = writerNames.length ? writerNames.join(", ") : undefined;
+    // BnF tags a separate "illustrateur" only when the artist differs from
+    // the writer; a solo-authored album (writer *and* illustrator) is
+    // recorded as a single "auteur du texte" entry with no 440 at all. Mirror
+    // that single writer back onto illustrator rather than leaving it blank.
+    const illustrator = illustratorNames.length
+      ? illustratorNames.join(", ")
+      : writerNames.length === 1
+        ? writerNames[0]
+        : undefined;
 
     return {
       isbn,
