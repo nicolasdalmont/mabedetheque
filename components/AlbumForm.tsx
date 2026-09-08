@@ -119,7 +119,7 @@ export function AlbumForm({
             <img
               src={coverPreview}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : (
             <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">

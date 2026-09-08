@@ -29,7 +29,7 @@ export function SeriesCard({
             alt={name}
             loading="lazy"
             onError={() => setBroken(true)}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="h-full w-full object-contain transition-transform group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
