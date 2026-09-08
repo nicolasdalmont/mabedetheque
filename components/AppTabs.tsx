@@ -22,7 +22,7 @@ export function AppTabs({ action }: { action?: React.ReactNode }) {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
+              className={`flex items-center justify-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:w-28 ${
                 active
                   ? "border-yellow-400 text-black dark:text-white"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
