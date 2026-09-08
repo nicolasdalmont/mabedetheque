@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ScanBarcode } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { IsbnScanner } from "@/components/IsbnScanner";
 
 export default function NewAlbumPage() {
   const router = useRouter();
@@ -20,12 +22,15 @@ export default function NewAlbumPage() {
   const [remoteCoverUrl, setRemoteCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
-  async function handleLookup() {
+  async function handleLookup(isbnOverride?: string) {
+    const isbn = isbnOverride ?? isbnInput;
+    if (!isbn) return;
     setSearching(true);
     setSearchError(null);
     try {
-      const res = await fetch(`/api/isbn/${encodeURIComponent(isbnInput)}`);
+      const res = await fetch(`/api/isbn/${encodeURIComponent(isbn)}`);
       const data = await res.json();
       if (!res.ok) {
         setSearchError(data.error ?? "Recherche impossible.");
@@ -49,6 +54,12 @@ export default function NewAlbumPage() {
     } finally {
       setSearching(false);
     }
+  }
+
+  function handleScanned(isbn: string) {
+    setShowScanner(false);
+    setIsbnInput(isbn);
+    handleLookup(isbn);
   }
 
   async function handleSearchCover(isbn: string) {
@@ -133,7 +144,16 @@ export default function NewAlbumPage() {
         />
         <button
           type="button"
-          onClick={handleLookup}
+          onClick={() => setShowScanner(true)}
+          title="Scanner le code-barres"
+          aria-label="Scanner le code-barres"
+          className="rounded-md border border-black/15 px-3 py-2 text-black hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/5"
+        >
+          <ScanBarcode size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => handleLookup()}
           disabled={searching || !isbnInput}
           className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
         >
@@ -144,6 +164,9 @@ export default function NewAlbumPage() {
         <p className="text-sm text-amber-600 dark:text-amber-400">
           {searchError} Vous pouvez continuer en saisie 100% manuelle ci-dessous.
         </p>
+      ) : null}
+      {showScanner ? (
+        <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
       ) : null}
 
       <AlbumForm
