@@ -7,6 +7,8 @@ import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
 import { IsbnScanner } from "@/components/IsbnScanner";
+import { BnfTextSearch } from "@/components/BnfTextSearch";
+import type { TextSearchCandidate } from "@/lib/bnf-text-search";
 
 export default function NewAlbumPage() {
   const router = useRouter();
@@ -60,6 +62,24 @@ export default function NewAlbumPage() {
     setShowScanner(false);
     setIsbnInput(isbn);
     handleLookup(isbn);
+  }
+
+  function handleTextSearchSelect(candidate: TextSearchCandidate) {
+    if (candidate.isbn) {
+      // Has an ISBN: chain through the normal ISBN lookup to also get the
+      // cover and any field the lightweight text-search result skipped.
+      setIsbnInput(candidate.isbn);
+      handleLookup(candidate.isbn);
+      return;
+    }
+    setPrefill({
+      isbn: "",
+      title: candidate.title,
+      series_name: candidate.series_name ?? null,
+      issue_number: candidate.issue_number ?? null,
+      publisher: candidate.publisher ?? null,
+      writer: candidate.writer ?? null,
+    });
   }
 
   async function handleSearchCover(isbn: string) {
@@ -168,6 +188,8 @@ export default function NewAlbumPage() {
       {showScanner ? (
         <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
       ) : null}
+
+      <BnfTextSearch onSelect={handleTextSearchSelect} />
 
       <AlbumForm
         initial={{ isbn: isbnInput, ...prefill }}

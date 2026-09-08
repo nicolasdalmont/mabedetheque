@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
+import { BnfTextSearch } from "@/components/BnfTextSearch";
 import type { WishlistItem } from "@/types/wishlist";
+import type { TextSearchCandidate } from "@/lib/bnf-text-search";
 
 const inputClass =
   "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
@@ -58,6 +60,17 @@ export function WishlistAddForm({
     } finally {
       setSearching(false);
     }
+  }
+
+  function handleTextSearchSelect(candidate: TextSearchCandidate) {
+    setFields((prev) => ({
+      ...prev,
+      isbn: candidate.isbn ?? prev.isbn,
+      series_name: candidate.series_name || prev.series_name,
+      issue_number: candidate.issue_number != null ? String(candidate.issue_number) : prev.issue_number,
+      title: candidate.title || prev.title,
+      publisher: candidate.publisher || prev.publisher,
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -118,6 +131,8 @@ export function WishlistAddForm({
           </p>
         ) : null}
       </div>
+
+      <BnfTextSearch onSelect={handleTextSearchSelect} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
