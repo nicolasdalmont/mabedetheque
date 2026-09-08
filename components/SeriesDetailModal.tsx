@@ -59,7 +59,13 @@ export function SeriesDetailModal({
       const params = new URLSearchParams({ series: seriesName });
       if (authorHint) params.set("author", authorHint);
       const res = await fetch(`/api/series-search?${params}`);
-      const data = await res.json();
+      // A platform-level timeout can return an HTML error page instead of
+      // JSON even when the route itself handles its own errors — res.json()
+      // on that gives a confusing generic parse error (e.g. Safari's "The
+      // string did not match the expected pattern."), so parse defensively
+      // and report the real symptom instead.
+      const data = await res.json().catch(() => null);
+      if (!data) throw new Error("Réponse invalide du serveur — réessayez.");
       if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
       setResult(data);
     } catch (err) {
