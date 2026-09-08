@@ -1,8 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 
 export function AlbumCard({ album }: { album: Album }) {
+  const [broken, setBroken] = useState(false);
+
   return (
     <Link
       id={`album-${album.id}`}
@@ -11,13 +16,20 @@ export function AlbumCard({ album }: { album: Album }) {
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >
       <div className="aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        {/* eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers */}
-        <img
-          src={album.cover_url}
-          alt={album.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
+        {album.cover_url && !broken ? (
+          // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
+          <img
+            src={album.cover_url}
+            alt={album.title}
+            loading="lazy"
+            onError={() => setBroken(true)}
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
+            Pas de couverture
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-0.5 p-1.5 sm:p-2">
         <span className="truncate text-xs font-medium sm:text-sm">{album.title}</span>

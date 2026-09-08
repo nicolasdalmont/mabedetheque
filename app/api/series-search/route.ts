@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { searchBnfCollections } from "@/lib/bnf-series";
+import { fetchSeriesTomes } from "@/lib/bnf-series";
 
 export async function GET(request: Request) {
-  const q = new URL(request.url).searchParams.get("q")?.trim();
-  if (!q) {
-    return NextResponse.json({ error: "Paramètre q manquant." }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const series = params.get("series")?.trim();
+  const author = params.get("author")?.trim() || null;
+  if (!series) {
+    return NextResponse.json({ error: "Paramètre series manquant." }, { status: 400 });
   }
 
-  const candidates = await searchBnfCollections(q);
-  return NextResponse.json({ candidates });
+  const result = await fetchSeriesTomes(series, author);
+  return NextResponse.json(result);
 }

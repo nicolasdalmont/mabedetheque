@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 export function SeriesCard({
   name,
   coverUrl,
@@ -11,6 +13,8 @@ export function SeriesCard({
   count: number;
   onClick: () => void;
 }) {
+  const [broken, setBroken] = useState(false);
+
   return (
     <button
       type="button"
@@ -18,12 +22,13 @@ export function SeriesCard({
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white text-left transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >
       <div className="aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        {coverUrl ? (
+        {coverUrl && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
           <img
             src={coverUrl}
             alt={name}
             loading="lazy"
+            onError={() => setBroken(true)}
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
         ) : (

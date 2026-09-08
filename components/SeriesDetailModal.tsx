@@ -6,7 +6,7 @@ import { getDataClient } from "@/lib/neon-client";
 import { AlbumGrid } from "@/components/AlbumGrid";
 import { findSeriesGaps } from "@/lib/series-gaps";
 import type { Album } from "@/types/album";
-import type { BnfCollectionCandidate, BnfTome } from "@/lib/bnf-series";
+import type { FetchSeriesTomesResult } from "@/lib/bnf-series";
 
 type MissingTome = {
   issueNumber: number;
@@ -28,15 +28,9 @@ export function SeriesDetailModal({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  const [candidates, setCandidates] = useState<BnfCollectionCandidate[] | null>(null);
-  const [searchingCandidates, setSearchingCandidates] = useState(false);
-  const [candidatesError, setCandidatesError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const [bnfTomes, setBnfTomes] = useState<BnfTome[] | null>(null);
-  const [loadingTomes, setLoadingTomes] = useState(false);
-  const [tomesError, setTomesError] = useState<string | null>(null);
-
+  const [result, setResult] = useState<FetchSeriesTomesResult | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [addedKeys, setAddedKeys] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -51,63 +45,27 @@ export function SeriesDetailModal({
     albums.map((a) => a.issue_number).filter((n): n is number => n != null),
   );
   const localGap = findSeriesGaps(albums)[0] ?? null;
+  // Any writer already recorded for this series narrows the BnF search to
+  // one author-authority record, which is far more complete than a bare
+  // text search (verified: an unscoped search for "Lapinot" alone missed
+  // most of its tomes; author-scoped found all of them).
+  const authorHint = albums.find((a) => a.writer)?.writer ?? null;
 
-  async function handleSearchCandidates() {
-    setSearchingCandidates(true);
-    setCandidatesError(null);
-    setCandidates(null);
-    setSelectedIds(new Set());
-    setBnfTomes(null);
+  async function handleSearch() {
+    setSearching(true);
+    setSearchError(null);
+    setResult(null);
     try {
-      const res = await fetch(`/api/series-search?q=${encodeURIComponent(seriesName)}`);
+      const params = new URLSearchParams({ series: seriesName });
+      if (authorHint) params.set("author", authorHint);
+      const res = await fetch(`/api/series-search?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
-      setCandidates(data.candidates ?? []);
+      setResult(data);
     } catch (err) {
-      setCandidatesError(err instanceof Error ? err.message : "Erreur inconnue.");
+      setSearchError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
-      setSearchingCandidates(false);
-    }
-  }
-
-  function toggleCandidate(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function handleFetchTomes() {
-    if (!selectedIds.size) return;
-    setLoadingTomes(true);
-    setTomesError(null);
-    setBnfTomes(null);
-    try {
-      const results = await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          fetch(`/api/series-search/tomes?collectionId=${encodeURIComponent(id)}`).then((r) =>
-            r.json(),
-          ),
-        ),
-      );
-      const merged = new Map<number, BnfTome>();
-      for (const r of results) {
-        for (const t of r.tomes ?? []) {
-          if (!merged.has(t.issueNumber)) merged.set(t.issueNumber, t);
-        }
-      }
-      if (merged.size === 0) {
-        setTomesError(
-          "Aucun tome numéroté trouvé pour cette sélection — essayez d'autres collections ci-dessus.",
-        );
-      }
-      setBnfTomes(Array.from(merged.values()).sort((a, b) => a.issueNumber - b.issueNumber));
-    } catch {
-      setTomesError("Recherche des tomes impossible.");
-    } finally {
-      setLoadingTomes(false);
+      setSearching(false);
     }
   }
 
@@ -125,7 +83,7 @@ export function SeriesDetailModal({
     if (!error) setAddedKeys((prev) => new Set(prev).add(tome.issueNumber));
   }
 
-  const bnfMissing: MissingTome[] = (bnfTomes ?? [])
+  const bnfMissing: MissingTome[] = (result?.tomes ?? [])
     .filter((t) => !ownedNumbers.has(t.issueNumber))
     .map((t) => ({ issueNumber: t.issueNumber, title: t.title, isbn: t.isbn, publisher: t.publisher }));
 
@@ -166,103 +124,74 @@ export function SeriesDetailModal({
               Trous entre les tomes possédés ({localGap.range}) : {localGap.missing}
             </p>
           ) : (
-            <p className="mb-3 text-xs text-zinc-500">
-              Aucun trou entre les tomes possédés.
-            </p>
+            <p className="mb-3 text-xs text-zinc-500">Aucun trou entre les tomes possédés.</p>
           )}
 
           <button
             type="button"
-            onClick={handleSearchCandidates}
-            disabled={searchingCandidates}
+            onClick={handleSearch}
+            disabled={searching}
             className="flex items-center gap-2 rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
           >
-            {searchingCandidates ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
             Rechercher sur la BnF pour aller plus loin
           </button>
-          {candidatesError ? (
-            <p className="mt-2 text-xs text-red-600 dark:text-red-400">{candidatesError}</p>
+          {!searching && !result && !searchError ? (
+            <p className="mt-1 text-[11px] text-zinc-400">
+              {authorHint
+                ? `Recherche ciblée sur "${authorHint}".`
+                : "Aucun scénariste connu pour cette série — recherche moins précise."}
+            </p>
+          ) : null}
+          {searchError ? (
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">{searchError}</p>
           ) : null}
 
-          {candidates ? (
-            candidates.length ? (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-zinc-500">
-                  Une série peut correspondre à plusieurs collections BnF (éditeurs/rééditions
-                  différents) — cochez celles qui semblent correspondre à vos éditions, la BnF ne
-                  garantit pas de résultat pour chacune.
-                </p>
-                <ul className="max-h-48 divide-y divide-black/5 overflow-y-auto rounded-md border border-black/10 dark:divide-white/10 dark:border-white/10">
-                  {candidates.map((c) => (
-                    <li key={c.id} className="flex items-start gap-2 px-2 py-1.5">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(c.id)}
-                        onChange={() => toggleCandidate(c.id)}
-                        className="mt-1"
-                      />
-                      <label className="text-xs">
-                        <span className="font-medium">{c.title}</span>
-                        <br />
-                        <span className="text-zinc-500">
-                          {[c.publisher, c.place, c.dateRange, c.language].filter(Boolean).join(" · ")}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={handleFetchTomes}
-                  disabled={!selectedIds.size || loadingTomes}
-                  className="flex items-center gap-2 rounded-md bg-yellow-400 px-3 py-1.5 text-xs font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
-                >
-                  {loadingTomes ? <Loader2 size={14} className="animate-spin" /> : null}
-                  Voir les tomes de la sélection ({selectedIds.size})
-                </button>
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-zinc-500">Aucune collection trouvée sur la BnF.</p>
-            )
-          ) : null}
-
-          {tomesError ? (
-            <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">{tomesError}</p>
-          ) : null}
-
-          {bnfTomes && bnfTomes.length ? (
-            <div className="mt-3">
-              <p className="mb-2 text-xs text-zinc-500">
-                {bnfMissing.length
-                  ? `${bnfMissing.length} tome(s) manquant(s) trouvé(s) (au-delà des trous locaux) :`
-                  : "Tous les tomes trouvés sur la BnF sont déjà possédés."}
+          {result ? (
+            result.tomes.length === 0 ? (
+              <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                Aucun tome trouvé sur la BnF pour cette série
+                {result.usedAuthor ? "" : " (essayez d'ajouter un scénariste sur un album possédé pour affiner la recherche)"}
+                .
               </p>
-              <ul className="space-y-1.5">
-                {bnfMissing.map((t) => {
-                  const added = addedKeys.has(t.issueNumber);
-                  return (
-                    <li
-                      key={t.issueNumber}
-                      className="flex items-center justify-between gap-2 rounded-md border border-black/10 px-2 py-1.5 dark:border-white/10"
-                    >
-                      <span className="text-xs">
-                        <span className="font-medium tabular-nums">#{t.issueNumber}</span>{" "}
-                        {t.title}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleAddToWishlist(t)}
-                        disabled={added}
-                        className={addButtonClass}
-                      >
-                        {added ? <Check size={12} /> : <Plus size={12} />}
-                        {added ? "Ajouté" : "Ajouter aux achats"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            ) : (
+              <div className="mt-3">
+                <p className="mb-2 text-xs text-zinc-500">
+                  {result.tomes.length} tome(s) trouvé(s) sur la BnF
+                  {result.truncated ? " (liste peut-être incomplète, trop de résultats)" : ""} —{" "}
+                  {bnfMissing.length
+                    ? `${bnfMissing.length} manquant(s) :`
+                    : "tous déjà possédés."}
+                </p>
+                {bnfMissing.length ? (
+                  <ul className="space-y-1.5">
+                    {bnfMissing.map((t) => {
+                      const added = addedKeys.has(t.issueNumber);
+                      return (
+                        <li
+                          key={t.issueNumber}
+                          className="flex items-center justify-between gap-2 rounded-md border border-black/10 px-2 py-1.5 dark:border-white/10"
+                        >
+                          <span className="text-xs">
+                            <span className="font-medium tabular-nums">#{t.issueNumber}</span>{" "}
+                            {t.title}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddToWishlist(t)}
+                            disabled={added}
+                            className={addButtonClass}
+                          >
+                            {added ? <Check size={12} /> : <Plus size={12} />}
+                            {added ? "Ajouté" : "Ajouter aux achats"}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+            )
           ) : null}
 
           {localGap ? (

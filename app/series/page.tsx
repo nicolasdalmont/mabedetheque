@@ -11,6 +11,17 @@ import type { Album } from "@/types/album";
 
 type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
 
+// A single dead cover_url (404 on Object Storage) got written to 423 of the
+// 875 albums — about half the collection — apparently by whatever bulk
+// process attempted a cover search for albums that had none, instead of
+// leaving cover_url empty on failure. It's non-empty so a plain truthy
+// check treats it as "has a cover"; excluded here by URL so the series
+// grid falls through to a real cover elsewhere in the series when one
+// exists. The underlying rows are unchanged — this only affects which
+// cover the series card picks to display.
+const KNOWN_DEAD_COVER_URL =
+  "https://br-icy-forest-a5gmcjl7.storage.c-1.us-east-2.aws.neon.tech/mabedetheque-covers/covers/aee360a3-442c-4dc9-a70f-3ce7c26d5c28.webp";
+
 // The series' cover is the first tome (lowest issue number, title as
 // tiebreak/fallback for unnumbered entries) that actually has one — covers
 // are missing for a meaningful chunk of the collection (see Stats).
@@ -30,7 +41,7 @@ function buildSeriesList(albums: Album[]): SeriesSummary[] {
       if (an !== bn) return an - bn;
       return a.title.localeCompare(b.title);
     });
-    const withCover = sorted.find((a) => a.cover_url);
+    const withCover = sorted.find((a) => a.cover_url && a.cover_url !== KNOWN_DEAD_COVER_URL);
     list.push({ name, albums: sorted, coverUrl: withCover?.cover_url ?? null });
   }
   return list.sort((a, b) => a.name.localeCompare(b.name));
