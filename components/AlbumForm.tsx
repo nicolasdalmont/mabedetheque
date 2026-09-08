@@ -23,6 +23,7 @@ export function AlbumForm({
   initial,
   coverPreview,
   onCoverFileSelected,
+  onSearchCover,
   onSubmit,
   submitLabel,
   extraActions,
@@ -31,6 +32,9 @@ export function AlbumForm({
   initial?: Partial<AlbumFormValues>;
   coverPreview?: string | null;
   onCoverFileSelected?: (file: File) => void;
+  /** Looks up a cover for the given ISBN and applies it (parent owns
+   * `coverPreview`, so it just needs to update its own state). */
+  onSearchCover?: (isbn: string) => Promise<void>;
   onSubmit: (values: AlbumFormValues) => void;
   submitLabel: string;
   extraActions?: React.ReactNode;
@@ -40,6 +44,8 @@ export function AlbumForm({
     ...emptyValues,
     ...initial,
   });
+  const [searchingCover, setSearchingCover] = useState(false);
+  const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -49,6 +55,28 @@ export function AlbumForm({
   if (initial !== prevInitial) {
     setPrevInitial(initial);
     setValues((prev) => ({ ...prev, ...initial }));
+  }
+
+  async function handleSearchCover() {
+    if (!values.isbn || !onSearchCover) return;
+    setSearchingCover(true);
+    setCoverSearchError(null);
+    try {
+      await onSearchCover(values.isbn);
+    } catch (err) {
+      setCoverSearchError(err instanceof Error ? err.message : "Recherche impossible.");
+    } finally {
+      setSearchingCover(false);
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    const file = item?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      onCoverFileSelected?.(file);
+    }
   }
 
   function field<K extends keyof AlbumFormValues>(key: K) {
@@ -80,7 +108,12 @@ export function AlbumForm({
     >
       <div className="space-y-2">
         <span className={labelClass}>Couverture</span>
-        <div className="aspect-[2/3] w-full overflow-hidden rounded-md border border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-zinc-900">
+        <div
+          tabIndex={0}
+          onPaste={handlePaste}
+          title="Cliquez ici puis collez une image (Ctrl/Cmd+V)"
+          className="aspect-[2/3] w-full overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
+        >
           {coverPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -89,24 +122,52 @@ export function AlbumForm({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-xs text-zinc-400">
-              Pas de couverture
+            <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
+              Pas de couverture — ou collez une image (Ctrl/Cmd+V)
             </div>
           )}
         </div>
-        <label className="block cursor-pointer rounded-md border border-black/15 px-3 py-1.5 text-center text-sm hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
-          Choisir / prendre une photo
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onCoverFileSelected?.(file);
-            }}
-          />
-        </label>
+
+        <div className="grid grid-cols-2 gap-1.5">
+          <label className="block cursor-pointer rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
+            Galerie photo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onCoverFileSelected?.(file);
+              }}
+            />
+          </label>
+          <label className="block cursor-pointer rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
+            Fichiers
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onCoverFileSelected?.(file);
+              }}
+            />
+          </label>
+        </div>
+
+        {onSearchCover ? (
+          <button
+            type="button"
+            onClick={handleSearchCover}
+            disabled={!values.isbn || searchingCover}
+            className="w-full rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
+          >
+            {searchingCover ? "Recherche..." : "Rechercher une couverture"}
+          </button>
+        ) : null}
+        {coverSearchError ? (
+          <p className="text-xs text-red-600 dark:text-red-400">{coverSearchError}</p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

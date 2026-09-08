@@ -51,6 +51,16 @@ export default function NewAlbumPage() {
     }
   }
 
+  async function handleSearchCover(isbn: string) {
+    const res = await fetch(`/api/isbn/${encodeURIComponent(isbn)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
+    if (!data.cover_url) throw new Error("Aucune couverture trouvée pour cet ISBN.");
+    setRemoteCoverUrl(data.cover_url);
+    setCoverPreview(data.cover_url);
+    setCoverFile(null);
+  }
+
   function handleCoverFileSelected(file: File) {
     setCoverFile(file);
     setRemoteCoverUrl(null);
@@ -140,6 +150,7 @@ export default function NewAlbumPage() {
         initial={{ isbn: isbnInput, ...prefill }}
         coverPreview={coverPreview}
         onCoverFileSelected={handleCoverFileSelected}
+        onSearchCover={handleSearchCover}
         onSubmit={handleSubmit}
         submitLabel="Enregistrer l'album"
         pending={saving}

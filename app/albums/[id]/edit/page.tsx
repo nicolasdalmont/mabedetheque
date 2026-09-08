@@ -18,6 +18,7 @@ export default function EditAlbumPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [remoteCoverUrl, setRemoteCoverUrl] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -45,7 +46,18 @@ export default function EditAlbumPage() {
 
   function handleCoverFileSelected(file: File) {
     setCoverFile(file);
+    setRemoteCoverUrl(null);
     setCoverPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSearchCover(isbn: string) {
+    const res = await fetch(`/api/isbn/${encodeURIComponent(isbn)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
+    if (!data.cover_url) throw new Error("Aucune couverture trouvée pour cet ISBN.");
+    setCoverFile(null);
+    setRemoteCoverUrl(data.cover_url);
+    setCoverPreview(data.cover_url);
   }
 
   async function handleSubmit(values: AlbumFormValues) {
@@ -64,6 +76,15 @@ export default function EditAlbumPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Échec de l'upload.");
         coverUrl = data.url;
+      } else if (remoteCoverUrl) {
+        const res = await fetch("/api/covers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceUrl: remoteCoverUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Échec du rapatriement de l'image.");
+        coverUrl = data.url;
       }
 
       const { error } = await getDataClient()
@@ -72,7 +93,7 @@ export default function EditAlbumPage() {
         .eq("id", album.id);
       if (error) throw new Error(error.message);
 
-      if (coverFile && previousCoverUrl !== coverUrl) {
+      if ((coverFile || remoteCoverUrl) && previousCoverUrl !== coverUrl) {
         await fetch("/api/covers", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -139,6 +160,7 @@ export default function EditAlbumPage() {
         initial={album}
         coverPreview={coverPreview}
         onCoverFileSelected={handleCoverFileSelected}
+        onSearchCover={handleSearchCover}
         onSubmit={handleSubmit}
         submitLabel="Enregistrer les modifications"
         pending={saving}
