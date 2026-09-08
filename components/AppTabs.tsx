@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Library, Lightbulb } from "lucide-react";
+import { Library, Lightbulb, ChartColumn } from "lucide-react";
 
 const TABS = [
   { href: "/", label: "Albums", icon: Library },
   { href: "/ideas", label: "Idées", icon: Lightbulb },
+  { href: "/stats", label: "Stats", icon: ChartColumn },
 ];
 
 export function AppTabs({ action }: { action?: React.ReactNode }) {
