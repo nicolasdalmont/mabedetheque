@@ -1,3 +1,5 @@
+import type { Idea } from "./idea";
+
 export type Album = {
   id: string;
   owner_id: string;
@@ -32,6 +34,11 @@ export type Database = {
         Insert: Partial<Album> &
           Pick<Album, "title" | "cover_url" | "owner_id">;
         Update: Partial<Album>;
+      };
+      ideas: {
+        Row: Idea;
+        Insert: Partial<Idea> & Pick<Idea, "content" | "owner_id">;
+        Update: Partial<Idea>;
       };
     };
     Views: Record<string, never>;
