@@ -8,6 +8,7 @@ import { useAlbums } from "@/hooks/useAlbums";
 import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { WishlistAddForm } from "@/components/WishlistAddForm";
+import { BuyWishlistModal } from "@/components/BuyWishlistModal";
 import { findSeriesGaps } from "@/lib/series-gaps";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
@@ -30,6 +31,7 @@ export default function WishlistPage() {
   const [statusFilter, setStatusFilter] = useState<WishlistStatus | "all">("a_acheter");
   const [showAddForm, setShowAddForm] = useState(false);
   const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
+  const [buyingItem, setBuyingItem] = useState<WishlistItem | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -180,13 +182,23 @@ export default function WishlistPage() {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleToggleStatus(item)}
-                  className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
-                >
-                  {WISHLIST_STATUS_LABEL[item.status]}
-                </button>
+                {item.status === "a_acheter" ? (
+                  <button
+                    type="button"
+                    onClick={() => setBuyingItem(item)}
+                    className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
+                  >
+                    Acheté
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(item)}
+                    className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+                  >
+                    {WISHLIST_STATUS_LABEL[item.status]}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => handleDelete(item)}
@@ -242,6 +254,18 @@ export default function WishlistPage() {
           <p className="text-sm text-zinc-500">Aucun trou détecté.</p>
         )}
       </section>
+
+      {buyingItem && user ? (
+        <BuyWishlistModal
+          item={buyingItem}
+          ownerId={user.id}
+          onDone={() => {
+            setItems((prev) => prev.filter((i) => i.id !== buyingItem.id));
+            setBuyingItem(null);
+          }}
+          onClose={() => setBuyingItem(null)}
+        />
+      ) : null}
     </div>
   );
 }
