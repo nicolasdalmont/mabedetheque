@@ -1,17 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, ScanBarcode } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { IsbnScanner } from "@/components/IsbnScanner";
+import { BnfTextSearch } from "@/components/BnfTextSearch";
+import type { TextSearchCandidate } from "@/lib/bnf-text-search";
 import type { WishlistItem } from "@/types/wishlist";
 
+const inputClass =
+  "flex-1 rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
+
 /**
- * "Acheté" action for a wishlist item: opens the normal album-creation form
- * pre-filled with whatever the wishlist entry already knows (série, tome,
- * titre, éditeur, ISBN), and on success both creates the album *and*
- * removes the item from the achats list — it isn't wanted anymore, it's
- * owned.
+ * "Acheté" action for a wishlist item: opens the exact same lookup +
+ * add-album experience as the normal "Ajouter un album" page (ISBN
+ * search/scan, title/série search, full field + cover prefill) — just
+ * pre-seeded with whatever the wishlist entry already knows, and on
+ * success both creates the album *and* removes the item from Achats.
  */
 export function BuyWishlistModal({
   item,
@@ -26,6 +32,17 @@ export function BuyWishlistModal({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  const [isbnInput, setIsbnInput] = useState(item.isbn ?? "");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
+
+  const [prefill, setPrefill] = useState<Partial<AlbumFormValues>>({
+    series_name: item.series_name,
+    issue_number: item.issue_number,
+    title: item.title ?? "",
+    publisher: item.publisher,
+  });
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [remoteCoverUrl, setRemoteCoverUrl] = useState<string | null>(item.cover_url);
   const [coverPreview, setCoverPreview] = useState<string | null>(item.cover_url);
@@ -40,10 +57,58 @@ export function BuyWishlistModal({
     dialogRef.current?.close();
   }
 
-  function handleCoverFileSelected(file: File) {
-    setCoverFile(file);
-    setRemoteCoverUrl(null);
-    setCoverPreview(URL.createObjectURL(file));
+  async function handleLookup(isbnOverride?: string) {
+    const isbn = isbnOverride ?? isbnInput;
+    if (!isbn) return;
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const res = await fetch(`/api/isbn/${encodeURIComponent(isbn)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setSearchError(data.error ?? "Recherche impossible.");
+        return;
+      }
+      setPrefill({
+        isbn: data.isbn,
+        title: data.title || "",
+        series_name: data.series_name ?? null,
+        issue_number: data.issue_number ?? null,
+        publisher: data.publisher ?? null,
+        writer: data.writer ?? null,
+        illustrator: data.illustrator ?? null,
+        legal_deposit: data.legal_deposit ?? null,
+      });
+      if (data.cover_url) {
+        setRemoteCoverUrl(data.cover_url);
+        setCoverPreview(data.cover_url);
+        setCoverFile(null);
+      }
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handleScanned(isbn: string) {
+    setShowScanner(false);
+    setIsbnInput(isbn);
+    handleLookup(isbn);
+  }
+
+  function handleTextSearchSelect(candidate: TextSearchCandidate) {
+    if (candidate.isbn) {
+      setIsbnInput(candidate.isbn);
+      handleLookup(candidate.isbn);
+      return;
+    }
+    setPrefill({
+      isbn: "",
+      title: candidate.title,
+      series_name: candidate.series_name ?? null,
+      issue_number: candidate.issue_number ?? null,
+      publisher: candidate.publisher ?? null,
+      writer: candidate.writer ?? null,
+    });
   }
 
   async function handleSearchCover(isbn: string) {
@@ -51,9 +116,15 @@ export function BuyWishlistModal({
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
     if (!data.cover_url) throw new Error("Aucune couverture trouvée pour cet ISBN.");
-    setCoverFile(null);
     setRemoteCoverUrl(data.cover_url);
     setCoverPreview(data.cover_url);
+    setCoverFile(null);
+  }
+
+  function handleCoverFileSelected(file: File) {
+    setCoverFile(file);
+    setRemoteCoverUrl(null);
+    setCoverPreview(URL.createObjectURL(file));
   }
 
   async function handleSubmit(values: AlbumFormValues) {
@@ -100,14 +171,6 @@ export function BuyWishlistModal({
     }
   }
 
-  const initial: Partial<AlbumFormValues> = {
-    series_name: item.series_name,
-    issue_number: item.issue_number,
-    title: item.title ?? "",
-    publisher: item.publisher,
-    isbn: item.isbn ?? "",
-  };
-
   return (
     <dialog
       ref={dialogRef}
@@ -134,8 +197,48 @@ export function BuyWishlistModal({
           Complétez et enregistrez pour l&apos;ajouter à votre bédéthèque — le tome sera
           automatiquement retiré de la liste d&apos;achats.
         </p>
+
+        <div className="mb-3 flex gap-2 rounded-lg border border-black/10 p-3 dark:border-white/10">
+          <input
+            value={isbnInput}
+            onChange={(e) => setIsbnInput(e.target.value)}
+            placeholder="Saisir ou scanner l'ISBN"
+            autoComplete="off"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            title="Scanner le code-barres"
+            aria-label="Scanner le code-barres"
+            className="rounded-md border border-black/15 px-3 py-2 text-black hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/5"
+          >
+            <ScanBarcode size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleLookup()}
+            disabled={searching || !isbnInput}
+            className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
+          >
+            {searching ? "Recherche..." : "Rechercher"}
+          </button>
+        </div>
+        {searchError ? (
+          <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
+            {searchError} Vous pouvez continuer en saisie manuelle ci-dessous.
+          </p>
+        ) : null}
+        {showScanner ? (
+          <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
+        ) : null}
+
+        <div className="mb-3">
+          <BnfTextSearch onSelect={handleTextSearchSelect} />
+        </div>
+
         <AlbumForm
-          initial={initial}
+          initial={{ isbn: isbnInput, ...prefill }}
           coverPreview={coverPreview}
           onCoverFileSelected={handleCoverFileSelected}
           onSearchCover={handleSearchCover}
