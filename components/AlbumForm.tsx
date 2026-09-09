@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
+
+// Long enough to not fire on an ordinary tap/scroll-start, short enough to
+// feel intentional — same order of magnitude as native long-press gestures
+// (context menus, drag handles).
+const LONG_PRESS_MS = 500;
 
 const emptyValues: AlbumFormValues = {
   isbn: "",
@@ -46,6 +51,9 @@ export function AlbumForm({
   });
   const [searchingCover, setSearchingCover] = useState(false);
   const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
+  const [pasting, setPasting] = useState(false);
+  const [pasteError, setPasteError] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -70,6 +78,8 @@ export function AlbumForm({
     }
   }
 
+  // Keyboard paste (Ctrl/Cmd+V) — works via the plain clipboard event, no
+  // permission prompt needed since it's a direct user-initiated paste.
   function handlePaste(e: React.ClipboardEvent) {
     const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
     const file = item?.getAsFile();
@@ -77,6 +87,65 @@ export function AlbumForm({
       e.preventDefault();
       onCoverFileSelected?.(file);
     }
+  }
+
+  // Click (desktop) / long-press (mobile) paste — reads the clipboard
+  // directly via the async Clipboard API instead of waiting for a Ctrl/Cmd+V
+  // keyboard event, which mobile has no equivalent of. Needs a user gesture
+  // (the click/long-press itself satisfies that) and a secure context (this
+  // app is HTTPS-only, see AGENTS.md/SETUP.md).
+  async function pasteFromClipboard() {
+    setPasteError(null);
+    if (!navigator.clipboard?.read) {
+      setPasteError(
+        "Collage non supporté par ce navigateur — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
+      );
+      return;
+    }
+    setPasting(true);
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (!imageType) continue;
+        const blob = await item.getType(imageType);
+        onCoverFileSelected?.(new File([blob], "presse-papiers", { type: imageType }));
+        return;
+      }
+      setPasteError("Aucune image dans le presse-papiers.");
+    } catch {
+      setPasteError(
+        "Impossible d'accéder au presse-papiers — autorisez l'accès, ou utilisez Ctrl/Cmd+V.",
+      );
+    } finally {
+      setPasting(false);
+    }
+  }
+
+  function clearLongPressTimer() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  // "pointer: coarse" is the primary-pointer media feature (finger-driven —
+  // true on phones/tablets, false on a mouse/trackpad-driven desktop, even
+  // one with a touchscreen). Used to route the gesture: a coarse pointer
+  // gets long-press only (a plain tap stays a no-op, so it doesn't fire a
+  // clipboard permission prompt on every tap), a fine one gets a plain click.
+  function isCoarsePointer(): boolean {
+    return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+  }
+
+  function handleCoverClick() {
+    if (isCoarsePointer()) return; // handled by long-press below instead
+    pasteFromClipboard();
+  }
+
+  function handleTouchStart() {
+    clearLongPressTimer();
+    longPressTimer.current = setTimeout(pasteFromClipboard, LONG_PRESS_MS);
   }
 
   function field<K extends keyof AlbumFormValues>(key: K) {
@@ -111,8 +180,14 @@ export function AlbumForm({
         <div
           tabIndex={0}
           onPaste={handlePaste}
-          title="Cliquez ici puis collez une image (Ctrl/Cmd+V)"
-          className="aspect-[2/3] w-full overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
+          onClick={handleCoverClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={clearLongPressTimer}
+          onTouchMove={clearLongPressTimer}
+          onTouchCancel={clearLongPressTimer}
+          title="Cliquez pour coller une image (appui long sur mobile) — Ctrl/Cmd+V aussi possible"
+          style={{ WebkitTouchCallout: "none" }}
+          className="aspect-[2/3] w-full cursor-pointer touch-none select-none overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
         >
           {coverPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -123,10 +198,15 @@ export function AlbumForm({
             />
           ) : (
             <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
-              Pas de couverture — ou collez une image (Ctrl/Cmd+V)
+              {pasting
+                ? "Collage..."
+                : "Pas de couverture — cliquez ou appuyez longuement pour coller une image"}
             </div>
           )}
         </div>
+        {pasteError ? (
+          <p className="text-xs text-red-600 dark:text-red-400">{pasteError}</p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-1.5">
           <label className="block cursor-pointer rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
