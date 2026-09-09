@@ -108,27 +108,26 @@ function HomeContent() {
             className="h-12 w-12 rounded-md"
           />
         </h1>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
-      </header>
-
-      <AppTabs
-        action={
+        <div className="flex items-center gap-3">
           <Link
             href="/albums/new"
             className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
           >
             + Ajouter un album
           </Link>
-        }
-      />
+          {user ? (
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="text-sm text-zinc-500 hover:underline"
+            >
+              Déconnexion
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <AppTabs />
 
       <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar

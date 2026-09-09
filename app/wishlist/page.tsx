@@ -72,20 +72,8 @@ export default function WishlistPage() {
             className="h-12 w-12 rounded-md"
           />
         </Link>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
-      </header>
-
-      <AppTabs
-        action={
-          !showAddForm ? (
+        <div className="flex items-center gap-3">
+          {!showAddForm ? (
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
@@ -93,9 +81,20 @@ export default function WishlistPage() {
             >
               + Ajouter
             </button>
-          ) : undefined
-        }
-      />
+          ) : null}
+          {user ? (
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="text-sm text-zinc-500 hover:underline"
+            >
+              Déconnexion
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <AppTabs />
 
       <p className="text-xs text-zinc-500">
         Les tomes manquants peuvent aussi s&apos;ajouter directement depuis l&apos;onglet{" "}
