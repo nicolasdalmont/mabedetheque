@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAlbums } from "@/hooks/useAlbums";
+import { getDataClient } from "@/lib/neon-client";
 import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BarChart, type BarChartDatum } from "@/components/BarChart";
-import { findSeriesGaps } from "@/lib/series-gaps";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
 
 const UNKNOWN_YEAR = "Inconnue";
@@ -50,6 +50,21 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint?:
 
 export default function StatsPage() {
   const { albums, loading, error } = useAlbums();
+  const [wishlistToBuy, setWishlistToBuy] = useState(0);
+
+  useEffect(() => {
+    let ignore = false;
+    getDataClient()
+      .from("wishlist_items")
+      .select("id")
+      .eq("status", "a_acheter")
+      .then(({ data }) => {
+        if (!ignore) setWishlistToBuy(data?.length ?? 0);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const totalAlbums = albums.length;
   const totalSeries = useMemo(
@@ -58,6 +73,10 @@ export default function StatsPage() {
   );
   const albumsWithoutCover = useMemo(
     () => albums.filter((a) => !a.cover_url || a.cover_url === KNOWN_DEAD_COVER_URL).length,
+    [albums],
+  );
+  const albumsForSale = useMemo(
+    () => albums.filter((a) => a.sale_status === "a_vendre").length,
     [albums],
   );
 
@@ -75,7 +94,6 @@ export default function StatsPage() {
       ),
     [albums],
   );
-  const seriesGaps = useMemo(() => findSeriesGaps(albums), [albums]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -100,13 +118,15 @@ export default function StatsPage() {
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+          <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
             <StatCard
               label="Albums"
               value={totalAlbums}
               hint={`${albumsWithoutCover} sans couverture`}
             />
             <StatCard label="Séries" value={totalSeries} />
+            <StatCard label="À acheter" value={wishlistToBuy} />
+            <StatCard label="En vente" value={albumsForSale} />
           </div>
 
           <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
@@ -124,36 +144,6 @@ export default function StatsPage() {
               <BarChart data={legalDepositByYear} />
             ) : (
               <p className="text-sm text-zinc-500">Aucune donnée.</p>
-            )}
-          </section>
-
-          <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
-            <h2 className="mb-1 text-sm font-medium">Séries incomplètes</h2>
-            <p className="mb-3 text-xs text-zinc-500">
-              Tomes manquants entre le premier et le dernier numéro possédé — un tome
-              publié au-delà de votre plus haut numéro possédé ne peut pas être détecté.
-            </p>
-            {seriesGaps.length ? (
-              <ul className="divide-y divide-black/5 dark:divide-white/10">
-                {seriesGaps.map((gap) => (
-                  <li key={gap.series} className="flex items-baseline justify-between gap-4 py-2">
-                    <div>
-                      <Link
-                        href={`/series?open=${encodeURIComponent(gap.series)}`}
-                        className="text-sm font-medium hover:underline"
-                      >
-                        {gap.series}
-                      </Link>
-                      <p className="text-xs text-zinc-500">Possédés : {gap.range}</p>
-                    </div>
-                    <p className="text-right text-sm tabular-nums text-amber-600 dark:text-amber-400">
-                      {gap.missing}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-zinc-500">Aucun trou détecté.</p>
             )}
           </section>
         </>

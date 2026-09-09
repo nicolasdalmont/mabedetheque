@@ -9,6 +9,7 @@ export function useAlbums() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loaded = useRef(false);
+  const fetchRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     let ignore = false;
@@ -17,6 +18,11 @@ export function useAlbums() {
       getDataClient()
         .from("albums")
         .select("*")
+        // A sold album leaves the active collection everywhere this hook
+        // feeds (gallery, séries, stats) without being deleted — it stays
+        // reachable from the Vente tab, which queries albums directly
+        // instead of going through this hook.
+        .neq("sale_status", "vendu")
         .order("title", { ascending: true })
         .then(({ data, error }) => {
           if (ignore) return;
@@ -26,6 +32,7 @@ export function useAlbums() {
           loaded.current = true;
         });
     };
+    fetchRef.current = fetchAlbums;
 
     fetchAlbums();
 
@@ -47,5 +54,7 @@ export function useAlbums() {
     };
   }, []);
 
-  return { albums, loading, error };
+  const refetch = () => fetchRef.current();
+
+  return { albums, loading, error, refetch };
 }

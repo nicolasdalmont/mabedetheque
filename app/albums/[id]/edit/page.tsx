@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
-import type { Album } from "@/types/album";
+import type { Album, SaleStatus } from "@/types/album";
 
 export default function EditAlbumPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +16,7 @@ export default function EditAlbumPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saleError, setSaleError] = useState<string | null>(null);
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [remoteCoverUrl, setRemoteCoverUrl] = useState<string | null>(null);
@@ -109,6 +110,18 @@ export default function EditAlbumPage() {
     }
   }
 
+  async function handleSetSaleStatus(status: SaleStatus) {
+    if (!album) return;
+    setSaleError(null);
+    const previous = album.sale_status;
+    setAlbum({ ...album, sale_status: status });
+    const { error } = await getDataClient().from("albums").update({ sale_status: status }).eq("id", album.id);
+    if (error) {
+      setAlbum((a) => (a ? { ...a, sale_status: previous } : a));
+      setSaleError(error.message);
+    }
+  }
+
   async function handleDelete() {
     if (!album) return;
     setDeleting(true);
@@ -155,6 +168,53 @@ export default function EditAlbumPage() {
         </button>
         <h1 className="text-lg font-semibold">Modifier l&apos;album</h1>
       </div>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">
+        <span className="text-xs font-medium text-zinc-500">Vente :</span>
+        {album.sale_status === "none" ? (
+          <button
+            type="button"
+            onClick={() => handleSetSaleStatus("a_vendre")}
+            className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+          >
+            Déclarer à vendre
+          </button>
+        ) : album.sale_status === "a_vendre" ? (
+          <>
+            <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-medium text-black">
+              À vendre
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSetSaleStatus("vendu")}
+              className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+            >
+              Marquer comme vendu
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetSaleStatus("none")}
+              className="text-xs text-zinc-500 hover:underline"
+            >
+              Retirer de la vente
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800">
+              Vendu
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSetSaleStatus("a_vendre")}
+              className="text-xs text-zinc-500 hover:underline"
+            >
+              Annuler la vente
+            </button>
+          </>
+        )}
+      </div>
+      {saleError ? <p className="text-xs text-red-600 dark:text-red-400">{saleError}</p> : null}
 
       <AlbumForm
         initial={album}

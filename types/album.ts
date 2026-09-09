@@ -1,6 +1,14 @@
 import type { Idea } from "./idea";
 import type { WishlistItem } from "./wishlist";
 
+export type SaleStatus = "none" | "a_vendre" | "vendu";
+
+export const SALE_STATUS_LABEL: Record<SaleStatus, string> = {
+  none: "Non concerné",
+  a_vendre: "À vendre",
+  vendu: "Vendu",
+};
+
 export type Album = {
   id: string;
   owner_id: string;
@@ -15,13 +23,16 @@ export type Album = {
   purchase_date: string | null;
   comment: string | null;
   cover_url: string;
+  sale_status: SaleStatus;
   created_at: string;
   updated_at: string;
 };
 
+// sale_status is deliberately excluded — it's managed by its own dedicated
+// actions (edit page, Vente tab), not the general add/edit form.
 export type AlbumInput = Omit<
   Album,
-  "id" | "owner_id" | "created_at" | "updated_at"
+  "id" | "owner_id" | "created_at" | "updated_at" | "sale_status"
 >;
 
 // Minimal Database shape for the Neon Data API client (PostgREST-generated

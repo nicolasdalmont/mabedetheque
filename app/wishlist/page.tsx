@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
+import { useAlbums } from "@/hooks/useAlbums";
 import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { WishlistAddForm } from "@/components/WishlistAddForm";
+import { findSeriesGaps } from "@/lib/series-gaps";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
 
@@ -19,6 +21,8 @@ const chipClass = (active: boolean) =>
 
 export default function WishlistPage() {
   const { user } = useSession();
+  const { albums } = useAlbums();
+  const seriesGaps = useMemo(() => findSeriesGaps(albums), [albums]);
 
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +181,36 @@ export default function WishlistPage() {
           ))}
         </ul>
       )}
+
+      <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
+        <h2 className="mb-1 text-sm font-medium">Séries incomplètes</h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          Tomes manquants entre le premier et le dernier numéro possédé — un tome publié
+          au-delà de votre plus haut numéro possédé ne peut pas être détecté.
+        </p>
+        {seriesGaps.length ? (
+          <ul className="divide-y divide-black/5 dark:divide-white/10">
+            {seriesGaps.map((gap) => (
+              <li key={gap.series} className="flex items-baseline justify-between gap-4 py-2">
+                <div>
+                  <Link
+                    href={`/series?open=${encodeURIComponent(gap.series)}`}
+                    className="text-sm font-medium hover:underline"
+                  >
+                    {gap.series}
+                  </Link>
+                  <p className="text-xs text-zinc-500">Possédés : {gap.range}</p>
+                </div>
+                <p className="text-right text-sm tabular-nums text-amber-600 dark:text-amber-400">
+                  {gap.missing}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-zinc-500">Aucun trou détecté.</p>
+        )}
+      </section>
     </div>
   );
 }

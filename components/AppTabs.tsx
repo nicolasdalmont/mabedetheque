@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Library, Layers, ShoppingCart, Lightbulb, ChartColumn } from "lucide-react";
+import { Library, Layers, ShoppingCart, Tag, Lightbulb, ChartColumn } from "lucide-react";
 
 const TABS = [
   { href: "/", label: "Albums", icon: Library },
   { href: "/series", label: "Séries", icon: Layers },
   { href: "/wishlist", label: "Achats", icon: ShoppingCart },
+  { href: "/vente", label: "Ventes", icon: Tag },
   { href: "/ideas", label: "Idées", icon: Lightbulb },
   { href: "/stats", label: "Stats", icon: ChartColumn },
 ];
