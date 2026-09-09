@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Tag } from "lucide-react";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 
@@ -15,7 +16,15 @@ export function AlbumCard({ album }: { album: Album }) {
       onClick={() => sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >
-      <div className="aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        {album.sale_status === "a_vendre" ? (
+          <span
+            title="En vente"
+            className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-black shadow"
+          >
+            <Tag size={13} aria-hidden="true" />
+          </span>
+        ) : null}
         {album.cover_url && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
           <img

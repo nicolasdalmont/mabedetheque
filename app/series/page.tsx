@@ -1,14 +1,16 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
+import { getDataClient } from "@/lib/neon-client";
 import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
+import { seriesTitlesMatch } from "@/lib/bnf-series";
 import type { Album } from "@/types/album";
 
 type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
@@ -47,6 +49,33 @@ function SeriesContent() {
   const seriesList = useMemo(() => buildSeriesList(albums), [albums]);
   const activeSeries = seriesList.find((s) => s.name === openSeries) ?? null;
 
+  const [wishlistSeriesNames, setWishlistSeriesNames] = useState<string[]>([]);
+  useEffect(() => {
+    let ignore = false;
+    getDataClient()
+      .from("wishlist_items")
+      .select("series_name")
+      .then(({ data }) => {
+        if (!ignore) setWishlistSeriesNames((data ?? []).map((i) => i.series_name));
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+  // wishlist_items.series_name can come from a BnF search result (BnF's own
+  // wording) or from a local series name (our sort-friendly convention) —
+  // compare on significant words, same as the BnF series matching, rather
+  // than exact string equality which would miss half of them.
+  const seriesWithWishlistItem = useMemo(() => {
+    const matched = new Set<string>();
+    for (const series of seriesList) {
+      if (wishlistSeriesNames.some((wn) => seriesTitlesMatch(series.name, wn))) {
+        matched.add(series.name);
+      }
+    }
+    return matched;
+  }, [seriesList, wishlistSeriesNames]);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
       <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
@@ -80,6 +109,7 @@ function SeriesContent() {
               name={s.name}
               coverUrl={s.coverUrl}
               count={s.albums.length}
+              hasWishlistItem={seriesWithWishlistItem.has(s.name)}
               onClick={() => setOpenSeries(s.name)}
             />
           ))}

@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { ShoppingCart } from "lucide-react";
 
 export function SeriesCard({
   name,
   coverUrl,
   count,
+  hasWishlistItem,
   onClick,
 }: {
   name: string;
   coverUrl: string | null;
   count: number;
+  /** At least one tome of this series is on the achats (wishlist) list. */
+  hasWishlistItem?: boolean;
   onClick: () => void;
 }) {
   const [broken, setBroken] = useState(false);
@@ -21,7 +25,15 @@ export function SeriesCard({
       onClick={onClick}
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white text-left transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >
-      <div className="aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        {hasWishlistItem ? (
+          <span
+            title="Tome(s) dans les achats"
+            className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-black shadow"
+          >
+            <ShoppingCart size={13} aria-hidden="true" />
+          </span>
+        ) : null}
         {coverUrl && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
           <img
