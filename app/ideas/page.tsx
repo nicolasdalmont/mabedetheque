@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { SignOutButton } from "@/components/SignOutButton";
 import { IdeaCard } from "@/components/IdeaCard";
 import type { Idea, IdeaStatus } from "@/types/idea";
 import { IDEA_STATUS_LABEL, IDEA_STATUS_ORDER } from "@/types/idea";
@@ -17,7 +18,7 @@ const chipClass = (active: boolean) =>
   }`;
 
 export default function IdeasPage() {
-  const { user, signOut } = useSession();
+  const { user } = useSession();
 
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,15 +97,7 @@ export default function IdeasPage() {
           </Link>
           <AppTabs />
         </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
+        <SignOutButton />
       </header>
 
       <form

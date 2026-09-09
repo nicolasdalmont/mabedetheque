@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { SignOutButton } from "@/components/SignOutButton";
 import { WishlistAddForm } from "@/components/WishlistAddForm";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
@@ -17,7 +18,7 @@ const chipClass = (active: boolean) =>
   }`;
 
 export default function WishlistPage() {
-  const { user, signOut } = useSession();
+  const { user } = useSession();
 
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,15 +76,7 @@ export default function WishlistPage() {
           </Link>
           <AppTabs />
         </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
+        <SignOutButton />
       </header>
 
       {!showAddForm ? (

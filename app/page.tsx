@@ -4,8 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
-import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { SignOutButton } from "@/components/SignOutButton";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterSortBar } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
@@ -15,7 +15,6 @@ import { LAST_ALBUM_KEY } from "@/lib/constants";
 
 function HomeContent() {
   const { albums, loading, error } = useAlbums();
-  const { user, signOut } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -111,15 +110,7 @@ function HomeContent() {
           </h1>
           <AppTabs />
         </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
+        <SignOutButton />
       </header>
 
       <div>

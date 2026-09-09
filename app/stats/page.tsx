@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useAlbums } from "@/hooks/useAlbums";
-import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { SignOutButton } from "@/components/SignOutButton";
 import { BarChart, type BarChartDatum } from "@/components/BarChart";
 import { findSeriesGaps } from "@/lib/series-gaps";
 
@@ -48,7 +48,6 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 export default function StatsPage() {
   const { albums, loading, error } = useAlbums();
-  const { user, signOut } = useSession();
 
   const totalAlbums = albums.length;
   const totalSeries = useMemo(
@@ -83,15 +82,7 @@ export default function StatsPage() {
           </Link>
           <AppTabs />
         </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
+        <SignOutButton />
       </header>
 
       {loading ? (

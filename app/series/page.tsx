@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
 import { AppTabs } from "@/components/AppTabs";
+import { SignOutButton } from "@/components/SignOutButton";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
 import type { Album } from "@/types/album";
@@ -49,7 +50,7 @@ function buildSeriesList(albums: Album[]): SeriesSummary[] {
 
 function SeriesContent() {
   const { albums, loading, error } = useAlbums();
-  const { user, signOut } = useSession();
+  const { user } = useSession();
   const searchParams = useSearchParams();
   const [openSeries, setOpenSeries] = useState<string | null>(searchParams.get("open"));
 
@@ -70,15 +71,7 @@ function SeriesContent() {
           </h1>
           <AppTabs />
         </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-zinc-500 hover:underline"
-          >
-            Déconnexion
-          </button>
-        ) : null}
+        <SignOutButton />
       </header>
 
       {loading ? (
