@@ -17,7 +17,7 @@ export function AppTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1">
+    <nav className="flex shrink-0 gap-1">
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (
@@ -25,13 +25,13 @@ export function AppTabs() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center justify-center gap-2 border-b-2 px-2 py-2 text-sm font-medium transition-colors sm:w-28 sm:px-3 ${
+            className={`flex min-w-10 shrink-0 items-center justify-center gap-2 border-b-2 px-2 py-2 text-sm font-medium transition-colors sm:w-28 sm:px-3 ${
               active
                 ? "border-yellow-400 text-black dark:text-white"
                 : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            <Icon size={18} aria-hidden="true" />
+            <Icon size={18} className="shrink-0" aria-hidden="true" />
             <span className="hidden sm:inline">{label}</span>
           </Link>
         );
