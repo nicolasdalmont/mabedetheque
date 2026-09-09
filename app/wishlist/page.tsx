@@ -29,6 +29,7 @@ export default function WishlistPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<WishlistStatus | "all">("a_acheter");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let ignore = false;
@@ -64,6 +65,22 @@ export default function WishlistPage() {
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     const { error } = await getDataClient().from("wishlist_items").delete().eq("id", item.id);
     if (error) setError(error.message);
+  }
+
+  async function handleAddGapTome(series: string, issueNumber: number) {
+    if (!user) return;
+    const key = `${series}#${issueNumber}`;
+    const { data, error } = await getDataClient()
+      .from("wishlist_items")
+      .insert({ owner_id: user.id, series_name: series, issue_number: issueNumber })
+      .select()
+      .single();
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setItems((prev) => [...prev, data]);
+    setAddedGapTomes((prev) => new Set(prev).add(key));
   }
 
   return (
@@ -106,6 +123,7 @@ export default function WishlistPage() {
       {showAddForm && user ? (
         <WishlistAddForm
           ownerId={user.id}
+          ownedAlbums={albums}
           onAdded={(item) => {
             setItems((prev) => [...prev, item]);
             setShowAddForm(false);
@@ -191,7 +209,7 @@ export default function WishlistPage() {
         {seriesGaps.length ? (
           <ul className="divide-y divide-black/5 dark:divide-white/10">
             {seriesGaps.map((gap) => (
-              <li key={gap.series} className="flex items-baseline justify-between gap-4 py-2">
+              <li key={gap.series} className="flex flex-col gap-2 py-2">
                 <div>
                   <Link
                     href={`/series?open=${encodeURIComponent(gap.series)}`}
@@ -201,9 +219,22 @@ export default function WishlistPage() {
                   </Link>
                   <p className="text-xs text-zinc-500">Possédés : {gap.range}</p>
                 </div>
-                <p className="text-right text-sm tabular-nums text-amber-600 dark:text-amber-400">
-                  {gap.missing}
-                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {gap.missingNumbers.map((n) => {
+                    const added = addedGapTomes.has(`${gap.series}#${n}`);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => handleAddGapTome(gap.series, n)}
+                        disabled={added}
+                        className="rounded-md border border-black/15 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
+                      >
+                        {added ? "✓" : "+"} #{n}
+                      </button>
+                    );
+                  })}
+                </div>
               </li>
             ))}
           </ul>

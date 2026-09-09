@@ -3,8 +3,14 @@
 import { useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
 import { BnfTextSearch } from "@/components/BnfTextSearch";
+import { seriesTitlesMatch } from "@/lib/bnf-series";
+import type { Album } from "@/types/album";
 import type { WishlistItem } from "@/types/wishlist";
 import type { TextSearchCandidate } from "@/lib/bnf-text-search";
+
+function onlyDigits(isbn: string): string {
+  return isbn.replace(/[^0-9Xx]/g, "");
+}
 
 const inputClass =
   "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
@@ -20,10 +26,14 @@ const emptyFields = {
 
 export function WishlistAddForm({
   ownerId,
+  ownedAlbums,
   onAdded,
   onCancel,
 }: {
   ownerId: string;
+  /** Already-owned albums — search results matching one of these (by ISBN,
+   * or by series + tome number) are hidden: no point buying a tome again. */
+  ownedAlbums: Album[];
   onAdded: (item: WishlistItem) => void;
   onCancel: () => void;
 }) {
@@ -60,6 +70,23 @@ export function WishlistAddForm({
     } finally {
       setSearching(false);
     }
+  }
+
+  function isAlreadyOwned(candidate: TextSearchCandidate): boolean {
+    return ownedAlbums.some((a) => {
+      if (candidate.isbn && a.isbn && onlyDigits(candidate.isbn) === onlyDigits(a.isbn)) {
+        return true;
+      }
+      if (
+        candidate.series_name &&
+        candidate.issue_number != null &&
+        a.series_name &&
+        a.issue_number === candidate.issue_number
+      ) {
+        return seriesTitlesMatch(candidate.series_name, a.series_name);
+      }
+      return false;
+    });
   }
 
   function handleTextSearchSelect(candidate: TextSearchCandidate) {
@@ -132,7 +159,7 @@ export function WishlistAddForm({
         ) : null}
       </div>
 
-      <BnfTextSearch onSelect={handleTextSearchSelect} />
+      <BnfTextSearch onSelect={handleTextSearchSelect} excludeCandidate={isAlreadyOwned} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">

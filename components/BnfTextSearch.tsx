@@ -11,18 +11,28 @@ const inputClass =
  * and/or series, pick the right result from the (possibly noisy) list.
  * Selecting a candidate is the caller's job (they own the target form).
  */
-export function BnfTextSearch({ onSelect }: { onSelect: (candidate: TextSearchCandidate) => void }) {
+export function BnfTextSearch({
+  onSelect,
+  excludeCandidate,
+}: {
+  onSelect: (candidate: TextSearchCandidate) => void;
+  /** When it returns true for a result, that result is hidden — e.g. a tome
+   * already in the collection, not worth offering again. */
+  excludeCandidate?: (candidate: TextSearchCandidate) => boolean;
+}) {
   const [title, setTitle] = useState("");
   const [series, setSeries] = useState("");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<TextSearchCandidate[] | null>(null);
+  const [hiddenCount, setHiddenCount] = useState(0);
 
   async function handleSearch() {
     if (!title.trim() && !series.trim()) return;
     setSearching(true);
     setError(null);
     setCandidates(null);
+    setHiddenCount(0);
     try {
       const params = new URLSearchParams();
       if (title.trim()) params.set("title", title.trim());
@@ -31,7 +41,10 @@ export function BnfTextSearch({ onSelect }: { onSelect: (candidate: TextSearchCa
       const data = await res.json().catch(() => null);
       if (!data) throw new Error("Réponse invalide du serveur — réessayez.");
       if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
-      setCandidates(data.candidates ?? []);
+      const all: TextSearchCandidate[] = data.candidates ?? [];
+      const visible = excludeCandidate ? all.filter((c) => !excludeCandidate(c)) : all;
+      setCandidates(visible);
+      setHiddenCount(all.length - visible.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
@@ -95,8 +108,18 @@ export function BnfTextSearch({ onSelect }: { onSelect: (candidate: TextSearchCa
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-zinc-500">Aucun résultat.</p>
+          <p className="text-xs text-zinc-500">
+            {hiddenCount
+              ? `Aucun résultat (${hiddenCount} déjà dans la collection, masqué${hiddenCount > 1 ? "s" : ""}).`
+              : "Aucun résultat."}
+          </p>
         )
+      ) : null}
+      {candidates && candidates.length && hiddenCount ? (
+        <p className="text-[11px] text-zinc-400">
+          {hiddenCount} résultat{hiddenCount > 1 ? "s" : ""} déjà dans la collection masqué
+          {hiddenCount > 1 ? "s" : ""}.
+        </p>
       ) : null}
     </div>
   );

@@ -57,7 +57,7 @@ function significantWords(title: string): Set<string> {
 // to fully reverse-engineer every cataloguing convention variant (some
 // parens are a reorderable article, some an author-disambiguation suffix,
 // some both at once).
-function seriesTitlesMatch(a: string, b: string): boolean {
+export function seriesTitlesMatch(a: string, b: string): boolean {
   const wa = significantWords(a);
   const wb = significantWords(b);
   if (!wa.size || !wb.size) return false;
