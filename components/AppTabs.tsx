@@ -17,7 +17,7 @@ export function AppTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex shrink-0 gap-1">
+    <nav className="flex min-w-0 gap-1 overflow-x-auto">
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (

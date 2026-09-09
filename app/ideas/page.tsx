@@ -86,8 +86,8 @@ export default function IdeasPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
       <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <Link href="/" className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
             <img
               src="/icons/icon-192.png"
