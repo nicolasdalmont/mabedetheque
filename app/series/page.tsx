@@ -8,20 +8,10 @@ import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
+import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
 import type { Album } from "@/types/album";
 
 type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
-
-// A single dead cover_url (404 on Object Storage) got written to 423 of the
-// 875 albums — about half the collection — apparently by whatever bulk
-// process attempted a cover search for albums that had none, instead of
-// leaving cover_url empty on failure. It's non-empty so a plain truthy
-// check treats it as "has a cover"; excluded here by URL so the series
-// grid falls through to a real cover elsewhere in the series when one
-// exists. The underlying rows are unchanged — this only affects which
-// cover the series card picks to display.
-const KNOWN_DEAD_COVER_URL =
-  "https://br-icy-forest-a5gmcjl7.storage.c-1.us-east-2.aws.neon.tech/mabedetheque-covers/covers/aee360a3-442c-4dc9-a70f-3ce7c26d5c28.webp";
 
 // The series' cover is the first tome (lowest issue number, title as
 // tiebreak/fallback for unnumbered entries) that actually has one — covers

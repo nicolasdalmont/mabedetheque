@@ -7,6 +7,7 @@ import { AppTabs } from "@/components/AppTabs";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BarChart, type BarChartDatum } from "@/components/BarChart";
 import { findSeriesGaps } from "@/lib/series-gaps";
+import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
 
 const UNKNOWN_YEAR = "Inconnue";
 
@@ -37,11 +38,12 @@ function countByYear(years: (string | null)[]): BarChartDatum[] {
   return data;
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/10">
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
       <p className="text-sm text-zinc-500">{label}</p>
+      {hint ? <p className="text-xs text-zinc-400">{hint}</p> : null}
     </div>
   );
 }
@@ -54,9 +56,16 @@ export default function StatsPage() {
     () => new Set(albums.map((a) => a.series_name).filter(Boolean)).size,
     [albums],
   );
+  const albumsWithoutCover = useMemo(
+    () => albums.filter((a) => !a.cover_url || a.cover_url === KNOWN_DEAD_COVER_URL).length,
+    [albums],
+  );
 
   const purchasesByYear = useMemo(
-    () => countByYear(albums.map((a) => a.purchase_date?.slice(0, 4) ?? null)),
+    () =>
+      countByYear(
+        albums.filter((a) => a.purchase_date).map((a) => a.purchase_date!.slice(0, 4)),
+      ),
     [albums],
   );
   const legalDepositByYear = useMemo(
@@ -92,7 +101,11 @@ export default function StatsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:max-w-md">
-            <StatCard label="Albums" value={totalAlbums} />
+            <StatCard
+              label="Albums"
+              value={totalAlbums}
+              hint={`${albumsWithoutCover} sans couverture`}
+            />
             <StatCard label="Séries" value={totalSeries} />
           </div>
 
