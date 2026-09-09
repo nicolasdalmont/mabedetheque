@@ -25,6 +25,7 @@ function HomeContent() {
   const query = searchParams.get("q") ?? "";
   const series = searchParams.get("series") ?? "";
   const publisher = searchParams.get("publisher") ?? "";
+  const author = searchParams.get("author") ?? "";
   const sortKey = (searchParams.get("sort") as SortKey | null) ?? "title";
   const viewMode = (searchParams.get("view") as ViewMode | null) ?? "grid";
 
@@ -66,6 +67,15 @@ function HomeContent() {
       Array.from(new Set(albums.map((a) => a.publisher).filter(Boolean))).sort() as string[],
     [albums],
   );
+  // Writer and illustrator merged into one list — picking a name matches
+  // either role, since which role someone had isn't always the point.
+  const authorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(albums.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
+      ).sort() as string[],
+    [albums],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -73,6 +83,7 @@ function HomeContent() {
       .filter((a) => {
         if (series && a.series_name !== series) return false;
         if (publisher && a.publisher !== publisher) return false;
+        if (author && a.writer !== author && a.illustrator !== author) return false;
         if (!q) return true;
         return [a.title, a.series_name, a.writer, a.illustrator, a.isbn]
           .filter(Boolean)
@@ -94,7 +105,7 @@ function HomeContent() {
         const bv = b[sortKey] ?? "";
         return String(av).localeCompare(String(bv));
       });
-  }, [albums, query, series, publisher, sortKey]);
+  }, [albums, query, series, publisher, author, sortKey]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -126,10 +137,13 @@ function HomeContent() {
       <FilterSortBar
         seriesOptions={seriesOptions}
         publisherOptions={publisherOptions}
+        authorOptions={authorOptions}
         series={series}
         publisher={publisher}
+        author={author}
         onSeriesChange={(v) => updateParams({ series: v })}
         onPublisherChange={(v) => updateParams({ publisher: v })}
+        onAuthorChange={(v) => updateParams({ author: v })}
         sortKey={sortKey}
         onSortChange={(v) => updateParams({ sort: v })}
         viewMode={viewMode}

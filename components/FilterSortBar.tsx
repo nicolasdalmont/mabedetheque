@@ -10,10 +10,13 @@ const sortLabels: Record<SortKey, string> = {
 export function FilterSortBar({
   seriesOptions,
   publisherOptions,
+  authorOptions,
   series,
   publisher,
+  author,
   onSeriesChange,
   onPublisherChange,
+  onAuthorChange,
   sortKey,
   onSortChange,
   viewMode,
@@ -21,10 +24,16 @@ export function FilterSortBar({
 }: {
   seriesOptions: string[];
   publisherOptions: string[];
+  /** Merged, de-duplicated writer + illustrator names — picking one matches
+   * either role, since remembering which role someone had isn't always the
+   * point when looking them up. */
+  authorOptions: string[];
   series: string;
   publisher: string;
+  author: string;
   onSeriesChange: (value: string) => void;
   onPublisherChange: (value: string) => void;
+  onAuthorChange: (value: string) => void;
   sortKey: SortKey;
   onSortChange: (value: SortKey) => void;
   viewMode: ViewMode;
@@ -57,6 +66,19 @@ export function FilterSortBar({
         {publisherOptions.map((p) => (
           <option key={p} value={p}>
             {p}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className={selectClass}
+        value={author}
+        onChange={(e) => onAuthorChange(e.target.value)}
+      >
+        <option value="">Tous les auteurs</option>
+        {authorOptions.map((a) => (
+          <option key={a} value={a}>
+            {a}
           </option>
         ))}
       </select>

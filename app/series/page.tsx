@@ -49,6 +49,31 @@ function SeriesContent() {
   const seriesList = useMemo(() => buildSeriesList(albums), [albums]);
   const activeSeries = seriesList.find((s) => s.name === openSeries) ?? null;
 
+  const [authorFilter, setAuthorFilter] = useState("");
+  const [seriesNameFilter, setSeriesNameFilter] = useState("");
+  // Writer and illustrator merged into one list — picking a name matches
+  // either role, same as the equivalent filter on Albums.
+  const authorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(albums.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
+      ).sort() as string[],
+    [albums],
+  );
+  const visibleSeriesList = useMemo(() => {
+    const q = seriesNameFilter.trim().toLowerCase();
+    return seriesList.filter((s) => {
+      if (q && !s.name.toLowerCase().includes(q)) return false;
+      if (
+        authorFilter &&
+        !s.albums.some((a) => a.writer === authorFilter || a.illustrator === authorFilter)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [seriesList, seriesNameFilter, authorFilter]);
+
   const [wishlistSeriesNames, setWishlistSeriesNames] = useState<string[]>([]);
   useEffect(() => {
     let ignore = false;
@@ -93,6 +118,28 @@ function SeriesContent() {
         <SignOutButton />
       </header>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <input
+          value={seriesNameFilter}
+          onChange={(e) => setSeriesNameFilter(e.target.value)}
+          placeholder="Filtrer par série"
+          autoComplete="off"
+          className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-56 sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
+        />
+        <select
+          value={authorFilter}
+          onChange={(e) => setAuthorFilter(e.target.value)}
+          className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
+        >
+          <option value="">Tous les auteurs</option>
+          {authorOptions.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : error ? (
@@ -101,9 +148,13 @@ function SeriesContent() {
         <p className="py-16 text-center text-sm text-zinc-500">
           Aucun album n&apos;a de série renseignée.
         </p>
+      ) : visibleSeriesList.length === 0 ? (
+        <p className="py-16 text-center text-sm text-zinc-500">
+          Aucune série ne correspond à ce filtre.
+        </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {seriesList.map((s) => (
+          {visibleSeriesList.map((s) => (
             <SeriesCard
               key={s.name}
               name={s.name}
