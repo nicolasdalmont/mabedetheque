@@ -58,15 +58,18 @@ function SeriesContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <h1>
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-          <img
-            src="/icons/icon-192.png"
-            alt="Ma Bédéthèque"
-            className="h-12 w-12 rounded-md"
-          />
-        </h1>
+      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <h1>
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+            <img
+              src="/icons/icon-192.png"
+              alt="Ma Bédéthèque"
+              className="h-12 w-12 rounded-md"
+            />
+          </h1>
+          <AppTabs />
+        </div>
         {user ? (
           <button
             type="button"
@@ -77,8 +80,6 @@ function SeriesContent() {
           </button>
         ) : null}
       </header>
-
-      <AppTabs />
 
       {loading ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>

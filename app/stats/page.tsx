@@ -71,15 +71,18 @@ export default function StatsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <Link href="/">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-          <img
-            src="/icons/icon-192.png"
-            alt="Ma Bédéthèque"
-            className="h-12 w-12 rounded-md"
-          />
-        </Link>
+      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+            <img
+              src="/icons/icon-192.png"
+              alt="Ma Bédéthèque"
+              className="h-12 w-12 rounded-md"
+            />
+          </Link>
+          <AppTabs />
+        </div>
         {user ? (
           <button
             type="button"
@@ -90,8 +93,6 @@ export default function StatsPage() {
           </button>
         ) : null}
       </header>
-
-      <AppTabs />
 
       {loading ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>

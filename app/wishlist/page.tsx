@@ -63,38 +63,40 @@ export default function WishlistPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <Link href="/">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-          <img
-            src="/icons/icon-192.png"
-            alt="Ma Bédéthèque"
-            className="h-12 w-12 rounded-md"
-          />
-        </Link>
-        <div className="flex items-center gap-3">
-          {!showAddForm ? (
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
-            >
-              + Ajouter
-            </button>
-          ) : null}
-          {user ? (
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="text-sm text-zinc-500 hover:underline"
-            >
-              Déconnexion
-            </button>
-          ) : null}
+      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+            <img
+              src="/icons/icon-192.png"
+              alt="Ma Bédéthèque"
+              className="h-12 w-12 rounded-md"
+            />
+          </Link>
+          <AppTabs />
         </div>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-sm text-zinc-500 hover:underline"
+          >
+            Déconnexion
+          </button>
+        ) : null}
       </header>
 
-      <AppTabs />
+      {!showAddForm ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
+          >
+            + Ajouter
+          </button>
+        </div>
+      ) : null}
 
       <p className="text-xs text-zinc-500">
         Les tomes manquants peuvent aussi s&apos;ajouter directement depuis l&apos;onglet{" "}

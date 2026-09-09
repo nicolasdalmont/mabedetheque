@@ -99,35 +99,37 @@ function HomeContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <h1>
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-          <img
-            src="/icons/icon-192.png"
-            alt="Ma Bédéthèque"
-            className="h-12 w-12 rounded-md"
-          />
-        </h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/albums/new"
-            className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
-          >
-            + Ajouter un album
-          </Link>
-          {user ? (
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="text-sm text-zinc-500 hover:underline"
-            >
-              Déconnexion
-            </button>
-          ) : null}
+      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <h1>
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
+            <img
+              src="/icons/icon-192.png"
+              alt="Ma Bédéthèque"
+              className="h-12 w-12 rounded-md"
+            />
+          </h1>
+          <AppTabs />
         </div>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-sm text-zinc-500 hover:underline"
+          >
+            Déconnexion
+          </button>
+        ) : null}
       </header>
 
-      <AppTabs />
+      <div>
+        <Link
+          href="/albums/new"
+          className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
+        >
+          + Ajouter un album
+        </Link>
+      </div>
 
       <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar
