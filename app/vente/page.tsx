@@ -162,14 +162,14 @@ export default function VentePage() {
                     <button
                       type="button"
                       onClick={() => setPendingSold(album)}
-                      className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+                      className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
                     >
-                      Marquer vendu
+                      Vendu
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSetStatus(album, "none")}
-                      className="-my-1 rounded px-2 py-2 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
+                      className="-my-1 inline-flex min-h-9 items-center rounded-md px-2 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                     >
                       Retirer
                     </button>
@@ -203,7 +203,7 @@ export default function VentePage() {
             ? `« ${pendingSold.title} » disparaîtra de la galerie, des séries et des stats. Il restera ici sous le filtre « Vendu ».`
             : ""
         }
-        confirmLabel="Marquer vendu"
+        confirmLabel="Vendu"
         onConfirm={() => {
           const album = pendingSold;
           setPendingSold(null);

@@ -214,7 +214,7 @@ export default function EditAlbumPage() {
               onClick={() => setConfirmSell(true)}
               className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
             >
-              Marquer vendu
+              Vendu
             </button>
             <button
               type="button"
@@ -276,7 +276,7 @@ export default function EditAlbumPage() {
         tone="default"
         title="Marquer comme vendu"
         message={`« ${album.title} » disparaîtra de la galerie, des séries et des stats. Il restera consultable dans l'onglet Ventes (filtre « Vendu »).`}
-        confirmLabel="Marquer vendu"
+        confirmLabel="Vendu"
         onConfirm={() => {
           setConfirmSell(false);
           handleSetSaleStatus("vendu");
