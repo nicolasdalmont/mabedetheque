@@ -1,14 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
-
-// Long enough to not fire on an ordinary tap/scroll-start, short enough to
-// feel intentional — same order of magnitude as native long-press gestures
-// (context menus, drag handles).
-const LONG_PRESS_MS = 500;
 
 // Per-field mobile-keyboard capitalisation (see the note in `field()`).
 // Titles read like a sentence; series / publisher / author names are proper
@@ -69,7 +64,6 @@ export function AlbumForm({
   const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
-  const coverPressRef = useRef<{ at: number; x: number; y: number } | null>(null);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -94,36 +88,50 @@ export function AlbumForm({
     }
   }
 
-  // Keyboard paste (Ctrl/Cmd+V) — works via the plain clipboard event, no
-  // permission prompt needed since it's a direct user-initiated paste.
-  function handlePaste(e: React.ClipboardEvent) {
+  // A paste landing on the invisible editable layer over the cover — from a
+  // Ctrl/Cmd+V, or from the OS "Coller" menu a long-press brings up on
+  // mobile. That native menu path needs no clipboard permission (the user
+  // explicitly chose "Coller"), unlike navigator.clipboard.read() below,
+  // which mobile browsers gate behind a permission the user often can't
+  // even grant from an installed PWA.
+  function handlePaste(e: React.ClipboardEvent<HTMLElement>) {
+    e.preventDefault(); // never keep anything in the editable layer
     const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
     const file = item?.getAsFile();
     if (file) {
-      e.preventDefault();
+      setPasteError(null);
       onCoverFileSelected?.(file);
+    } else {
+      setPasteError("Le presse-papiers ne contient pas d'image — copiez d'abord une image.");
     }
+    const el = e.currentTarget;
+    el.textContent = "";
+    el.blur(); // drop focus so the mobile keyboard doesn't linger
   }
 
-  // Click (desktop) / long-press (mobile) paste — reads the clipboard via the
-  // async Clipboard API, since mobile has no Ctrl/Cmd+V. It MUST be called
-  // straight from the gesture handler (click / touchend): the API needs
-  // transient user activation, which a deferred callback (e.g. a setTimeout
-  // that only fires once the press is long enough) no longer carries —
-  // Safari and Chrome both reject it with NotAllowedError then. Also needs a
-  // secure context, which the app always has (HTTPS-only, see AGENTS.md).
+  // Desktop convenience: one click reads the clipboard straight away via the
+  // async Clipboard API (reliable with a mouse). Called synchronously from
+  // the click so it keeps the transient user activation the API needs.
   async function pasteFromClipboard() {
+    const clip = navigator.clipboard;
+    if (!clip?.read) {
+      setPasteError("Presse-papiers non accessible — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.");
+      return;
+    }
     setPasteError(null);
-    if (!navigator.clipboard?.read) {
+    let items: ClipboardItems;
+    try {
+      items = await clip.read();
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") console.warn("clipboard read failed", err);
       setPasteError(
-        "Presse-papiers non accessible sur ce navigateur — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
+        "Lecture du presse-papiers refusée — utilisez Ctrl/Cmd+V, ou « Galerie photo » / « Fichiers » ci-dessous.",
       );
       return;
     }
     setPasting(true);
     try {
-      const clipboardItems = await navigator.clipboard.read();
-      for (const item of clipboardItems) {
+      for (const item of items) {
         const imageType = item.types.find((t) => t.startsWith("image/"));
         if (!imageType) continue;
         const blob = await item.getType(imageType);
@@ -131,52 +139,20 @@ export function AlbumForm({
         return;
       }
       setPasteError("Le presse-papiers ne contient pas d'image — copiez d'abord une image.");
-    } catch (err) {
-      if (process.env.NODE_ENV !== "production") console.warn("clipboard read failed", err);
-      const denied = err instanceof DOMException && err.name === "NotAllowedError";
-      setPasteError(
-        denied
-          ? "Accès au presse-papiers refusé — autorisez-le pour ce site (ou validez « Coller » si le navigateur le propose), sinon utilisez Ctrl/Cmd+V ou les boutons ci-dessous."
-          : "Lecture du presse-papiers impossible — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
-      );
     } finally {
       setPasting(false);
     }
   }
 
-  // "pointer: coarse" is the primary-pointer media feature (finger-driven —
-  // true on phones/tablets, false on a mouse/trackpad-driven desktop, even
-  // one with a touchscreen). Routes the gesture: a coarse pointer pastes on
-  // a long-press only (a plain tap stays a no-op, so it doesn't nag for
-  // clipboard access on every tap), a fine one on a plain click.
   function isCoarsePointer(): boolean {
     return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
   }
 
   function handleCoverClick() {
-    if (isCoarsePointer()) return; // touch: handled in handleTouchEnd
+    // Mobile: rely on the long-press → OS "Coller" menu (no permission). A
+    // plain tap does nothing. Desktop: read the clipboard on the click.
+    if (isCoarsePointer()) return;
     pasteFromClipboard();
-  }
-
-  function handleTouchStart(e: React.TouchEvent) {
-    const t = e.touches[0];
-    coverPressRef.current = { at: Date.now(), x: t.clientX, y: t.clientY };
-  }
-
-  // Fire on release, not on a timer: a stationary press held past the
-  // threshold is a long-press, and touchend still carries the user
-  // activation that navigator.clipboard.read() needs.
-  function handleTouchEnd(e: React.TouchEvent) {
-    const press = coverPressRef.current;
-    coverPressRef.current = null;
-    if (!press) return;
-    const t = e.changedTouches[0];
-    const held = Date.now() - press.at;
-    const moved = Math.hypot(t.clientX - press.x, t.clientY - press.y);
-    if (held >= LONG_PRESS_MS && moved < 12) {
-      e.preventDefault(); // don't also fire the click this touch synthesizes
-      pasteFromClipboard();
-    }
   }
 
   function field<K extends keyof AlbumFormValues>(key: K) {
@@ -217,19 +193,7 @@ export function AlbumForm({
     >
       <div className="space-y-2">
         <span className={labelClass}>Couverture</span>
-        <div
-          tabIndex={0}
-          onPaste={handlePaste}
-          onClick={handleCoverClick}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={() => {
-            coverPressRef.current = null;
-          }}
-          title="Cliquez pour coller une image (appui long sur mobile) — Ctrl/Cmd+V aussi possible"
-          style={{ WebkitTouchCallout: "none" }}
-          className="aspect-[2/3] w-full cursor-pointer touch-manipulation select-none overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
-        >
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md border border-black/10 bg-zinc-100 focus-within:border-yellow-500 dark:border-white/10 dark:bg-zinc-900">
           {coverPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -241,9 +205,31 @@ export function AlbumForm({
             <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
               {pasting
                 ? "Collage..."
-                : "Pas de couverture — cliquez ou appuyez longuement pour coller une image"}
+                : "Pas de couverture — cliquez ou appui long pour coller une image"}
             </div>
           )}
+          {/* Invisible editable layer: a long-press brings up the OS "Coller"
+              menu (no clipboard permission needed on mobile); Ctrl/Cmd+V
+              works too once it has focus. Never keeps any content — see
+              handlePaste. */}
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            role="button"
+            aria-label="Coller une image de couverture"
+            inputMode="none"
+            onPaste={handlePaste}
+            onClick={handleCoverClick}
+            onInput={(e) => {
+              e.currentTarget.textContent = "";
+            }}
+            onKeyDown={(e) => {
+              const paste = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v";
+              if (!paste && e.key !== "Tab") e.preventDefault();
+            }}
+            title="Cliquez pour coller (ordi) · appui long → « Coller » (mobile) · Ctrl/Cmd+V"
+            className="absolute inset-0 cursor-pointer caret-transparent outline-none"
+          />
         </div>
         {pasteError ? (
           <p className="text-xs text-red-600 dark:text-red-400">{pasteError}</p>
