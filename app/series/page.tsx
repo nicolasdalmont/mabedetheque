@@ -93,13 +93,13 @@ function SeriesContent() {
   }, [seriesList, seriesNameFilter, authorFilter]);
 
   const [wishlist, setWishlist] = useState<
-    { series_name: string; issue_number: number | null }[]
+    { series_name: string; issue_number: number | null; title: string | null }[]
   >([]);
   useEffect(() => {
     let ignore = false;
     getDataClient()
       .from("wishlist_items")
-      .select("series_name, issue_number")
+      .select("series_name, issue_number, title")
       .then(({ data }) => {
         if (!ignore) setWishlist(data ?? []);
       });
@@ -120,17 +120,13 @@ function SeriesContent() {
     }
     return matched;
   }, [seriesList, wishlist]);
-  // Tome numbers already on the achats list for the currently-open series —
-  // so its detail modal can avoid offering them again.
-  const openSeriesWishlistNumbers = useMemo(() => {
-    if (!openSeries) return new Set<number>();
-    const nums = new Set<number>();
-    for (const w of wishlist) {
-      if (w.issue_number != null && seriesTitlesMatch(openSeries, w.series_name)) {
-        nums.add(w.issue_number);
-      }
-    }
-    return nums;
+  // Tomes on the achats list for the currently-open series — the detail
+  // modal ghosts them into the album grid and won't offer them again.
+  const openSeriesWishlistTomes = useMemo(() => {
+    if (!openSeries) return [];
+    return wishlist
+      .filter((w) => seriesTitlesMatch(openSeries, w.series_name))
+      .map((w) => ({ issue_number: w.issue_number, title: w.title }));
   }, [openSeries, wishlist]);
 
   return (
@@ -221,7 +217,7 @@ function SeriesContent() {
           seriesName={activeSeries.name}
           albums={activeSeries.albums}
           ownerId={user.id}
-          wishlistNumbers={openSeriesWishlistNumbers}
+          wishlistTomes={openSeriesWishlistTomes}
           onClose={() => setOpenSeries(null)}
         />
       ) : null}
