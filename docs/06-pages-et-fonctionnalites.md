@@ -1,16 +1,23 @@
 # 6. Pages et fonctionnalités
 
-Toutes les pages applicatives partagent le même en-tête : logo (lien vers `/`) + barre
-d'onglets `AppTabs` à gauche, bouton de déconnexion `SignOutButton` à droite (voir
-[07](./07-composants-et-hooks.md)). Le bouton d'action principal de chaque onglet (ex.
-"+ Ajouter un album") vit dans sa **propre ligne juste sous l'en-tête**, jamais dans
-l'en-tête lui-même.
+Toutes les pages (y compris Ajout et Édition d'un album) partagent le même en-tête, le
+composant `AppHeader` : logo cliquable vers `/` + barre d'onglets `AppTabs` à gauche,
+bouton de déconnexion `SignOutButton` à droite (voir [07](./07-composants-et-hooks.md)).
+Le bouton d'action principal d'un onglet (ex. "+ Ajouter un album") vit dans sa **propre
+ligne juste sous l'en-tête**, jamais dans l'en-tête lui-même.
 
-## Barre d'onglets
+## Navigation
 
 6 onglets, dans cet ordre : **Albums** (`/`) · **Séries** (`/series`) ·
 **Achats** (`/wishlist`) · **Ventes** (`/vente`) · **Idées** (`/ideas`) ·
 **Stats** (`/stats`).
+
+- **Desktop** (`sm+`) : barre d'onglets `AppTabs` dans l'en-tête (icône + libellé).
+- **Mobile** (`<sm`) : `AppTabs` est masquée ; la navigation passe par `BottomNav`, une
+  barre fixe en bas de l'écran (icône + petit libellé), rendue une seule fois par le
+  layout racine et **toujours visible**, y compris sur Ajout/Édition — indispensable en
+  PWA installée où il n'y a pas de barre navigateur.
+- Source unique des onglets : `components/navTabs.ts` (`NAV_TABS`), partagée par les deux.
 
 ## Onglet Albums (`app/page.tsx`)
 
@@ -33,7 +40,12 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
   stocké dans `sessionStorage` (`LAST_ALBUM_KEY`) ; au retour sur la galerie, un effet
   scrolle jusqu'à cet album une fois la liste chargée, plutôt que de repartir en haut de
   page.
-- Pied de page : compteur `X albums au total` (+ `Y affichés` si un filtre est actif).
+- **Compteur + reset** sous la barre de filtres : `X albums` ou `Y sur Z albums` quand un
+  filtre est actif, avec un bouton **« Effacer les filtres »** (efface `q`/`series`/
+  `publisher`/`author`, pas le tri ni la vue).
+- **États vides distincts** : collection vraiment vide → « Votre bédéthèque est vide » +
+  CTA « Ajouter votre premier album » (et le bouton d'ajout de la barre est masqué) ;
+  filtre sans résultat → « Aucun album ne correspond à ce filtre » + bouton reset.
 
 ## Onglet Séries (`app/series/page.tsx`)
 
@@ -45,7 +57,8 @@ exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possé
 - **Filtres** : texte libre sur le nom de série (substring), et menu déroulant auteur
   (même liste fusionnée scénariste/dessinateur que sur Albums) — combinables. État en
   `useState` local (pas dans l'URL, contrairement à la page Albums — pattern préexistant
-  de cette page, non harmonisé).
+  de cette page, non harmonisé). Compteur `X sur Y séries` + bouton **« Effacer les
+  filtres »** sous la barre, comme sur Albums.
 - **Badge "achat"** : une icône panier apparaît sur une carte série si au moins un item de
   la wishlist correspond à cette série — comparaison via `seriesTitlesMatch()` (pas une
   égalité stricte de chaîne, car un item wishlist peut venir d'une recherche BnF dont le
@@ -101,8 +114,9 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
 - **Filtres** (chips) : À vendre / Vendu / Toutes. Charge sa propre liste via
   `getDataClient().from("albums").neq("sale_status", "none")` — volontairement en dehors
   de `useAlbums()`, qui exclut les albums vendus.
-- Actions par ligne : "Marquer vendu" / "Retirer" (retour à `none`) pour un album `a_vendre` ;
-  badge "Vendu" + "Annuler" (retour à `a_vendre`) pour un album vendu.
+- Actions par ligne : "Marquer vendu" (via `ConfirmDialog` — semi-destructif) / "Retirer"
+  (retour à `none`, immédiat) pour un album `a_vendre` ; badge "Vendu" + "Annuler" (retour
+  à `a_vendre`) pour un album vendu. Chaque changement émet un toast.
 - Après chaque changement de statut, `refetchActive()` (exposé par `useAlbums()`) est
   appelé pour que le pool de recherche `LocalAlbumSearch` reste synchronisé sans recharger
   la page.
@@ -113,7 +127,7 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
 
 Boîte à idées : formulaire de saisie libre (`content`), liste triée par date de création
 décroissante, filtrage par statut (Créée / Traitée / Terminée / Toutes via `IdeaCard`).
-Suppression avec confirmation navigateur (`window.confirm`).
+Suppression via `ConfirmDialog` ; erreurs remontées en toast.
 
 ## Onglet Stats — `app/stats/page.tsx`
 
@@ -163,13 +177,15 @@ réservé aux séries valeur/année) :
 
 Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
 - **Bloc statut de vente** au-dessus du formulaire — boutons contextuels selon
-  `album.sale_status` ("Déclarer à vendre" / "Marquer comme vendu" + "Retirer de la
-  vente" / "Annuler la vente"), mise à jour optimiste avec rollback si l'update échoue.
+  `album.sale_status` ("Déclarer à vendre" / "Marquer vendu" + "Retirer de la vente" /
+  "Annuler la vente"), mise à jour optimiste avec rollback + toast si l'update échoue.
+  "Marquer vendu" passe par un `ConfirmDialog`.
 - Remplacement de couverture : si une nouvelle couverture (fichier ou URL) est fournie, elle
   est uploadée, la ligne `albums` mise à jour, **puis** l'ancienne couverture purgée de
   l'Object Storage (seulement si elle a effectivement changé).
-- Suppression : `<dialog>` de confirmation natif, supprime la ligne puis purge la
-  couverture associée (best-effort).
+- Suppression : `ConfirmDialog`, supprime la ligne puis purge la couverture associée
+  (best-effort), toast de confirmation, `router.back()`.
+- Toast « Modifications enregistrées » à la sauvegarde.
 
 ## Résumé des routes applicatives
 

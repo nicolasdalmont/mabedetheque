@@ -62,9 +62,13 @@ mabedetheque/
 │       ├── series-search/route.ts    # recherche BnF de tous les tomes d'une série
 │       └── text-search/route.ts      # recherche BnF libre par titre/série
 ├── components/                   # composants UI et logique client réutilisables
+│   ├── AppHeader.tsx / AppTabs / BottomNav / navTabs.ts  # navigation (desktop + mobile)
+│   ├── ConfirmDialog.tsx         # boîte de confirmation unique de l'app
+│   └── Toast.tsx                 # ToastProvider + useToast (notifications éphémères)
 ├── hooks/                        # hooks React partagés (useAlbums, useSession)
 ├── lib/                          # clients Neon, logique métier ISBN/BnF, constantes
-│   └── auth/server.ts            # instance serveur Neon Auth (singleton)
+│   ├── auth/server.ts            # instance serveur Neon Auth (singleton)
+│   └── format.ts                 # formatage de date fr-FR (formatDate/formatDateTime)
 ├── types/                        # types partagés (Album, Idea, WishlistItem, Database)
 ├── db/migrations/                # schéma SQL versionné, à exécuter manuellement sur Neon
 ├── scripts/                      # scripts one-off (import CSV, génération d'icônes...)

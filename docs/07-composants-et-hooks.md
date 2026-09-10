@@ -28,22 +28,36 @@ Voir [03-authentification.md](./03-authentification.md). Retourne
 
 ## Composants de navigation / layout
 
+### `AppHeader` (`components/AppHeader.tsx`)
+
+En-tête partagé rendu par **chaque** page (les 6 onglets + Ajout + Édition) : logo
+(`<Link href="/">`) + `AppTabs` + `SignOutButton`. Extrait pour que les en-têtes ne
+divergent plus (avant : logo tantôt `<h1>` non cliquable, tantôt `<Link>`).
+
+### `navTabs.ts` (`components/navTabs.ts`)
+
+`NAV_TABS` — la liste des 6 onglets (href, label, icône lucide), source unique partagée
+par `AppTabs` (desktop) et `BottomNav` (mobile).
+
 ### `AppTabs` (`components/AppTabs.tsx`)
 
-Barre des 6 onglets (voir [06](./06-pages-et-fonctionnalites.md) pour la liste). Point
-d'attention layout : `overflow-x-auto` + `min-w-0` sur le `<nav>`, chaque lien
-`shrink-0` — c'est la barre d'onglets qui absorbe un manque de largeur en **scrollant
-horizontalement**, jamais en se compressant. Le logo et le bouton de déconnexion, dans le
-header parent, portent chacun `shrink-0` pour ne jamais être écrasés par le flex
-(voir l'historique du bug dans la note ci-dessous).
+Barre d'onglets **desktop uniquement** (`hidden sm:flex`), dans l'`AppHeader`. Largeur
+fixe par onglet (`w-28`), `overflow-x-auto` sur le `<nav>` en cas de fenêtre étroite.
 
-> **Historique** : une régression a fait disparaître le logo de l'app sur desktop (pas
-> mobile) pour certains onglets, uniquement quand la fenêtre était plus étroite que le
-> contenu total du header. Cause : un `shrink-0` posé uniquement sur les onglets faisait
-> que toute compression manquante retombait à 100% sur le seul élément flex restant sans
-> `shrink-0` — le logo — l'écrasant à une largeur quasi nulle. Fix définitif : la barre
-> d'onglets elle-même scrolle (`overflow-x-auto`) au lieu de se faire comprimer, et logo +
-> bouton de déconnexion sont protégés par `shrink-0`.
+> **Historique** : une régression avait fait disparaître le logo sur desktop quand la
+> fenêtre était plus étroite que le contenu du header — un `shrink-0` posé uniquement sur
+> les onglets faisait retomber toute la compression sur le logo. Corrigé en faisant
+> scroller la barre (`overflow-x-auto`) et en protégeant logo + déconnexion (`shrink-0`).
+> Depuis le passage en `hidden sm:flex` + `BottomNav` sur mobile, le header mobile ne
+> contient plus que le logo et la déconnexion, donc le problème ne peut plus se poser.
+
+### `BottomNav` (`components/BottomNav.tsx`)
+
+Barre de navigation **mobile uniquement** (`sm:hidden`), `fixed` en bas de l'écran (icône
++ petit libellé, `env(safe-area-inset-bottom)`). Rendue une seule fois par
+`app/layout.tsx`, masquée si pas de session ou sur `/login`. Toujours visible, y compris
+sur Ajout/Édition — indispensable en PWA installée. Le layout ajoute un `pb-16 sm:pb-0`
+sous le contenu pour lui laisser la place.
 
 ### `SignOutButton` (`components/SignOutButton.tsx`)
 
@@ -155,27 +169,44 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 À la soumission : upload couverture → `insert` dans `albums` → `delete` de l'item
 `wishlist_items` correspondant → `onDone()` (le parent retire l'item de sa liste locale).
 
+## Feedback : confirmations et toasts
+
+- **`ConfirmDialog` (`components/ConfirmDialog.tsx`)** — LA boîte de confirmation de l'app,
+  contrôlée par une prop `open` (montre/ferme le `<dialog>` via effet). Remplace le mélange
+  antérieur (`<dialog>` ad-hoc ici, `window.confirm` là, rien ailleurs). Utilisée pour :
+  suppression d'album (édition), suppression d'idée, retrait d'un tome des achats,
+  « Marquer vendu » (édition + Ventes). Prop `tone` : `danger` (rouge) / `default` (jaune).
+- **`Toast` (`components/Toast.tsx`)** — `ToastProvider` monté dans `app/layout.tsx`,
+  `useToast()` expose `{ toast, success, error }`. Notifications éphémères (4 s, cliquables
+  pour fermer), empilées en bas à droite (desktop) / bas centre (mobile), au-dessus de
+  `BottomNav`. Sert d'accusé de réception (album ajouté/modifié/vendu…) et remonte les
+  erreurs des mises à jour optimistes qui n'étaient auparavant qu'un texte inline souvent
+  hors écran. `useToast()` renvoie un no-op hors provider (sûr en test).
+
 ## Autres composants
 
 - **`SearchBar`** : simple `<input type="search">` contrôlé, pas de debounce (le filtrage
   est fait en mémoire côté client sur un dataset de quelques centaines d'albums).
 - **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + bascule
-  galerie/liste, utilisé uniquement par l'onglet Albums.
+  galerie/liste, utilisé uniquement par l'onglet Albums. `aria-label` sur chaque select.
 - **`BarChart`** : mini bar-chart maison sans dépendance (`components/BarChart.tsx`),
   barres de largeur fixe qui scrollent horizontalement plutôt que de s'écraser sur une
   longue série de valeurs (ex. un an par décennie). Réservé aux séries valeur/catégorie ;
   les classements (Top 10 auteurs/éditeurs) utilisent un `RankingList` local à
   `app/stats/page.tsx` (barre horizontale proportionnelle au premier du classement).
 - **`IdeaCard`** : carte d'idée avec sélecteur de statut coloré et suppression.
+- **`lib/format.ts`** — `formatDate` / `formatDateTime` (`Intl.DateTimeFormat("fr-FR")`) :
+  formatage de date unifié, utilisé par `AlbumTable` et `IdeaCard` (la vue Liste affichait
+  l'ISO brut avant).
 
 ## Note transverse : `<dialog>` et couleur de texte
 
 Tous les `<dialog>` natifs de l'app (`IsbnScanner`, `SeriesDetailModal`,
-`BuyWishlistModal`, la boîte de confirmation de suppression en page d'édition) portent
-explicitement `text-zinc-900 dark:text-zinc-50` dans leur `className`. Un `<dialog>` natif
-**n'hérite pas** de la couleur de texte du `<body>` — l'agent utilisateur lui applique par
-défaut `color: CanvasText`, qui l'emporte sur l'héritage — sans ce correctif, le texte
-devient illisible (noir sur fond sombre) en mode sombre.
+`BuyWishlistModal`, `ConfirmDialog`) portent explicitement `text-zinc-900 dark:text-zinc-50`
+dans leur `className`. Un `<dialog>` natif **n'hérite pas** de la couleur de texte du
+`<body>` — l'agent utilisateur lui applique par défaut `color: CanvasText`, qui l'emporte
+sur l'héritage — sans ce correctif, le texte devient illisible (noir sur fond sombre) en
+mode sombre.
 
 ## Note transverse : `autoCapitalize` sur les champs texte (mobile)
 
