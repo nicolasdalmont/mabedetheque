@@ -54,11 +54,10 @@ Liste alphabétique des séries (albums sans `series_name` exclus), une carte pa
 (numéro croissant, titre en repli pour les tomes non numérotés ; `KNOWN_DEAD_COVER_URL`
 exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possédés.
 
-- **Filtres** : texte libre sur le nom de série (substring), et menu déroulant auteur
-  (même liste fusionnée scénariste/dessinateur que sur Albums) — combinables. État en
-  `useState` local (pas dans l'URL, contrairement à la page Albums — pattern préexistant
-  de cette page, non harmonisé). Compteur `X sur Y séries` + bouton **« Effacer les
-  filtres »** sous la barre, comme sur Albums.
+- **Filtres** : texte libre sur le nom de série (`?q`) et menu déroulant auteur
+  (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums) — combinables,
+  **dans l'URL** comme la page Albums (partageables, restaurés au retour d'un album).
+  Compteur `X sur Y séries` + bouton **« Effacer les filtres »** sous la barre.
 - **Badge "achat"** : une icône panier apparaît sur une carte série si au moins un item de
   la wishlist correspond à cette série — comparaison via `seriesTitlesMatch()` (pas une
   égalité stricte de chaîne, car un item wishlist peut venir d'une recherche BnF dont le
@@ -69,7 +68,12 @@ exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possé
 
 ## Fiche série — `SeriesDetailModal`
 
-- Affiche la grille des albums déjà possédés de la série (réutilise `AlbumGrid`).
+- Affiche une grille combinée : les albums possédés (`AlbumCard`) **plus** une vignette
+  fantôme (bordure pointillée jaune, icône panier, « #N · Dans les achats ») pour chaque
+  tome de la série présent sur la liste d'achats — ou ajouté pendant la session de la
+  modale — intercalée à sa place dans l'ordre des tomes. Prop `wishlistTomes`
+  (`{ issue_number, title }[]`) fournie par la page Séries via `seriesTitlesMatch()`.
+  En-tête : `(N · M souhaités)`.
 - **Trous locaux** : calculés par `findSeriesGaps()` — uniquement entre le plus petit et le
   plus grand numéro déjà possédé (impossible de détecter un tome au-delà du plus haut
   numéro sans source externe).
@@ -77,7 +81,8 @@ exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possé
   `/api/series-search`, restreinte par le scénariste du premier album possédé ayant ce
   champ rempli (`authorHint`) si disponible — sinon avertit que la recherche sera moins
   précise. Chaque tome manquant retourné peut être envoyé individuellement vers la wishlist
-  (bouton "Ajouter aux achats", état "Ajouté" une fois fait).
+  (bouton "Ajouter aux achats" ; un tome déjà dans les achats affiche « Dans les achats »
+  désactivé — dédup via `wishlistTomes`).
 - Les trous locaux peuvent aussi être ajoutés directement à la wishlist sans passer par la
   recherche BnF (boutons `#N` en bas de section), pour les cas où on connaît juste le
   numéro manquant sans autre détail.
@@ -135,7 +140,8 @@ Suppression via `ConfirmDialog` ; erreurs remontées en toast.
 `wishlist_items` où `status = 'a_acheter'`), En vente (`sale_status === "a_vendre"`).
 
 **Section « Anomalies »** — données incomplètes à compléter, une ligne par type avec un
-compte (ambre si > 0, gris si 0) :
+compte (ambre si > 0, gris si 0). Chaque ligne non nulle est un lien vers l'onglet
+Albums filtré (`/?missing=cover|tome|achat`) qui affiche un chip ambre récapitulatif :
 - *Sans couverture* — `cover_url` vide **ou** égale à `KNOWN_DEAD_COVER_URL` (voir
   [05](./05-stockage-couvertures.md)).
 - *En série, sans numéro de tome* — `series_name` renseigné mais `issue_number` nul (un
@@ -166,12 +172,13 @@ réservé aux séries valeur/année) :
    couverture si trouvée.
 2. Alternative : `BnfTextSearch` (titre/série) — si le candidat choisi a un ISBN, rebascule
    automatiquement sur le lookup ISBN complet (pour récupérer aussi la couverture) ; sinon
-   préremplit seulement les champs texte disponibles.
+   préremplit seulement les champs texte disponibles. Une fois un ISBN trouvé, ce bloc se
+   replie dans un `<details>` (« Pas le bon album ? »).
 3. `AlbumForm` reste éditable dans tous les cas, y compris en saisie 100% manuelle si rien
    n'est trouvé.
 4. À la soumission : upload de la couverture (fichier local ou URL distante, voir
-   [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` →
-   `router.back()`.
+   [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
+   succès → `router.back()`.
 
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)
 

@@ -87,8 +87,13 @@ l'app, et recharge la page une fois qu'un nouveau worker a pris le contrôle —
   sa fiche, pour le scroll-to-album au retour.
 - `AlbumGrid` : grille responsive (3 colonnes en mobile → 6 en desktop large) de
   `AlbumCard`, message vide dédié.
-- `AlbumTable` : vue liste compacte (titre, série, tome, éditeur, date d'achat), même
-  mécanique `sessionStorage`/scroll-to-album.
+- `AlbumTable` : vue liste — **deux rendus** : lignes empilées cliquables sous `sm`
+  (titre + `série #tome · éditeur · date`), table complète à partir de `sm` (un tableau
+  640px scrollant horizontalement était inutilisable sur téléphone). L'id
+  `album-<id>` (scroll-to-album) est sur le `<tr>` desktop.
+- `CardGridSkeleton` (`components/CardGridSkeleton.tsx`) : grille de cartes en
+  `animate-pulse`, même gabarit que la vraie grille — affichée au chargement d'Albums et
+  Séries à la place de « Chargement… ».
 
 ### `SeriesCard`
 
@@ -101,7 +106,9 @@ navigation.
 
 Voir description fonctionnelle en [06](./06-pages-et-fonctionnalites.md). Techniquement :
 `<dialog>` natif contrôlé par ref (`showModal()`/`close()`), fermeture au clic sur le
-backdrop (`e.target === dialogRef.current`).
+backdrop. Prop `wishlistTomes` (`{ issue_number, title }[]`) → grille combinée
+possédés + vignettes fantômes, et dédup de la section « Tomes manquants » (numéros
+dérivés + `addedKeys` de la session).
 
 ## Composants de recherche
 
@@ -181,7 +188,9 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   pour fermer), empilées en bas à droite (desktop) / bas centre (mobile), au-dessus de
   `BottomNav`. Sert d'accusé de réception (album ajouté/modifié/vendu…) et remonte les
   erreurs des mises à jour optimistes qui n'étaient auparavant qu'un texte inline souvent
-  hors écran. `useToast()` renvoie un no-op hors provider (sûr en test).
+  hors écran. `success`/`toast` acceptent une `action` optionnelle
+  (`{ label, onClick }`) → deuxième bouton dans le toast, durée portée à 7 s — utilisé
+  pour l'« Annuler » après « Marquer vendu ». `useToast()` renvoie un no-op hors provider.
 
 ## Autres composants
 
