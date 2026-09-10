@@ -117,12 +117,25 @@ Suppression avec confirmation navigateur (`window.confirm`).
 
 ## Onglet Stats — `app/stats/page.tsx`
 
-4 cartes chiffrées (`StatCard`) : Albums (avec hint "X sans couverture", comptant à la
-fois les `cover_url` vides et celles égales à `KNOWN_DEAD_COVER_URL`), Séries, À acheter
-(requête dédiée sur `wishlist_items` où `status = 'a_acheter'`), En vente
-(`sale_status === "a_vendre"`).
+**4 cartes chiffrées** (`StatCard`) : Albums, Séries, À acheter (requête dédiée sur
+`wishlist_items` où `status = 'a_acheter'`), En vente (`sale_status === "a_vendre"`).
 
-2 graphiques en barres (`BarChart`, composant maison sans dépendance) :
+**Section « Anomalies »** — données incomplètes à compléter, une ligne par type avec un
+compte (ambre si > 0, gris si 0) :
+- *Sans couverture* — `cover_url` vide **ou** égale à `KNOWN_DEAD_COVER_URL` (voir
+  [05](./05-stockage-couvertures.md)).
+- *En série, sans numéro de tome* — `series_name` renseigné mais `issue_number` nul (un
+  album hors série n'est pas une anomalie).
+- *Sans date d'achat* — `purchase_date` nul.
+
+**2 classements « Top 10 »** (`RankingList`, barres horizontales maison — `BarChart` est
+réservé aux séries valeur/année) :
+- **Top 10 des auteurs** — scénariste + dessinateur fusionnés (même notion « auteur » que
+  les filtres Albums/Séries) ; un album compté une seule fois par auteur, y compris quand
+  il en est à la fois scénariste et dessinateur (déduplication par id d'album).
+- **Top 10 des éditeurs** — comptage simple par valeur de `publisher` (`topByValue()`).
+
+**2 graphiques en barres** (`BarChart`, composant maison sans dépendance) :
 - **Achats par année** — extrait de `purchase_date`, **exclut totalement** les albums sans
   date d'achat (pas de bucket "Inconnue" — retiré sur demande explicite, contrairement au
   graphique suivant qui en garde un).

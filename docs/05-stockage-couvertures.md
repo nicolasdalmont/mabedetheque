@@ -76,15 +76,32 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 ## Interaction cover dans `AlbumForm`
 
 `components/AlbumForm.tsx` fournit :
-- une zone de prévisualisation cliquable (`tabIndex`) qui capte `onPaste` pour coller une
-  image du presse-papiers directement (`Ctrl/Cmd+V`) ;
+- une zone de prévisualisation avec une **couche `contentEditable` invisible** superposée
+  (`absolute inset-0`) qui gère le collage d'image sur tous les supports :
+  - **desktop** : un clic lit directement le presse-papiers via `navigator.clipboard.read()`
+    (fiable à la souris) ; `Ctrl/Cmd+V` fonctionne aussi une fois la couche focus ;
+  - **mobile** : un **appui long** fait apparaître le menu **« Coller » du système** (aucune
+    permission requise — l'utilisateur choisit explicitement), dont l'événement `paste` est
+    capté comme un Ctrl/Cmd+V. `navigator.clipboard.read()` est délibérément **évité** sur
+    mobile : iOS/Android le refusent (`NotAllowedError`) derrière une permission souvent
+    impossible à accorder depuis une PWA installée.
+  - la couche ne conserve jamais de contenu (`preventDefault` + vidage + `blur`),
+    n'ouvre pas le clavier (`inputMode="none"`, `caret-transparent`) et bloque la frappe.
+  - le routage clic/appui-long s'appuie sur la media query `pointer: coarse`.
 - deux boutons de sélection de fichier — **"Galerie photo"** et **"Fichiers"**, tous deux
   `<input type="file" accept="image/*">` **sans** l'attribut `capture` : le choix a été
   fait explicitement de laisser l'utilisateur choisir dans sa photothèque ou son
-  gestionnaire de fichiers, pas de déclencher directement l'appareil photo ;
+  gestionnaire de fichiers, pas de déclencher directement l'appareil photo ; ils restent
+  le repli fiable si le collage échoue ;
 - si `onSearchCover` est fourni par le parent, un bouton "Rechercher une couverture"
   (recherche cover-only à partir de l'ISBN déjà saisi dans le formulaire, sans relancer
   tout le lookup de métadonnées).
+
+> **Historique** : le collage mobile est passé par trois itérations — `setTimeout` pour
+> détecter l'appui long (cassé : le callback perd l'« activation utilisateur transitoire »
+> qu'exige `clipboard.read()`), puis détection sur `touchend` (fonctionnait mais
+> `clipboard.read()` restait refusé par la permission mobile), puis la couche
+> `contentEditable` + menu natif retenue aujourd'hui.
 
 ## `KNOWN_DEAD_COVER_URL` — une couverture cassée partagée par 423 albums
 
@@ -103,8 +120,8 @@ données** (décision laissée à l'utilisateur, jamais tranchée depuis) — tr
 comme un cas d'affichage :
 - exclue lors du choix de la couverture représentative d'une série (`app/series/page.tsx`,
   `buildSeriesList()`) ;
-- comptée comme "sans couverture" dans le hint de l'onglet Stats
-  (`albumsWithoutCover`) aux côtés des `cover_url` réellement vides.
+- comptée comme "sans couverture" dans la section « Anomalies » de l'onglet Stats aux
+  côtés des `cover_url` réellement vides.
 
 Indépendamment de cette URL spécifique, `AlbumCard` et `SeriesCard` ont chacun un état
 `broken` (`onError` sur l'`<img>`) qui bascule vers un placeholder texte "Pas de

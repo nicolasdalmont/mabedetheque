@@ -125,10 +125,15 @@ le composant qui garantit que ces trois flux restent en parité de champs.
 
 - Champs : ISBN, titre (requis), série, numéro de tome, éditeur, dépôt légal, scénariste,
   dessinateur, date d'achat, commentaire.
-- Couverture : prévisualisation cliquable acceptant `onPaste` (coller une image), deux
-  boutons de sélection fichier ("Galerie photo" / "Fichiers", jamais de déclenchement
-  caméra directe), et un bouton optionnel "Rechercher une couverture" (`onSearchCover`,
-  recherche cover-only sur l'ISBN déjà saisi).
+- Chaque champ passe par le helper `field(key)` qui, en plus de `value`/`onChange`, pose
+  l'attribut `autoCapitalize` semantique (`sentences` pour titre/commentaire, `words` pour
+  série/éditeur/scénariste/dessinateur, `none` pour ISBN/dépôt légal) et coupe
+  `autoCorrect`/`spellCheck` sur les noms propres — voir la note transverse en bas.
+- Couverture : couche `contentEditable` invisible gérant le collage (clic desktop / appui
+  long mobile via le menu natif « Coller » / Ctrl+V), deux boutons de sélection fichier
+  ("Galerie photo" / "Fichiers", jamais de déclenchement caméra directe), et un bouton
+  optionnel "Rechercher une couverture" (`onSearchCover`, recherche cover-only sur l'ISBN
+  déjà saisi). Détail complet en [05](./05-stockage-couvertures.md).
 - `initial` peut changer après le montage (ex. un lookup ISBN asynchrone résout après coup)
   — fusionné dans l'état via le pattern React documenté "ajuster l'état pendant le rendu"
   (comparaison `initial !== prevInitial` en render, pas un `useEffect`).
@@ -158,7 +163,9 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   galerie/liste, utilisé uniquement par l'onglet Albums.
 - **`BarChart`** : mini bar-chart maison sans dépendance (`components/BarChart.tsx`),
   barres de largeur fixe qui scrollent horizontalement plutôt que de s'écraser sur une
-  longue série de valeurs (ex. un an par décennie).
+  longue série de valeurs (ex. un an par décennie). Réservé aux séries valeur/catégorie ;
+  les classements (Top 10 auteurs/éditeurs) utilisent un `RankingList` local à
+  `app/stats/page.tsx` (barre horizontale proportionnelle au premier du classement).
 - **`IdeaCard`** : carte d'idée avec sélecteur de statut coloré et suppression.
 
 ## Note transverse : `<dialog>` et couleur de texte
@@ -169,3 +176,13 @@ explicitement `text-zinc-900 dark:text-zinc-50` dans leur `className`. Un `<dial
 **n'hérite pas** de la couleur de texte du `<body>` — l'agent utilisateur lui applique par
 défaut `color: CanvasText`, qui l'emporte sur l'héritage — sans ce correctif, le texte
 devient illisible (noir sur fond sombre) en mode sombre.
+
+## Note transverse : `autoCapitalize` sur les champs texte (mobile)
+
+Sans attribut `autocapitalize` explicite, iOS Safari relance son heuristique « majuscule
+en début de phrase » **à chaque réassignation** de la valeur d'un `<input>` contrôlé React
+(donc à chaque frappe), ce qui met en majuscule les **deux** premières lettres d'un mot au
+lieu d'une. Tous les champs texte de l'app posent donc `autoCapitalize` explicitement :
+`sentences` (titre, commentaire, idées), `words` (série, éditeur, scénariste, dessinateur),
+`none` (ISBN, dépôt légal, tous les champs de recherche/filtre). `autoCorrect="off"` /
+`spellCheck={false}` en complément sur les noms propres et identifiants.
