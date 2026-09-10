@@ -2,37 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Library, Layers, ShoppingCart, Tag, Lightbulb, ChartColumn } from "lucide-react";
+import { NAV_TABS } from "./navTabs";
 
-const TABS = [
-  { href: "/", label: "Albums", icon: Library },
-  { href: "/series", label: "Séries", icon: Layers },
-  { href: "/wishlist", label: "Achats", icon: ShoppingCart },
-  { href: "/vente", label: "Ventes", icon: Tag },
-  { href: "/ideas", label: "Idées", icon: Lightbulb },
-  { href: "/stats", label: "Stats", icon: ChartColumn },
-];
-
+// Desktop tab bar (in the header). On mobile it is hidden and navigation
+// happens through <BottomNav> instead.
 export function AppTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex min-w-0 gap-1 overflow-x-auto">
-      {TABS.map(({ href, label, icon: Icon }) => {
+    <nav className="hidden min-w-0 gap-1 overflow-x-auto sm:flex">
+      {NAV_TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (
           <Link
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-w-10 shrink-0 items-center justify-center gap-2 border-b-2 px-2 py-2 text-sm font-medium transition-colors sm:w-28 sm:px-3 ${
+            className={`flex w-28 shrink-0 items-center justify-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               active
                 ? "border-yellow-400 text-black dark:text-white"
                 : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
             <Icon size={18} className="shrink-0" aria-hidden="true" />
-            <span className="hidden sm:inline">{label}</span>
+            <span>{label}</span>
           </Link>
         );
       })}

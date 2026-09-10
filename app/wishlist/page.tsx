@@ -5,10 +5,11 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { useAlbums } from "@/hooks/useAlbums";
-import { AppTabs } from "@/components/AppTabs";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppHeader } from "@/components/AppHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { WishlistAddForm } from "@/components/WishlistAddForm";
 import { BuyWishlistModal } from "@/components/BuyWishlistModal";
+import { useToast } from "@/components/Toast";
 import { findSeriesGaps } from "@/lib/series-gaps";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
@@ -23,6 +24,7 @@ const chipClass = (active: boolean) =>
 export default function WishlistPage() {
   const { user } = useSession();
   const { albums } = useAlbums();
+  const { success, error: toastError } = useToast();
   const seriesGaps = useMemo(() => findSeriesGaps(albums), [albums]);
 
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -32,6 +34,7 @@ export default function WishlistPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
   const [buyingItem, setBuyingItem] = useState<WishlistItem | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<WishlistItem | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -60,13 +63,24 @@ export default function WishlistPage() {
       .from("wishlist_items")
       .update({ status })
       .eq("id", item.id);
-    if (error) setError(error.message);
+    if (error) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: item.status } : i)));
+      toastError(error.message);
+    }
   }
 
-  async function handleDelete(item: WishlistItem) {
+  async function confirmDeleteItem() {
+    const item = pendingDelete;
+    if (!item) return;
+    setPendingDelete(null);
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     const { error } = await getDataClient().from("wishlist_items").delete().eq("id", item.id);
-    if (error) setError(error.message);
+    if (error) {
+      setItems((prev) => [...prev, item]);
+      toastError(error.message);
+    } else {
+      success("Tome retiré de la liste d'achats.");
+    }
   }
 
   async function handleAddGapTome(series: string, issueNumber: number) {
@@ -78,29 +92,17 @@ export default function WishlistPage() {
       .select()
       .single();
     if (error) {
-      setError(error.message);
+      toastError(error.message);
       return;
     }
     setItems((prev) => [...prev, data]);
     setAddedGapTomes((prev) => new Set(prev).add(key));
+    success(`${series} #${issueNumber} ajouté aux achats.`);
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link href="/" className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Ma Bédéthèque"
-              className="h-12 w-12 rounded-md"
-            />
-          </Link>
-          <AppTabs />
-        </div>
-        <SignOutButton />
-      </header>
+      <AppHeader />
 
       {!showAddForm ? (
         <div>
@@ -201,8 +203,8 @@ export default function WishlistPage() {
                 )}
                 <button
                   type="button"
-                  onClick={() => handleDelete(item)}
-                  className="text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
+                  onClick={() => setPendingDelete(item)}
+                  className="rounded px-2 py-1 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
                 >
                   Supprimer
                 </button>
@@ -260,12 +262,29 @@ export default function WishlistPage() {
           item={buyingItem}
           ownerId={user.id}
           onDone={() => {
-            setItems((prev) => prev.filter((i) => i.id !== buyingItem.id));
+            const bought = buyingItem;
+            setItems((prev) => prev.filter((i) => i.id !== bought.id));
             setBuyingItem(null);
+            success(
+              `${bought.series_name}${bought.issue_number != null ? ` #${bought.issue_number}` : ""} ajouté à votre bédéthèque.`,
+            );
           }}
           onClose={() => setBuyingItem(null)}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Retirer de la liste d'achats"
+        message={
+          pendingDelete
+            ? `Retirer « ${pendingDelete.series_name}${pendingDelete.issue_number != null ? ` #${pendingDelete.issue_number}` : ""} » de la liste d'achats ?`
+            : ""
+        }
+        confirmLabel="Retirer"
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

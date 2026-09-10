@@ -4,8 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
-import { AppTabs } from "@/components/AppTabs";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppHeader } from "@/components/AppHeader";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterSortBar } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
@@ -107,31 +106,24 @@ function HomeContent() {
       });
   }, [albums, query, series, publisher, author, sortKey]);
 
+  const hasActiveFilters = Boolean(query || series || publisher || author);
+  const clearFilters = () =>
+    updateParams({ q: "", series: "", publisher: "", author: "" });
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <h1 className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Ma Bédéthèque"
-              className="h-12 w-12 rounded-md"
-            />
-          </h1>
-          <AppTabs />
-        </div>
-        <SignOutButton />
-      </header>
+      <AppHeader />
 
-      <div>
-        <Link
-          href="/albums/new"
-          className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
-        >
-          + Ajouter un album
-        </Link>
-      </div>
+      {loading || albums.length > 0 ? (
+        <div>
+          <Link
+            href="/albums/new"
+            className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
+          >
+            + Ajouter un album
+          </Link>
+        </div>
+      ) : null}
 
       <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar
@@ -150,22 +142,61 @@ function HomeContent() {
         onViewModeChange={(v) => updateParams({ view: v })}
       />
 
+      {!loading && !error ? (
+        <div className="flex items-center justify-between text-xs text-zinc-500">
+          <span>
+            {hasActiveFilters
+              ? `${filtered.length} sur ${albums.length} album${albums.length > 1 ? "s" : ""}`
+              : `${albums.length} album${albums.length > 1 ? "s" : ""}`}
+          </span>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded px-2 py-1 font-medium text-zinc-600 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/5"
+            >
+              Effacer les filtres
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : error ? (
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
+          {albums.length === 0 ? (
+            <>
+              <p>Votre bédéthèque est vide.</p>
+              <Link
+                href="/albums/new"
+                className="rounded-md bg-yellow-400 px-3 py-1.5 font-medium text-black hover:bg-yellow-300"
+              >
+                + Ajouter votre premier album
+              </Link>
+            </>
+          ) : (
+            <>
+              <p>Aucun album ne correspond à ce filtre.</p>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-md border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+              >
+                Effacer les filtres
+              </button>
+            </>
+          )}
+        </div>
       ) : viewMode === "grid" ? (
         <AlbumGrid albums={filtered} />
       ) : (
         <AlbumTable albums={filtered} />
       )}
-
-      <p className="text-center text-xs text-zinc-400">
-        {albums.length} album{albums.length > 1 ? "s" : ""} au total
-        {filtered.length !== albums.length ? ` · ${filtered.length} affiché${filtered.length > 1 ? "s" : ""}` : ""}
-      </p>
     </div>
   );
 }

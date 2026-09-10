@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppUpdater } from "@/components/AppUpdater";
 import { ManifestThemeSwitcher } from "@/components/ManifestThemeSwitcher";
+import { BottomNav } from "@/components/BottomNav";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,7 +54,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
         <AppUpdater />
         <ManifestThemeSwitcher />
-        {children}
+        <ToastProvider>
+          {/* Room for the fixed mobile bottom nav (hidden on sm+). */}
+          <div className="flex flex-1 flex-col pb-16 sm:pb-0">{children}</div>
+          <BottomNav />
+        </ToastProvider>
       </body>
     </html>
   );

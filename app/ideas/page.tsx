@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
-import { AppTabs } from "@/components/AppTabs";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppHeader } from "@/components/AppHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { IdeaCard } from "@/components/IdeaCard";
+import { useToast } from "@/components/Toast";
 import type { Idea, IdeaStatus } from "@/types/idea";
 import { IDEA_STATUS_LABEL, IDEA_STATUS_ORDER } from "@/types/idea";
 
@@ -19,11 +19,13 @@ const chipClass = (active: boolean) =>
 
 export default function IdeasPage() {
   const { user } = useSession();
+  const { error: toastError } = useToast();
 
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<IdeaStatus | "all">("all");
+  const [pendingDelete, setPendingDelete] = useState<Idea | null>(null);
 
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -73,32 +75,24 @@ export default function IdeasPage() {
   async function handleChangeStatus(idea: Idea, status: IdeaStatus) {
     setIdeas((prev) => prev.map((i) => (i.id === idea.id ? { ...i, status } : i)));
     const { error } = await getDataClient().from("ideas").update({ status }).eq("id", idea.id);
-    if (error) setError(error.message);
+    if (error) toastError(error.message);
   }
 
-  async function handleDelete(idea: Idea) {
-    if (!window.confirm("Supprimer définitivement cette idée ?")) return;
+  async function confirmDeleteIdea() {
+    const idea = pendingDelete;
+    if (!idea) return;
+    setPendingDelete(null);
     setIdeas((prev) => prev.filter((i) => i.id !== idea.id));
     const { error } = await getDataClient().from("ideas").delete().eq("id", idea.id);
-    if (error) setError(error.message);
+    if (error) {
+      setIdeas((prev) => [idea, ...prev]);
+      toastError(error.message);
+    }
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link href="/" className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Ma Bédéthèque"
-              className="h-12 w-12 rounded-md"
-            />
-          </Link>
-          <AppTabs />
-        </div>
-        <SignOutButton />
-      </header>
+      <AppHeader />
 
       <form
         onSubmit={handleSubmit}
@@ -160,11 +154,20 @@ export default function IdeasPage() {
               key={idea.id}
               idea={idea}
               onChangeStatus={(status) => handleChangeStatus(idea, status)}
-              onDelete={() => handleDelete(idea)}
+              onDelete={() => setPendingDelete(idea)}
             />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Supprimer l'idée"
+        message="Supprimer définitivement cette idée ?"
+        confirmLabel="Supprimer"
+        onConfirm={confirmDeleteIdea}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

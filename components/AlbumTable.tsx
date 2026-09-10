@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
+import { formatDate } from "@/lib/format";
 
 export function AlbumTable({ albums }: { albums: Album[] }) {
   if (albums.length === 0) {
@@ -49,7 +50,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
                 {album.publisher ?? "—"}
               </td>
               <td className="px-3 py-2 text-zinc-500">
-                {album.purchase_date ?? "—"}
+                {formatDate(album.purchase_date)}
               </td>
             </tr>
           ))}

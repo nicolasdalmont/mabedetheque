@@ -6,13 +6,16 @@ import { ScanBarcode } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { AppHeader } from "@/components/AppHeader";
 import { IsbnScanner } from "@/components/IsbnScanner";
 import { BnfTextSearch } from "@/components/BnfTextSearch";
+import { useToast } from "@/components/Toast";
 import type { TextSearchCandidate } from "@/lib/bnf-text-search";
 
 export default function NewAlbumPage() {
   const router = useRouter();
   const { user } = useSession();
+  const { success } = useToast();
 
   const [isbnInput, setIsbnInput] = useState("");
   const [searching, setSearching] = useState(false);
@@ -133,6 +136,7 @@ export default function NewAlbumPage() {
       });
       if (error) throw new Error(error.message);
 
+      success(`« ${values.title} » ajouté à votre bédéthèque.`);
       router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -143,6 +147,7 @@ export default function NewAlbumPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+      <AppHeader />
       <div className="flex items-center gap-3">
         <button
           type="button"

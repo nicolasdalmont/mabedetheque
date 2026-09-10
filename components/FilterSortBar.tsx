@@ -48,6 +48,7 @@ export function FilterSortBar({
         className={selectClass}
         value={series}
         onChange={(e) => onSeriesChange(e.target.value)}
+        aria-label="Filtrer par série"
       >
         <option value="">Toutes les séries</option>
         {seriesOptions.map((s) => (
@@ -61,6 +62,7 @@ export function FilterSortBar({
         className={selectClass}
         value={publisher}
         onChange={(e) => onPublisherChange(e.target.value)}
+        aria-label="Filtrer par éditeur"
       >
         <option value="">Tous les éditeurs</option>
         {publisherOptions.map((p) => (
@@ -74,6 +76,7 @@ export function FilterSortBar({
         className={selectClass}
         value={author}
         onChange={(e) => onAuthorChange(e.target.value)}
+        aria-label="Filtrer par auteur"
       >
         <option value="">Tous les auteurs</option>
         {authorOptions.map((a) => (
@@ -87,6 +90,7 @@ export function FilterSortBar({
         className={selectClass}
         value={sortKey}
         onChange={(e) => onSortChange(e.target.value as SortKey)}
+        aria-label="Trier"
       >
         {Object.entries(sortLabels).map(([key, label]) => (
           <option key={key} value={key}>

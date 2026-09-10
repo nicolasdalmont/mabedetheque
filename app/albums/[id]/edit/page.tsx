@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { AppHeader } from "@/components/AppHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 import type { Album, SaleStatus } from "@/types/album";
 
 export default function EditAlbumPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { success, error: toastError } = useToast();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,12 +20,12 @@ export default function EditAlbumPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [saleError, setSaleError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmSell, setConfirmSell] = useState(false);
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [remoteCoverUrl, setRemoteCoverUrl] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +106,7 @@ export default function EditAlbumPage() {
         }).catch(() => {});
       }
 
+      success("Modifications enregistrées.");
       router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -112,14 +117,19 @@ export default function EditAlbumPage() {
 
   async function handleSetSaleStatus(status: SaleStatus) {
     if (!album) return;
-    setSaleError(null);
     const previous = album.sale_status;
     setAlbum({ ...album, sale_status: status });
-    const { error } = await getDataClient().from("albums").update({ sale_status: status }).eq("id", album.id);
+    const { error } = await getDataClient()
+      .from("albums")
+      .update({ sale_status: status })
+      .eq("id", album.id);
     if (error) {
       setAlbum((a) => (a ? { ...a, sale_status: previous } : a));
-      setSaleError(error.message);
+      toastError(error.message);
+      return;
     }
+    if (status === "vendu") success("Album marqué comme vendu — visible dans l'onglet Ventes.");
+    else if (status === "a_vendre" && previous === "none") success("Album mis en vente.");
   }
 
   async function handleDelete() {
@@ -138,26 +148,37 @@ export default function EditAlbumPage() {
         body: JSON.stringify({ coverUrl: album.cover_url }),
       }).catch(() => {});
 
+      success(`« ${album.title} » supprimé.`);
       router.back();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
+      setConfirmDelete(false);
+      toastError(err instanceof Error ? err.message : "Suppression impossible.");
       setDeleting(false);
     }
   }
 
   if (loading) {
-    return <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>;
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+        <AppHeader />
+        <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
+      </div>
+    );
   }
   if (loadError || !album) {
     return (
-      <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">
-        {loadError ?? "Album introuvable."}
-      </p>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+        <AppHeader />
+        <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">
+          {loadError ?? "Album introuvable."}
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+      <AppHeader />
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -186,10 +207,10 @@ export default function EditAlbumPage() {
             </span>
             <button
               type="button"
-              onClick={() => handleSetSaleStatus("vendu")}
+              onClick={() => setConfirmSell(true)}
               className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
             >
-              Marquer comme vendu
+              Marquer vendu
             </button>
             <button
               type="button"
@@ -214,7 +235,6 @@ export default function EditAlbumPage() {
           </>
         )}
       </div>
-      {saleError ? <p className="text-xs text-red-600 dark:text-red-400">{saleError}</p> : null}
 
       <AlbumForm
         initial={album}
@@ -227,7 +247,7 @@ export default function EditAlbumPage() {
         extraActions={
           <button
             type="button"
-            onClick={() => dialogRef.current?.showModal()}
+            onClick={() => setConfirmDelete(true)}
             className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
           >
             Supprimer
@@ -238,31 +258,27 @@ export default function EditAlbumPage() {
         <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
       ) : null}
 
-      <dialog
-        ref={dialogRef}
-        className="rounded-lg border border-black/10 bg-white p-6 text-zinc-900 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
-      >
-        <p className="mb-4 text-sm">
-          Supprimer définitivement « {album.title} » et sa couverture ?
-        </p>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => dialogRef.current?.close()}
-            className="rounded-md px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            disabled={deleting}
-            onClick={handleDelete}
-            className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {deleting ? "Suppression..." : "Supprimer"}
-          </button>
-        </div>
-      </dialog>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Supprimer l'album"
+        message={`Supprimer définitivement « ${album.title} » et sa couverture ? Cette action est irréversible.`}
+        confirmLabel={deleting ? "Suppression…" : "Supprimer"}
+        pending={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
+      <ConfirmDialog
+        open={confirmSell}
+        tone="default"
+        title="Marquer comme vendu"
+        message={`« ${album.title} » disparaîtra de la galerie, des séries et des stats. Il restera consultable dans l'onglet Ventes (filtre « Vendu »).`}
+        confirmLabel="Marquer vendu"
+        onConfirm={() => {
+          setConfirmSell(false);
+          handleSetSaleStatus("vendu");
+        }}
+        onCancel={() => setConfirmSell(false)}
+      />
     </div>
   );
 }

@@ -5,9 +5,10 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
-import { AppTabs } from "@/components/AppTabs";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppHeader } from "@/components/AppHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LocalAlbumSearch } from "@/components/LocalAlbumSearch";
+import { useToast } from "@/components/Toast";
 import type { Album, SaleStatus } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 
@@ -25,10 +26,12 @@ export default function VentePage() {
   // marked for sale so the same album can't be added twice.
   const { albums: activeAlbums, refetch: refetchActive } = useAlbums();
 
+  const { success, error: toastError } = useToast();
   const [saleAlbums, setSaleAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<SaleStatus | "all">("a_vendre");
+  const [pendingSold, setPendingSold] = useState<Album | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -58,37 +61,41 @@ export default function VentePage() {
       .from("albums")
       .update({ sale_status: "a_vendre" })
       .eq("id", album.id);
-    if (error) setError(error.message);
-    else refetchActive();
+    if (error) {
+      setSaleAlbums((prev) => prev.filter((a) => a.id !== album.id));
+      toastError(error.message);
+    } else {
+      refetchActive();
+      success(`« ${album.title} » ajouté aux ventes.`);
+    }
   }
 
   async function handleSetStatus(album: Album, status: SaleStatus) {
+    const previous = album.sale_status;
     setSaleAlbums((prev) =>
       status === "none"
         ? prev.filter((a) => a.id !== album.id)
         : prev.map((a) => (a.id === album.id ? { ...a, sale_status: status } : a)),
     );
     const { error } = await getDataClient().from("albums").update({ sale_status: status }).eq("id", album.id);
-    if (error) setError(error.message);
-    else refetchActive();
+    if (error) {
+      setSaleAlbums((prev) =>
+        prev.some((a) => a.id === album.id)
+          ? prev.map((a) => (a.id === album.id ? { ...a, sale_status: previous } : a))
+          : [...prev, { ...album, sale_status: previous }],
+      );
+      toastError(error.message);
+      return;
+    }
+    refetchActive();
+    if (status === "vendu") success(`« ${album.title} » marqué vendu.`);
+    else if (status === "none") success(`« ${album.title} » retiré des ventes.`);
+    else if (status === "a_vendre" && previous === "vendu") success(`Vente de « ${album.title} » annulée.`);
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link href="/" className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Ma Bédéthèque"
-              className="h-12 w-12 rounded-md"
-            />
-          </Link>
-          <AppTabs />
-        </div>
-        <SignOutButton />
-      </header>
+      <AppHeader />
 
       <div className="rounded-lg border border-black/10 p-4 dark:border-white/10">
         <p className="mb-2 text-xs font-medium">Mettre un album en vente</p>
@@ -150,7 +157,7 @@ export default function VentePage() {
                   <>
                     <button
                       type="button"
-                      onClick={() => handleSetStatus(album, "vendu")}
+                      onClick={() => setPendingSold(album)}
                       className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
                     >
                       Marquer vendu
@@ -158,7 +165,7 @@ export default function VentePage() {
                     <button
                       type="button"
                       onClick={() => handleSetStatus(album, "none")}
-                      className="text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
+                      className="rounded px-2 py-1 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
                     >
                       Retirer
                     </button>
@@ -182,6 +189,24 @@ export default function VentePage() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={pendingSold !== null}
+        tone="default"
+        title="Marquer comme vendu"
+        message={
+          pendingSold
+            ? `« ${pendingSold.title} » disparaîtra de la galerie, des séries et des stats. Il restera ici sous le filtre « Vendu ».`
+            : ""
+        }
+        confirmLabel="Marquer vendu"
+        onConfirm={() => {
+          const album = pendingSold;
+          setPendingSold(null);
+          if (album) handleSetStatus(album, "vendu");
+        }}
+        onCancel={() => setPendingSold(null)}
+      />
     </div>
   );
 }

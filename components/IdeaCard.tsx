@@ -1,5 +1,6 @@
 import type { Idea, IdeaStatus } from "@/types/idea";
 import { IDEA_STATUS_LABEL, IDEA_STATUS_ORDER } from "@/types/idea";
+import { formatDateTime } from "@/lib/format";
 
 const STATUS_COLOR: Record<IdeaStatus, string> = {
   created: "text-zinc-500 border-zinc-500/40",
@@ -16,13 +17,7 @@ export function IdeaCard({
   onChangeStatus: (status: IdeaStatus) => void;
   onDelete: () => void;
 }) {
-  const when = new Date(idea.created_at).toLocaleString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const when = formatDateTime(idea.created_at);
 
   return (
     <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">

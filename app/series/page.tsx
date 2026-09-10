@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
 import { getDataClient } from "@/lib/neon-client";
-import { AppTabs } from "@/components/AppTabs";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppHeader } from "@/components/AppHeader";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
@@ -60,6 +59,7 @@ function SeriesContent() {
       ).sort() as string[],
     [albums],
   );
+  const seriesFiltersActive = Boolean(seriesNameFilter.trim() || authorFilter);
   const visibleSeriesList = useMemo(() => {
     const q = seriesNameFilter.trim().toLowerCase();
     return seriesList.filter((s) => {
@@ -103,26 +103,14 @@ function SeriesContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <h1 className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no next/image benefit here */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Ma Bédéthèque"
-              className="h-12 w-12 rounded-md"
-            />
-          </h1>
-          <AppTabs />
-        </div>
-        <SignOutButton />
-      </header>
+      <AppHeader />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           value={seriesNameFilter}
           onChange={(e) => setSeriesNameFilter(e.target.value)}
           placeholder="Filtrer par série"
+          aria-label="Filtrer par nom de série"
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
@@ -131,6 +119,7 @@ function SeriesContent() {
         <select
           value={authorFilter}
           onChange={(e) => setAuthorFilter(e.target.value)}
+          aria-label="Filtrer par auteur"
           className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
         >
           <option value="">Tous les auteurs</option>
@@ -142,6 +131,28 @@ function SeriesContent() {
         </select>
       </div>
 
+      {!loading && !error && seriesList.length > 0 ? (
+        <div className="flex items-center justify-between text-xs text-zinc-500">
+          <span>
+            {seriesFiltersActive
+              ? `${visibleSeriesList.length} sur ${seriesList.length} séries`
+              : `${seriesList.length} série${seriesList.length > 1 ? "s" : ""}`}
+          </span>
+          {seriesFiltersActive ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSeriesNameFilter("");
+                setAuthorFilter("");
+              }}
+              className="rounded px-2 py-1 font-medium text-zinc-600 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/5"
+            >
+              Effacer les filtres
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : error ? (
@@ -151,9 +162,19 @@ function SeriesContent() {
           Aucun album n&apos;a de série renseignée.
         </p>
       ) : visibleSeriesList.length === 0 ? (
-        <p className="py-16 text-center text-sm text-zinc-500">
-          Aucune série ne correspond à ce filtre.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
+          <p>Aucune série ne correspond à ce filtre.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSeriesNameFilter("");
+              setAuthorFilter("");
+            }}
+            className="rounded-md border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+          >
+            Effacer les filtres
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {visibleSeriesList.map((s) => (
