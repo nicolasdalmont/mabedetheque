@@ -23,7 +23,7 @@ export function IdeaCard({
     <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
       <p className="mb-3 whitespace-pre-wrap text-sm">{idea.content}</p>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-zinc-400">{when}</span>
+        <span className="text-xs text-zinc-500">{when}</span>
         <div className="flex items-center gap-2">
           <select
             value={idea.status}

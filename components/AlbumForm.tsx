@@ -202,21 +202,19 @@ export function AlbumForm({
               className="h-full w-full object-contain"
             />
           ) : (
-            <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
-              {pasting
-                ? "Collage..."
-                : "Pas de couverture — cliquez ou appui long pour coller une image"}
+            <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+              {pasting ? "Collage…" : "Pas de couverture"}
             </div>
           )}
-          {/* Invisible editable layer: a long-press brings up the OS "Coller"
-              menu (no clipboard permission needed on mobile); Ctrl/Cmd+V
-              works too once it has focus. Never keeps any content — see
-              handlePaste. */}
+          {/* Invisible editable layer, mobile only: a long-press brings up
+              the OS "Coller" menu (no clipboard permission needed). Never
+              keeps any content (see handlePaste). aria-hidden + tabIndex -1
+              — the visible "Coller" button below is the accessible path. */}
           <div
             contentEditable
             suppressContentEditableWarning
-            role="button"
-            aria-label="Coller une image de couverture"
+            aria-hidden="true"
+            tabIndex={-1}
             inputMode="none"
             onPaste={handlePaste}
             onClick={handleCoverClick}
@@ -227,7 +225,7 @@ export function AlbumForm({
               const paste = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v";
               if (!paste && e.key !== "Tab") e.preventDefault();
             }}
-            title="Cliquez pour coller (ordi) · appui long → « Coller » (mobile) · Ctrl/Cmd+V"
+            title="Appui long → « Coller » (mobile)"
             className="absolute inset-0 cursor-pointer caret-transparent outline-none"
           />
         </div>
@@ -235,31 +233,39 @@ export function AlbumForm({
           <p className="text-xs text-red-600 dark:text-red-400">{pasteError}</p>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-1.5">
-          <label className="block cursor-pointer rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
-            Galerie photo
+        <div className="grid grid-cols-3 gap-1.5">
+          <label className="block cursor-pointer rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 dark:border-white/20 dark:hover:bg-white/5">
+            Galerie
             <input
               type="file"
               accept="image/*"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) onCoverFileSelected?.(file);
               }}
             />
           </label>
-          <label className="block cursor-pointer rounded-md border border-black/15 px-2 py-1.5 text-center text-xs hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">
+          <label className="block cursor-pointer rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 dark:border-white/20 dark:hover:bg-white/5">
             Fichiers
             <input
               type="file"
               accept="image/*"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) onCoverFileSelected?.(file);
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={pasteFromClipboard}
+            disabled={pasting}
+            className="rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
+          >
+            {pasting ? "…" : "Coller"}
+          </button>
         </div>
 
         {onSearchCover ? (

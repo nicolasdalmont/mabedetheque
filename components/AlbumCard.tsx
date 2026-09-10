@@ -35,7 +35,7 @@ export function AlbumCard({ album }: { album: Album }) {
             className="h-full w-full object-contain transition-transform group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
+          <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
             Pas de couverture
           </div>
         )}

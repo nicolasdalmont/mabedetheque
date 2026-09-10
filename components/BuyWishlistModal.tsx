@@ -178,21 +178,21 @@ export function BuyWishlistModal({
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();
       }}
-      className="w-full max-w-2xl rounded-lg border border-black/10 bg-white p-0 text-zinc-900 backdrop:bg-black/60 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
+      className="m-0 flex h-dvh max-h-none w-full max-w-none flex-col bg-white p-0 text-zinc-900 backdrop:bg-black/60 sm:m-auto sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-lg sm:border sm:border-black/10 dark:bg-zinc-950 dark:text-zinc-50 sm:dark:border-white/10"
     >
-      <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
+      <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
         <h2 className="text-sm font-medium">Marquer comme acheté</h2>
         <button
           type="button"
           onClick={handleClose}
           aria-label="Fermer"
-          className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          className="-m-2 inline-flex min-h-9 min-w-9 items-center justify-center rounded text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
         >
           <X size={18} />
         </button>
       </div>
 
-      <div className="max-h-[80vh] overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <p className="mb-3 text-xs text-zinc-500">
           Complétez et enregistrez pour l&apos;ajouter à votre bédéthèque — le tome sera
           automatiquement retiré de la liste d&apos;achats.

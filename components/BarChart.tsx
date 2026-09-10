@@ -18,13 +18,24 @@ export function BarChart({
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex items-end gap-1" style={{ height }}>
+      {/* Non-visual alternative: the same numbers as a plain table. */}
+      <table className="sr-only">
+        <tbody>
+          {data.map((d) => (
+            <tr key={d.label}>
+              <th scope="row">{d.label}</th>
+              <td>{d.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex items-end gap-1" style={{ height }} aria-hidden="true">
         {data.map((d) => (
           <div
             key={d.label}
             className="flex h-full w-7 shrink-0 flex-col items-center justify-end gap-1"
           >
-            <span className="text-[10px] tabular-nums text-zinc-400">
+            <span className="text-[10px] tabular-nums text-zinc-500">
               {d.value > 0 ? d.value : ""}
             </span>
             <div

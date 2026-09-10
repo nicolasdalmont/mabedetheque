@@ -61,7 +61,7 @@ function RankingList({ items }: { items: RankingItem[] }) {
     <ol className="space-y-2">
       {items.map((item, i) => (
         <li key={item.name} className="flex items-center gap-3">
-          <span className="w-4 shrink-0 text-right text-xs tabular-nums text-zinc-400">
+          <span className="w-4 shrink-0 text-right text-xs tabular-nums text-zinc-500">
             {i + 1}
           </span>
           <span className="w-32 shrink-0 truncate text-sm sm:w-48">{item.name}</span>
@@ -204,7 +204,7 @@ export default function StatsPage() {
 
           <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
             <h2 className="mb-1 text-sm font-medium">Anomalies</h2>
-            <p className="mb-2 text-xs text-zinc-400">
+            <p className="mb-2 text-xs text-zinc-500">
               Cliquez un compte pour voir les albums concernés.
             </p>
             <ul className="divide-y divide-black/5 dark:divide-white/10">
@@ -224,7 +224,7 @@ export default function StatsPage() {
                       className={`font-medium tabular-nums ${
                         a.count > 0
                           ? "text-amber-600 dark:text-amber-400"
-                          : "text-zinc-400"
+                          : "text-zinc-500"
                       }`}
                     >
                       {a.count}

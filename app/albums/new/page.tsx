@@ -152,7 +152,7 @@ export default function NewAlbumPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-zinc-500 hover:underline"
+          className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
         >
           ← Retour
         </button>
@@ -197,7 +197,7 @@ export default function NewAlbumPage() {
       ) : null}
 
       {Object.keys(prefill).length > 0 ? (
-        <details className="[&_summary]:marker:text-zinc-400">
+        <details className="[&_summary]:marker:text-zinc-500">
           <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
             Pas le bon album ? Rechercher par titre / série
           </summary>

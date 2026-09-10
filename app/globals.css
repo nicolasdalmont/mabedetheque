@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Consistent keyboard-focus indicator across every interactive element —
+   some components set their own `focus:border-*`, most set nothing. This
+   only shows for keyboard focus (`:focus-visible`), never on mouse click.
+   (`sr-only` for visually-hidden accessible text is a Tailwind built-in.) */
+:focus-visible {
+  outline: 2px solid #eab308; /* yellow-500 */
+  outline-offset: 2px;
+  border-radius: 3px;
+}

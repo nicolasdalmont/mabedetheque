@@ -187,7 +187,7 @@ export default function EditAlbumPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-zinc-500 hover:underline"
+          className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
         >
           ← Retour
         </button>
@@ -219,7 +219,7 @@ export default function EditAlbumPage() {
             <button
               type="button"
               onClick={() => handleSetSaleStatus("none")}
-              className="text-xs text-zinc-500 hover:underline"
+              className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
             >
               Retirer de la vente
             </button>
@@ -232,7 +232,7 @@ export default function EditAlbumPage() {
             <button
               type="button"
               onClick={() => handleSetSaleStatus("a_vendre")}
-              className="text-xs text-zinc-500 hover:underline"
+              className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
             >
               Annuler la vente
             </button>

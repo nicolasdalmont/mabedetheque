@@ -66,7 +66,7 @@ export default function AlbumDetailPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-zinc-500 hover:underline"
+          className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
         >
           ← Retour
         </button>
@@ -97,7 +97,7 @@ export default function AlbumDetailPage() {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-400">
+                <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
                   Pas de couverture
                 </div>
               )}

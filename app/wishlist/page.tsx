@@ -204,7 +204,7 @@ export default function WishlistPage() {
                 <button
                   type="button"
                   onClick={() => setPendingDelete(item)}
-                  className="rounded px-2 py-1 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
+                  className="-my-1 rounded px-2 py-2 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
                 >
                   Supprimer
                 </button>

@@ -169,7 +169,7 @@ export default function VentePage() {
                     <button
                       type="button"
                       onClick={() => handleSetStatus(album, "none")}
-                      className="rounded px-2 py-1 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
+                      className="-my-1 rounded px-2 py-2 text-xs text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
                     >
                       Retirer
                     </button>
@@ -182,7 +182,7 @@ export default function VentePage() {
                     <button
                       type="button"
                       onClick={() => handleSetStatus(album, "a_vendre")}
-                      className="text-xs text-zinc-500 hover:underline"
+                      className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
                     >
                       Annuler
                     </button>

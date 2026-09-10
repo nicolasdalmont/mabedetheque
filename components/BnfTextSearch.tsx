@@ -60,6 +60,7 @@ export function BnfTextSearch({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Titre"
+          aria-label="Titre de l'album"
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
@@ -69,6 +70,7 @@ export function BnfTextSearch({
           value={series}
           onChange={(e) => setSeries(e.target.value)}
           placeholder="Série"
+          aria-label="Nom de la série"
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
@@ -120,7 +122,7 @@ export function BnfTextSearch({
         )
       ) : null}
       {candidates && candidates.length && hiddenCount ? (
-        <p className="text-[11px] text-zinc-400">
+        <p className="text-[11px] text-zinc-500">
           {hiddenCount} résultat{hiddenCount > 1 ? "s" : ""} déjà dans la collection masqué
           {hiddenCount > 1 ? "s" : ""}.
         </p>

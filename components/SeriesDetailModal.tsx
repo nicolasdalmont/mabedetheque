@@ -149,9 +149,9 @@ export function SeriesDetailModal({
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();
       }}
-      className="w-full max-w-2xl rounded-lg border border-black/10 bg-white p-0 text-zinc-900 backdrop:bg-black/60 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
+      className="m-0 flex h-dvh max-h-none w-full max-w-none flex-col bg-white p-0 text-zinc-900 backdrop:bg-black/60 sm:m-auto sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-lg sm:border sm:border-black/10 dark:bg-zinc-950 dark:text-zinc-50 sm:dark:border-white/10"
     >
-      <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
+      <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
         <h2 className="text-sm font-medium">
           {seriesName}{" "}
           <span className="text-zinc-500">
@@ -163,13 +163,13 @@ export function SeriesDetailModal({
           type="button"
           onClick={handleClose}
           aria-label="Fermer"
-          className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          className="-m-2 inline-flex min-h-9 min-w-9 items-center justify-center rounded text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
         >
           <X size={18} />
         </button>
       </div>
 
-      <div className="max-h-[75vh] overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
           {gridItems.map((item, i) =>
             item.type === "owned" ? (
@@ -217,7 +217,7 @@ export function SeriesDetailModal({
             Rechercher sur la BnF pour aller plus loin
           </button>
           {!searching && !result && !searchError ? (
-            <p className="mt-1 text-[11px] text-zinc-400">
+            <p className="mt-1 text-[11px] text-zinc-500">
               {authorHint
                 ? `Recherche ciblée sur "${authorHint}".`
                 : "Aucun scénariste connu pour cette série — recherche moins précise."}

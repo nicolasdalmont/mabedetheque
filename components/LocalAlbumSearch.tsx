@@ -37,6 +37,7 @@ export function LocalAlbumSearch({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         autoComplete="off"
         autoCapitalize="none"
         autoCorrect="off"
