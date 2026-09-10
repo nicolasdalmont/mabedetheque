@@ -38,12 +38,11 @@ function countByYear(years: (string | null)[]): BarChartDatum[] {
   return data;
 }
 
-function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
+function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/10">
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
       <p className="text-sm text-zinc-500">{label}</p>
-      {hint ? <p className="text-xs text-zinc-400">{hint}</p> : null}
     </div>
   );
 }
@@ -119,12 +118,30 @@ export default function StatsPage() {
     () => new Set(albums.map((a) => a.series_name).filter(Boolean)).size,
     [albums],
   );
-  const albumsWithoutCover = useMemo(
-    () => albums.filter((a) => !a.cover_url || a.cover_url === KNOWN_DEAD_COVER_URL).length,
-    [albums],
-  );
   const albumsForSale = useMemo(
     () => albums.filter((a) => a.sale_status === "a_vendre").length,
+    [albums],
+  );
+
+  // Data gaps worth cleaning up. KNOWN_DEAD_COVER_URL counts as "no cover"
+  // (it's a placeholder 404, see lib/constants). "En série sans tome" only
+  // flags albums that *do* have a series_name — a standalone album is not
+  // an anomaly.
+  const anomalies = useMemo(
+    () => [
+      {
+        label: "Sans couverture",
+        count: albums.filter((a) => !a.cover_url || a.cover_url === KNOWN_DEAD_COVER_URL).length,
+      },
+      {
+        label: "En série, sans numéro de tome",
+        count: albums.filter((a) => a.series_name && a.issue_number == null).length,
+      },
+      {
+        label: "Sans date d'achat",
+        count: albums.filter((a) => !a.purchase_date).length,
+      },
+    ],
     [albums],
   );
 
@@ -190,15 +207,34 @@ export default function StatsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
-            <StatCard
-              label="Albums"
-              value={totalAlbums}
-              hint={`${albumsWithoutCover} sans couverture`}
-            />
+            <StatCard label="Albums" value={totalAlbums} />
             <StatCard label="Séries" value={totalSeries} />
             <StatCard label="À acheter" value={wishlistToBuy} />
             <StatCard label="En vente" value={albumsForSale} />
           </div>
+
+          <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
+            <h2 className="mb-3 text-sm font-medium">Anomalies</h2>
+            <ul className="divide-y divide-black/5 dark:divide-white/10">
+              {anomalies.map((a) => (
+                <li
+                  key={a.label}
+                  className="flex items-center justify-between py-2 text-sm"
+                >
+                  <span className="text-zinc-600 dark:text-zinc-400">{a.label}</span>
+                  <span
+                    className={`font-medium tabular-nums ${
+                      a.count > 0
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-zinc-400"
+                    }`}
+                  >
+                    {a.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
 
           <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
             <h2 className="mb-3 text-sm font-medium">Top 10 des auteurs</h2>
