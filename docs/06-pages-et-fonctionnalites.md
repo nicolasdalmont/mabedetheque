@@ -66,9 +66,10 @@ exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possé
   la wishlist correspond à cette série — comparaison via `seriesTitlesMatch()` (pas une
   égalité stricte de chaîne, car un item wishlist peut venir d'une recherche BnF dont le
   libellé diffère de notre `series_name`).
-- **Clic sur une série** → ouvre `SeriesDetailModal` en fenêtre modale (état `openSeries`,
-  aussi initialisable via le search param `?open=<nom>`, utilisé par le lien "Séries
-  incomplètes" de l'onglet Achats).
+- **Clic sur une série** → ouvre `SeriesDetailModal` (état `openSeries`, aussi initialisable
+  via le search param `?open=<nom>`, utilisé par le lien "Séries incomplètes" de l'onglet
+  Achats). Modale centrée sur `sm+`, **feuille plein écran sous `sm`** (`h-dvh`, en-tête
+  figé, corps scrollable) — comme `BuyWishlistModal`.
 
 ## Fiche série — `SeriesDetailModal`
 
@@ -100,13 +101,13 @@ Liste des tomes que l'utilisateur veut se procurer (`wishlist_items`).
   jamais obligatoire) ou recherche libre BnF (`BnfTextSearch`, avec exclusion des candidats
   déjà possédés via `ownedAlbums` — comparaison par ISBN ou par série+numéro via
   `seriesTitlesMatch()`), ou saisie 100% manuelle (seul `series_name` est requis).
-- **Action "Acheté"** sur un item `a_acheter` → ouvre `BuyWishlistModal`, qui reproduit
-  l'expérience complète d'ajout d'album (recherche ISBN/scan, recherche titre/série,
-  tous les champs + couverture), préremplie avec ce que l'item wishlist connaît déjà. À la
-  validation : insertion dans `albums` **puis** suppression de l'item wishlist
-  correspondant.
-- Les autres statuts affichent un bouton de bascule simple `a_acheter ⇄ achete`, plus un
-  lien "Supprimer".
+- **Bouton "Acheté"** (jaune plein) sur un item `a_acheter` → ouvre `BuyWishlistModal`, qui
+  reproduit l'expérience complète d'ajout d'album (recherche ISBN/scan, recherche
+  titre/série, tous les champs + couverture), préremplie avec ce que l'item wishlist
+  connaît déjà. À la validation : insertion dans `albums` **puis** suppression de l'item
+  wishlist correspondant. `BuyWishlistModal` est une **feuille plein écran sous `sm`**.
+- Les autres statuts affichent un bouton de bascule simple `a_acheter ⇄ achete`.
+- Lien **"Retirer"** (rouge) sur chaque ligne → `ConfirmDialog` → suppression de l'item.
 - **Section "Séries incomplètes"** (déplacée ici depuis l'onglet Stats, sur demande
   explicite) : liste `findSeriesGaps(albums)`, un bouton `+ #N` par tome manquant
   (`gap.missingNumbers`) plutôt qu'un simple texte de plage — chaque clic insère
@@ -123,9 +124,10 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
 - **Filtres** (chips) : À vendre / Vendu / Toutes. Charge sa propre liste via
   `getDataClient().from("albums").neq("sale_status", "none")` — volontairement en dehors
   de `useAlbums()`, qui exclut les albums vendus.
-- Actions par ligne : "Marquer vendu" (via `ConfirmDialog` — semi-destructif) / "Retirer"
-  (retour à `none`, immédiat) pour un album `a_vendre` ; badge "Vendu" + "Annuler" (retour
-  à `a_vendre`) pour un album vendu. Chaque changement émet un toast.
+- Actions par ligne, pour un album `a_vendre` : bouton **"Vendu"** (jaune plein, comme
+  "Acheté" sur Achats) → `ConfirmDialog` ; lien **"Retirer"** (rouge, retour à `none`,
+  immédiat). Pour un album vendu : badge grisé "Vendu" + lien "Annuler". Chaque changement
+  émet un toast ("Marquer vendu" avec action **« Annuler »**).
 - Après chaque changement de statut, `refetchActive()` (exposé par `useAlbums()`) est
   appelé pour que le pool de recherche `LocalAlbumSearch` reste synchronisé sans recharger
   la page.
@@ -196,9 +198,9 @@ couverture (+ badge `SALE_STATUS_LABEL` si concerné) + toutes les métadonnées
 
 Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
 - **Bloc statut de vente** au-dessus du formulaire — boutons contextuels selon
-  `album.sale_status` ("Déclarer à vendre" / "Marquer vendu" + "Retirer de la vente" /
+  `album.sale_status` ("Déclarer à vendre" / "Vendu" + "Retirer de la vente" /
   "Annuler la vente"), mise à jour optimiste avec rollback + toast si l'update échoue.
-  "Marquer vendu" passe par un `ConfirmDialog`.
+  "Vendu" passe par un `ConfirmDialog`.
 - Remplacement de couverture : si une nouvelle couverture (fichier ou URL) est fournie, elle
   est uploadée, la ligne `albums` mise à jour, **puis** l'ancienne couverture purgée de
   l'Object Storage (seulement si elle a effectivement changé).

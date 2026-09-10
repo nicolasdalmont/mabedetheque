@@ -76,23 +76,19 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 ## Interaction cover dans `AlbumForm`
 
 `components/AlbumForm.tsx` fournit :
-- une zone de prévisualisation avec une **couche `contentEditable` invisible** superposée
-  (`absolute inset-0`) qui gère le collage d'image sur tous les supports :
-  - **desktop** : un clic lit directement le presse-papiers via `navigator.clipboard.read()`
-    (fiable à la souris) ; `Ctrl/Cmd+V` fonctionne aussi une fois la couche focus ;
-  - **mobile** : un **appui long** fait apparaître le menu **« Coller » du système** (aucune
-    permission requise — l'utilisateur choisit explicitement), dont l'événement `paste` est
-    capté comme un Ctrl/Cmd+V. `navigator.clipboard.read()` est délibérément **évité** sur
-    mobile : iOS/Android le refusent (`NotAllowedError`) derrière une permission souvent
-    impossible à accorder depuis une PWA installée.
-  - la couche ne conserve jamais de contenu (`preventDefault` + vidage + `blur`),
-    n'ouvre pas le clavier (`inputMode="none"`, `caret-transparent`) et bloque la frappe.
-  - le routage clic/appui-long s'appuie sur la media query `pointer: coarse`.
-- deux boutons de sélection de fichier — **"Galerie photo"** et **"Fichiers"**, tous deux
-  `<input type="file" accept="image/*">` **sans** l'attribut `capture` : le choix a été
-  fait explicitement de laisser l'utilisateur choisir dans sa photothèque ou son
-  gestionnaire de fichiers, pas de déclencher directement l'appareil photo ; ils restent
-  le repli fiable si le collage échoue ;
+- **3 boutons** sous la vignette — **"Galerie"** / **"Fichiers"** (`<input type="file"
+  accept="image/*">` **sans** `capture` : choix dans la photothèque / le gestionnaire de
+  fichiers, jamais l'appareil photo directement) + **"Coller"** (`navigator.clipboard.read()`,
+  fiable au clic/clavier sur desktop). Les inputs fichier sont `sr-only` (atteignables au
+  clavier, anneau de focus sur le label).
+- une **couche `contentEditable` invisible** superposée à la vignette (`absolute inset-0`),
+  `aria-hidden` + `tabIndex -1` (le bouton « Coller » est le chemin accessible) : elle sert
+  au **collage mobile par appui long** — l'appui long fait apparaître le menu **« Coller »
+  du système** (aucune permission requise), dont l'événement `paste` est capté comme un
+  Ctrl/Cmd+V. `navigator.clipboard.read()` est délibérément **évité** sur mobile (refusé
+  `NotAllowedError` derrière une permission souvent impossible à accorder en PWA installée).
+  La couche ne conserve jamais de contenu (`preventDefault` + vidage + `blur`), n'ouvre pas
+  le clavier (`inputMode="none"`, `caret-transparent`).
 - si `onSearchCover` est fourni par le parent, un bouton "Rechercher une couverture"
   (recherche cover-only à partir de l'ISBN déjà saisi dans le formulaire, sans relancer
   tout le lookup de métadonnées).

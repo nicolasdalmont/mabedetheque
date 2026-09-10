@@ -162,11 +162,9 @@ le composant qui garantit que ces trois flux restent en parité de champs.
   l'attribut `autoCapitalize` semantique (`sentences` pour titre/commentaire, `words` pour
   série/éditeur/scénariste/dessinateur, `none` pour ISBN/dépôt légal) et coupe
   `autoCorrect`/`spellCheck` sur les noms propres — voir la note transverse en bas.
-- Couverture : couche `contentEditable` invisible gérant le collage (clic desktop / appui
-  long mobile via le menu natif « Coller » / Ctrl+V), deux boutons de sélection fichier
-  ("Galerie photo" / "Fichiers", jamais de déclenchement caméra directe), et un bouton
-  optionnel "Rechercher une couverture" (`onSearchCover`, recherche cover-only sur l'ISBN
-  déjà saisi). Détail complet en [05](./05-stockage-couvertures.md).
+- Couverture : 3 boutons ("Galerie" / "Fichiers" / "Coller") + couche `contentEditable`
+  `aria-hidden` pour l'appui long mobile + bouton optionnel "Rechercher une couverture"
+  (`onSearchCover`). Détail complet en [05](./05-stockage-couvertures.md).
 - `initial` peut changer après le montage (ex. un lookup ISBN asynchrone résout après coup)
   — fusionné dans l'état via le pattern React documenté "ajuster l'état pendant le rendu"
   (comparaison `initial !== prevInitial` en render, pas un `useEffect`).
@@ -194,7 +192,7 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   contrôlée par une prop `open` (montre/ferme le `<dialog>` via effet). Remplace le mélange
   antérieur (`<dialog>` ad-hoc ici, `window.confirm` là, rien ailleurs). Utilisée pour :
   suppression d'album (édition), suppression d'idée, retrait d'un tome des achats,
-  « Marquer vendu » (édition + Ventes). Prop `tone` : `danger` (rouge) / `default` (jaune).
+  « Vendu » (édition + Ventes). Prop `tone` : `danger` (rouge) / `default` (jaune).
 - **`Toast` (`components/Toast.tsx`)** — `ToastProvider` monté dans `app/layout.tsx`,
   `useToast()` expose `{ toast, success, error }`. Notifications éphémères (4 s, cliquables
   pour fermer), empilées en bas à droite (desktop) / bas centre (mobile), au-dessus de
@@ -202,7 +200,7 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   erreurs des mises à jour optimistes qui n'étaient auparavant qu'un texte inline souvent
   hors écran. `success`/`toast` acceptent une `action` optionnelle
   (`{ label, onClick }`) → deuxième bouton dans le toast, durée portée à 7 s — utilisé
-  pour l'« Annuler » après « Marquer vendu ». `useToast()` renvoie un no-op hors provider.
+  pour l'« Annuler » après « Vendu ». `useToast()` renvoie un no-op hors provider.
 
 ## Autres composants
 
@@ -220,14 +218,32 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   formatage de date unifié, utilisé par `AlbumTable` et `IdeaCard` (la vue Liste affichait
   l'ISO brut avant).
 
-## Note transverse : `<dialog>` et couleur de texte
+## Note transverse : `<dialog>`
 
-Tous les `<dialog>` natifs de l'app (`IsbnScanner`, `SeriesDetailModal`,
-`BuyWishlistModal`, `ConfirmDialog`) portent explicitement `text-zinc-900 dark:text-zinc-50`
-dans leur `className`. Un `<dialog>` natif **n'hérite pas** de la couleur de texte du
-`<body>` — l'agent utilisateur lui applique par défaut `color: CanvasText`, qui l'emporte
-sur l'héritage — sans ce correctif, le texte devient illisible (noir sur fond sombre) en
-mode sombre.
+- **Couleur de texte** : tous les `<dialog>` natifs (`IsbnScanner`, `SeriesDetailModal`,
+  `BuyWishlistModal`, `ConfirmDialog`) portent explicitement `text-zinc-900
+  dark:text-zinc-50`. Un `<dialog>` natif **n'hérite pas** de la couleur du `<body>` —
+  l'UA lui applique `color: CanvasText` — sans ce correctif le texte est illisible en
+  mode sombre.
+- **Plein écran sur mobile** : les grosses modales-formulaire (`SeriesDetailModal`,
+  `BuyWishlistModal`) sont `h-dvh w-full` + `flex flex-col` sous `sm` (en-tête `shrink-0`,
+  corps `flex-1 overflow-y-auto`) et redeviennent une carte centrée `sm:max-w-2xl
+  sm:max-h-[85vh] sm:rounded-lg` au-delà. `ConfirmDialog` et `IsbnScanner` restent centrés
+  (contenu court).
+
+## Note transverse : accessibilité
+
+- **Focus clavier** : `app/globals.css` définit un `:focus-visible` global (contour jaune,
+  jamais au clic souris). Les composants ne redéfinissent plus leur propre `focus:` au
+  coup par coup.
+- **Contraste** : `text-zinc-400` est réservé au décoratif ; tout texte porteur de sens
+  (états vides, hints, compteurs, timestamps, valeurs de graphiques) est en `text-zinc-500`
+  minimum (≥ AA 4.5:1).
+- **`BarChart`** rend une `<table class="sr-only">` avec les mêmes chiffres et passe le
+  graphe en `aria-hidden`.
+- **Cibles tactiles** : les liens d'action des listes (Retirer / Annuler / ← Retour) et les
+  croix de fermeture des modales sont dimensionnés `min-h-9` / `min-w-9`.
+- **Champs sans `<label>`** (recherches, filtres) portent tous un `aria-label`.
 
 ## Note transverse : `autoCapitalize` sur les champs texte (mobile)
 
