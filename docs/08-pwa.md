@@ -13,6 +13,15 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: defaultCache,
 });
+
+serwist.setCatchHandler(async ({ request }) => {
+  if (request.destination === "document") {
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) return cached;
+  }
+  return new Response(null, { status: 503, statusText: "Hors ligne" });
+});
+
 serwist.addEventListeners();
 ```
 
@@ -22,6 +31,12 @@ serwist.addEventListeners();
   plus bas).
 - `runtimeCaching: defaultCache` — stratégie de cache par défaut fournie par
   `@serwist/next/worker`.
+- **`setCatchHandler`** : les stratégies de `defaultCache` rejettent le `FetchEvent`
+  quand elles ne peuvent produire de réponse (hors ligne sans cache, ou requête réseau
+  échouée — timeout BnF…), ce qui fait logger `FetchEvent.respondWith received an error:
+  no-response` par Chrome pour **chaque** requête concernée. Le catch handler renvoie une
+  réponse concrète (document en cache pour une navigation, `503` vide sinon) — l'app et
+  `OfflineBanner` gèrent déjà une requête en échec.
 
 Généré uniquement au **build de production** (`next build --webpack`) : `next.config.ts`
 désactive explicitement le plugin Serwist hors production

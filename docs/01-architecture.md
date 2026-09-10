@@ -54,6 +54,7 @@ mabedetheque/
 │   ├── ideas/page.tsx            # onglet Idées
 │   ├── stats/page.tsx            # onglet Stats
 │   ├── albums/new/page.tsx       # ajout d'un album
+│   ├── albums/[id]/page.tsx      # détail d'un album (lecture seule)
 │   ├── albums/[id]/edit/page.tsx # édition/suppression/statut vente d'un album
 │   └── api/
 │       ├── auth/[...path]/route.ts   # handler Better Auth (GET/POST)
@@ -62,9 +63,11 @@ mabedetheque/
 │       ├── series-search/route.ts    # recherche BnF de tous les tomes d'une série
 │       └── text-search/route.ts      # recherche BnF libre par titre/série
 ├── components/                   # composants UI et logique client réutilisables
-│   ├── AppHeader.tsx / AppTabs / BottomNav / navTabs.ts  # navigation (desktop + mobile)
+│   ├── AppHeader / AppTabs / BottomNav / navTabs.ts      # navigation (desktop + mobile)
+│   ├── OfflineBanner / PullToRefresh / RefreshButton     # PWA : état réseau, rechargement
 │   ├── ConfirmDialog.tsx         # boîte de confirmation unique de l'app
-│   └── Toast.tsx                 # ToastProvider + useToast (notifications éphémères)
+│   ├── Toast.tsx                 # ToastProvider + useToast (notifications éphémères)
+│   └── CardGridSkeleton.tsx      # placeholder de chargement des grilles
 ├── hooks/                        # hooks React partagés (useAlbums, useSession)
 ├── lib/                          # clients Neon, logique métier ISBN/BnF, constantes
 │   ├── auth/server.ts            # instance serveur Neon Auth (singleton)

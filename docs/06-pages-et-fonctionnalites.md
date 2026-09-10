@@ -1,10 +1,14 @@
 # 6. Pages et fonctionnalités
 
-Toutes les pages (y compris Ajout et Édition d'un album) partagent le même en-tête, le
-composant `AppHeader` : logo cliquable vers `/` + barre d'onglets `AppTabs` à gauche,
-bouton de déconnexion `SignOutButton` à droite (voir [07](./07-composants-et-hooks.md)).
-Le bouton d'action principal d'un onglet (ex. "+ Ajouter un album") vit dans sa **propre
-ligne juste sous l'en-tête**, jamais dans l'en-tête lui-même.
+Toutes les pages (y compris Détail / Ajout / Édition d'un album) partagent le même
+en-tête, le composant `AppHeader` : logo cliquable vers `/` + barre d'onglets `AppTabs`
+à gauche, bouton **Actualiser** + bouton de déconnexion à droite (voir
+[07](./07-composants-et-hooks.md)). Le bouton d'action principal d'un onglet (ex.
+"+ Ajouter un album") vit dans sa **propre ligne juste sous l'en-tête**, jamais dans
+l'en-tête lui-même.
+
+Un bandeau **« Hors ligne »** (`OfflineBanner`) et le **pull-to-refresh** (`PullToRefresh`,
+mobile) sont rendus une fois par le layout racine, au-dessus de tout le contenu.
 
 ## Navigation
 
@@ -180,6 +184,14 @@ réservé aux séries valeur/année) :
    [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
    succès → `router.back()`.
 
+## Détail d'album (`app/albums/[id]/page.tsx`)
+
+**Vue lecture seule** — c'est là qu'atterrissent toutes les vignettes/lignes d'album
+(galerie, vue liste, fiche série, onglet Ventes), au lieu d'ouvrir directement le
+formulaire d'édition : moins d'édits accidentels en parcourant la collection. Grande
+couverture (+ badge `SALE_STATUS_LABEL` si concerné) + toutes les métadonnées (dates via
+`formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`. Re-fetch au retour de focus.
+
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)
 
 Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
@@ -205,5 +217,6 @@ Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
 | `/ideas` | Idées |
 | `/stats` | Stats |
 | `/albums/new` | Ajout d'album |
+| `/albums/[id]` | Détail d'un album (lecture seule) |
 | `/albums/[id]/edit` | Édition/suppression d'un album |
 | `/login` | Connexion |

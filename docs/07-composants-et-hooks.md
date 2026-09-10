@@ -30,9 +30,21 @@ Voir [03-authentification.md](./03-authentification.md). Retourne
 
 ### `AppHeader` (`components/AppHeader.tsx`)
 
-En-tête partagé rendu par **chaque** page (les 6 onglets + Ajout + Édition) : logo
-(`<Link href="/">`) + `AppTabs` + `SignOutButton`. Extrait pour que les en-têtes ne
-divergent plus (avant : logo tantôt `<h1>` non cliquable, tantôt `<Link>`).
+En-tête partagé rendu par **chaque** page (6 onglets + Détail + Ajout + Édition) : logo
+(`<Link href="/">`) + `AppTabs` à gauche, `RefreshButton` + `SignOutButton` à droite.
+Extrait pour que les en-têtes ne divergent plus (avant : logo tantôt `<h1>` non
+cliquable, tantôt `<Link>`).
+
+### `RefreshButton` / `PullToRefresh` / `OfflineBanner`
+
+- **`RefreshButton`** (dans `AppHeader`) : icône `RefreshCw`, `window.location.reload()`.
+  Le pendant desktop / PWA installée (pas de rechargement navigateur) du pull-to-refresh.
+- **`PullToRefresh`** (layout, `sm:hidden`) : glissement vers le bas en haut de page →
+  recharge au-delà d'un seuil. Listeners `document` **passifs** (ne combat jamais le
+  scroll natif), désactivé si `dialog[open]` (modale) ou déjà en cours.
+- **`OfflineBanner`** (layout, `sticky top-0`) : `navigator.onLine` + events
+  `online`/`offline`. Le SW garde l'app ouverte hors ligne mais les requêtes de données
+  échouent alors en silence — le bandeau rend l'état explicite.
 
 ### `navTabs.ts` (`components/navTabs.ts`)
 
