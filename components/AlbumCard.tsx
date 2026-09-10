@@ -12,7 +12,7 @@ export function AlbumCard({ album }: { album: Album }) {
   return (
     <Link
       id={`album-${album.id}`}
-      href={`/albums/${album.id}/edit`}
+      href={`/albums/${album.id}`}
       onClick={() => sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
       className="group flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition-shadow hover:shadow-md dark:border-white/10 dark:bg-zinc-950"
     >

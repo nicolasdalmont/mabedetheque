@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AppUpdater } from "@/components/AppUpdater";
 import { ManifestThemeSwitcher } from "@/components/ManifestThemeSwitcher";
 import { BottomNav } from "@/components/BottomNav";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
@@ -55,6 +57,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppUpdater />
         <ManifestThemeSwitcher />
         <ToastProvider>
+          <OfflineBanner />
+          <PullToRefresh />
           {/* Room for the fixed mobile bottom nav (hidden on sm+). */}
           <div className="flex flex-1 flex-col pb-16 sm:pb-0">{children}</div>
           <BottomNav />

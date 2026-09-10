@@ -24,7 +24,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
         {albums.map((album) => (
           <li key={album.id}>
             <Link
-              href={`/albums/${album.id}/edit`}
+              href={`/albums/${album.id}`}
               onClick={() => rememberAlbum(album.id)}
               className="block px-3 py-2.5 hover:bg-black/5 dark:hover:bg-white/5"
             >
@@ -66,7 +66,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
               >
                 <td className="px-3 py-2">
                   <Link
-                    href={`/albums/${album.id}/edit`}
+                    href={`/albums/${album.id}`}
                     onClick={() => rememberAlbum(album.id)}
                     className="font-medium hover:underline"
                   >

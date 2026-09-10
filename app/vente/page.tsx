@@ -145,7 +145,7 @@ export default function VentePage() {
           {filtered.map((album) => (
             <li key={album.id} className="flex items-center justify-between gap-3 py-3">
               <Link
-                href={`/albums/${album.id}/edit`}
+                href={`/albums/${album.id}`}
                 onClick={() => user && sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
                 className="min-w-0"
               >

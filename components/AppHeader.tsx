@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppTabs } from "./AppTabs";
+import { RefreshButton } from "./RefreshButton";
 import { SignOutButton } from "./SignOutButton";
 
 /**
@@ -21,7 +22,10 @@ export function AppHeader() {
         </Link>
         <AppTabs />
       </div>
-      <SignOutButton />
+      <div className="flex shrink-0 items-center gap-3">
+        <RefreshButton />
+        <SignOutButton />
+      </div>
     </header>
   );
 }
