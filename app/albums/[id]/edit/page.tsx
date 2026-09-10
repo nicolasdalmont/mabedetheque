@@ -128,7 +128,11 @@ export default function EditAlbumPage() {
       toastError(error.message);
       return;
     }
-    if (status === "vendu") success("Album marqué comme vendu — visible dans l'onglet Ventes.");
+    if (status === "vendu")
+      success("Album marqué comme vendu — visible dans l'onglet Ventes.", {
+        label: "Annuler",
+        onClick: () => handleSetSaleStatus("a_vendre"),
+      });
     else if (status === "a_vendre" && previous === "none") success("Album mis en vente.");
   }
 

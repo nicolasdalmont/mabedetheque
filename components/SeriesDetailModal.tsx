@@ -19,11 +19,14 @@ export function SeriesDetailModal({
   seriesName,
   albums,
   ownerId,
+  wishlistNumbers,
   onClose,
 }: {
   seriesName: string;
   albums: Album[];
   ownerId: string;
+  /** Tome numbers of this series already on the achats list. */
+  wishlistNumbers?: Set<number>;
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -32,6 +35,9 @@ export function SeriesDetailModal({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [addedKeys, setAddedKeys] = useState<Set<number>>(new Set());
+
+  // "Already offered" = on the wishlist already, or added during this modal.
+  const isQueued = (n: number) => wishlistNumbers?.has(n) || addedKeys.has(n);
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -172,7 +178,7 @@ export function SeriesDetailModal({
                 {bnfMissing.length ? (
                   <ul className="space-y-1.5">
                     {bnfMissing.map((t) => {
-                      const added = addedKeys.has(t.issueNumber);
+                      const queued = isQueued(t.issueNumber);
                       return (
                         <li
                           key={t.issueNumber}
@@ -185,11 +191,11 @@ export function SeriesDetailModal({
                           <button
                             type="button"
                             onClick={() => handleAddToWishlist(t)}
-                            disabled={added}
+                            disabled={queued}
                             className={addButtonClass}
                           >
-                            {added ? <Check size={12} /> : <Plus size={12} />}
-                            {added ? "Ajouté" : "Ajouter aux achats"}
+                            {queued ? <Check size={12} /> : <Plus size={12} />}
+                            {queued ? "Dans les achats" : "Ajouter aux achats"}
                           </button>
                         </li>
                       );
@@ -207,16 +213,16 @@ export function SeriesDetailModal({
               </p>
               <ul className="flex flex-wrap gap-1.5">
                 {localGap.missingNumbers.map((n) => {
-                  const added = addedKeys.has(n);
+                  const queued = isQueued(n);
                   return (
                     <li key={n}>
                       <button
                         type="button"
                         onClick={() => handleAddToWishlist({ issueNumber: n })}
-                        disabled={added}
+                        disabled={queued}
                         className={addButtonClass}
                       >
-                        {added ? <Check size={12} /> : <Plus size={12} />}#{n}
+                        {queued ? <Check size={12} /> : <Plus size={12} />}#{n}
                       </button>
                     </li>
                   );

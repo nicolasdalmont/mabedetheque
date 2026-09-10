@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
+import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
@@ -42,14 +43,31 @@ function buildSeriesList(albums: Album[]): SeriesSummary[] {
 function SeriesContent() {
   const { albums, loading, error } = useAlbums();
   const { user } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [openSeries, setOpenSeries] = useState<string | null>(searchParams.get("open"));
 
   const seriesList = useMemo(() => buildSeriesList(albums), [albums]);
   const activeSeries = seriesList.find((s) => s.name === openSeries) ?? null;
 
-  const [authorFilter, setAuthorFilter] = useState("");
-  const [seriesNameFilter, setSeriesNameFilter] = useState("");
+  // Filters in the URL (like the Albums tab) — shareable and restored when
+  // coming back from an album's page.
+  const seriesNameFilter = searchParams.get("q") ?? "";
+  const authorFilter = searchParams.get("author") ?? "";
+  const updateParams = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
   // Writer and illustrator merged into one list — picking a name matches
   // either role, same as the equivalent filter on Albums.
   const authorOptions = useMemo(
@@ -74,14 +92,16 @@ function SeriesContent() {
     });
   }, [seriesList, seriesNameFilter, authorFilter]);
 
-  const [wishlistSeriesNames, setWishlistSeriesNames] = useState<string[]>([]);
+  const [wishlist, setWishlist] = useState<
+    { series_name: string; issue_number: number | null }[]
+  >([]);
   useEffect(() => {
     let ignore = false;
     getDataClient()
       .from("wishlist_items")
-      .select("series_name")
+      .select("series_name, issue_number")
       .then(({ data }) => {
-        if (!ignore) setWishlistSeriesNames((data ?? []).map((i) => i.series_name));
+        if (!ignore) setWishlist(data ?? []);
       });
     return () => {
       ignore = true;
@@ -94,12 +114,24 @@ function SeriesContent() {
   const seriesWithWishlistItem = useMemo(() => {
     const matched = new Set<string>();
     for (const series of seriesList) {
-      if (wishlistSeriesNames.some((wn) => seriesTitlesMatch(series.name, wn))) {
+      if (wishlist.some((w) => seriesTitlesMatch(series.name, w.series_name))) {
         matched.add(series.name);
       }
     }
     return matched;
-  }, [seriesList, wishlistSeriesNames]);
+  }, [seriesList, wishlist]);
+  // Tome numbers already on the achats list for the currently-open series —
+  // so its detail modal can avoid offering them again.
+  const openSeriesWishlistNumbers = useMemo(() => {
+    if (!openSeries) return new Set<number>();
+    const nums = new Set<number>();
+    for (const w of wishlist) {
+      if (w.issue_number != null && seriesTitlesMatch(openSeries, w.series_name)) {
+        nums.add(w.issue_number);
+      }
+    }
+    return nums;
+  }, [openSeries, wishlist]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -108,7 +140,7 @@ function SeriesContent() {
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           value={seriesNameFilter}
-          onChange={(e) => setSeriesNameFilter(e.target.value)}
+          onChange={(e) => updateParams({ q: e.target.value })}
           placeholder="Filtrer par série"
           aria-label="Filtrer par nom de série"
           autoComplete="off"
@@ -118,7 +150,7 @@ function SeriesContent() {
         />
         <select
           value={authorFilter}
-          onChange={(e) => setAuthorFilter(e.target.value)}
+          onChange={(e) => updateParams({ author: e.target.value })}
           aria-label="Filtrer par auteur"
           className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-auto sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
         >
@@ -141,10 +173,7 @@ function SeriesContent() {
           {seriesFiltersActive ? (
             <button
               type="button"
-              onClick={() => {
-                setSeriesNameFilter("");
-                setAuthorFilter("");
-              }}
+              onClick={() => updateParams({ q: "", author: "" })}
               className="rounded px-2 py-1 font-medium text-zinc-600 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/5"
             >
               Effacer les filtres
@@ -154,7 +183,7 @@ function SeriesContent() {
       ) : null}
 
       {loading ? (
-        <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
+        <CardGridSkeleton />
       ) : error ? (
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : seriesList.length === 0 ? (
@@ -166,10 +195,7 @@ function SeriesContent() {
           <p>Aucune série ne correspond à ce filtre.</p>
           <button
             type="button"
-            onClick={() => {
-              setSeriesNameFilter("");
-              setAuthorFilter("");
-            }}
+            onClick={() => updateParams({ q: "", author: "" })}
             className="rounded-md border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
           >
             Effacer les filtres
@@ -195,6 +221,7 @@ function SeriesContent() {
           seriesName={activeSeries.name}
           albums={activeSeries.albums}
           ownerId={user.id}
+          wishlistNumbers={openSeriesWishlistNumbers}
           onClose={() => setOpenSeries(null)}
         />
       ) : null}

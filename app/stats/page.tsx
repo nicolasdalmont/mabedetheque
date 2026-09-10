@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAlbums } from "@/hooks/useAlbums";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
@@ -128,14 +129,17 @@ export default function StatsPage() {
   const anomalies = useMemo(
     () => [
       {
+        key: "cover",
         label: "Sans couverture",
         count: albums.filter((a) => !a.cover_url || a.cover_url === KNOWN_DEAD_COVER_URL).length,
       },
       {
+        key: "tome",
         label: "En série, sans numéro de tome",
         count: albums.filter((a) => a.series_name && a.issue_number == null).length,
       },
       {
+        key: "achat",
         label: "Sans date d'achat",
         count: albums.filter((a) => !a.purchase_date).length,
       },
@@ -199,23 +203,33 @@ export default function StatsPage() {
           </div>
 
           <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
-            <h2 className="mb-3 text-sm font-medium">Anomalies</h2>
+            <h2 className="mb-1 text-sm font-medium">Anomalies</h2>
+            <p className="mb-2 text-xs text-zinc-400">
+              Cliquez un compte pour voir les albums concernés.
+            </p>
             <ul className="divide-y divide-black/5 dark:divide-white/10">
               {anomalies.map((a) => (
-                <li
-                  key={a.label}
-                  className="flex items-center justify-between py-2 text-sm"
-                >
-                  <span className="text-zinc-600 dark:text-zinc-400">{a.label}</span>
-                  <span
-                    className={`font-medium tabular-nums ${
+                <li key={a.key}>
+                  <Link
+                    href={a.count > 0 ? `/?missing=${a.key}` : "/"}
+                    aria-disabled={a.count === 0}
+                    className={`flex items-center justify-between py-2 text-sm ${
                       a.count > 0
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-zinc-400"
-                    }`}
+                        ? "hover:bg-black/5 dark:hover:bg-white/5"
+                        : "pointer-events-none"
+                    } -mx-1 rounded px-1`}
                   >
-                    {a.count}
-                  </span>
+                    <span className="text-zinc-600 dark:text-zinc-400">{a.label}</span>
+                    <span
+                      className={`font-medium tabular-nums ${
+                        a.count > 0
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-zinc-400"
+                      }`}
+                    >
+                      {a.count}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

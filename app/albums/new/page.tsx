@@ -196,7 +196,18 @@ export default function NewAlbumPage() {
         <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
       ) : null}
 
-      <BnfTextSearch onSelect={handleTextSearchSelect} />
+      {Object.keys(prefill).length > 0 ? (
+        <details className="[&_summary]:marker:text-zinc-400">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+            Pas le bon album ? Rechercher par titre / série
+          </summary>
+          <div className="mt-2">
+            <BnfTextSearch onSelect={handleTextSearchSelect} />
+          </div>
+        </details>
+      ) : (
+        <BnfTextSearch onSelect={handleTextSearchSelect} />
+      )}
 
       <AlbumForm
         initial={{ isbn: isbnInput, ...prefill }}

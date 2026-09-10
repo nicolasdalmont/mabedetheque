@@ -9,8 +9,15 @@ import { SearchBar } from "@/components/SearchBar";
 import { FilterSortBar } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
 import { AlbumTable } from "@/components/AlbumTable";
+import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import type { SortKey, ViewMode } from "@/types/album";
-import { LAST_ALBUM_KEY } from "@/lib/constants";
+import { KNOWN_DEAD_COVER_URL, LAST_ALBUM_KEY } from "@/lib/constants";
+
+const MISSING_LABEL: Record<string, string> = {
+  cover: "sans couverture",
+  tome: "en série, sans numéro de tome",
+  achat: "sans date d'achat",
+};
 
 function HomeContent() {
   const { albums, loading, error } = useAlbums();
@@ -25,6 +32,7 @@ function HomeContent() {
   const series = searchParams.get("series") ?? "";
   const publisher = searchParams.get("publisher") ?? "";
   const author = searchParams.get("author") ?? "";
+  const missing = searchParams.get("missing") ?? ""; // cover | tome | achat (depuis Stats › Anomalies)
   const sortKey = (searchParams.get("sort") as SortKey | null) ?? "title";
   const viewMode = (searchParams.get("view") as ViewMode | null) ?? "grid";
 
@@ -83,6 +91,9 @@ function HomeContent() {
         if (series && a.series_name !== series) return false;
         if (publisher && a.publisher !== publisher) return false;
         if (author && a.writer !== author && a.illustrator !== author) return false;
+        if (missing === "cover" && a.cover_url && a.cover_url !== KNOWN_DEAD_COVER_URL) return false;
+        if (missing === "tome" && !(a.series_name && a.issue_number == null)) return false;
+        if (missing === "achat" && a.purchase_date) return false;
         if (!q) return true;
         return [a.title, a.series_name, a.writer, a.illustrator, a.isbn]
           .filter(Boolean)
@@ -104,11 +115,11 @@ function HomeContent() {
         const bv = b[sortKey] ?? "";
         return String(av).localeCompare(String(bv));
       });
-  }, [albums, query, series, publisher, author, sortKey]);
+  }, [albums, query, series, publisher, author, missing, sortKey]);
 
-  const hasActiveFilters = Boolean(query || series || publisher || author);
+  const hasActiveFilters = Boolean(query || series || publisher || author || missing);
   const clearFilters = () =>
-    updateParams({ q: "", series: "", publisher: "", author: "" });
+    updateParams({ q: "", series: "", publisher: "", author: "", missing: "" });
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -143,11 +154,16 @@ function HomeContent() {
       />
 
       {!loading && !error ? (
-        <div className="flex items-center justify-between text-xs text-zinc-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
           <span>
             {hasActiveFilters
               ? `${filtered.length} sur ${albums.length} album${albums.length > 1 ? "s" : ""}`
               : `${albums.length} album${albums.length > 1 ? "s" : ""}`}
+            {missing && MISSING_LABEL[missing] ? (
+              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                {MISSING_LABEL[missing]}
+              </span>
+            ) : null}
           </span>
           {hasActiveFilters ? (
             <button
@@ -162,7 +178,7 @@ function HomeContent() {
       ) : null}
 
       {loading ? (
-        <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
+        <CardGridSkeleton />
       ) : error ? (
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">
           {error}

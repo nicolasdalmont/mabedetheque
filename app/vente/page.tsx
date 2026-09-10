@@ -88,7 +88,11 @@ export default function VentePage() {
       return;
     }
     refetchActive();
-    if (status === "vendu") success(`« ${album.title} » marqué vendu.`);
+    if (status === "vendu")
+      success(`« ${album.title} » marqué vendu.`, {
+        label: "Annuler",
+        onClick: () => handleSetStatus({ ...album, sale_status: "vendu" }, "a_vendre"),
+      });
     else if (status === "none") success(`« ${album.title} » retiré des ventes.`);
     else if (status === "a_vendre" && previous === "vendu") success(`Vente de « ${album.title} » annulée.`);
   }

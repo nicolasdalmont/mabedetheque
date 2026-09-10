@@ -10,11 +10,12 @@ import {
 } from "react";
 
 type Tone = "success" | "error" | "info";
-type Toast = { id: number; message: string; tone: Tone };
+type ToastAction = { label: string; onClick: () => void };
+type Toast = { id: number; message: string; tone: Tone; action?: ToastAction };
 
 type ToastApi = {
-  toast: (message: string, tone?: Tone) => void;
-  success: (message: string) => void;
+  toast: (message: string, tone?: Tone, action?: ToastAction) => void;
+  success: (message: string, action?: ToastAction) => void;
   error: (message: string) => void;
 };
 
@@ -35,10 +36,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    (message: string, tone: Tone = "info") => {
+    (message: string, tone: Tone = "info", action?: ToastAction) => {
       const id = nextId.current++;
-      setToasts((prev) => [...prev, { id, message, tone }]);
-      setTimeout(() => remove(id), 4000);
+      setToasts((prev) => [...prev, { id, message, tone, action }]);
+      // Leave an actionable toast (e.g. "Annuler") up a bit longer.
+      setTimeout(() => remove(id), action ? 7000 : 4000);
     },
     [remove],
   );
@@ -46,7 +48,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const api = useMemo<ToastApi>(
     () => ({
       toast,
-      success: (m) => toast(m, "success"),
+      success: (m, action) => toast(m, "success", action),
       error: (m) => toast(m, "error"),
     }),
     [toast],
@@ -61,14 +63,30 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         {toasts.map((t) => (
-          <button
+          <div
             key={t.id}
-            type="button"
-            onClick={() => remove(t.id)}
-            className={`pointer-events-auto max-w-sm rounded-lg border px-4 py-2.5 text-sm shadow-lg ${TONE_CLASS[t.tone]}`}
+            className={`pointer-events-auto flex max-w-sm items-center gap-3 rounded-lg border px-4 py-2.5 text-sm shadow-lg ${TONE_CLASS[t.tone]}`}
           >
-            {t.message}
-          </button>
+            <button
+              type="button"
+              onClick={() => remove(t.id)}
+              className="min-w-0 flex-1 text-left"
+            >
+              {t.message}
+            </button>
+            {t.action ? (
+              <button
+                type="button"
+                onClick={() => {
+                  t.action!.onClick();
+                  remove(t.id);
+                }}
+                className="shrink-0 font-semibold underline underline-offset-2"
+              >
+                {t.action.label}
+              </button>
+            ) : null}
+          </div>
         ))}
       </div>
     </ToastContext.Provider>
