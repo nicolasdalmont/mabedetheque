@@ -53,7 +53,7 @@ export function AlbumForm({
   const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coverPressRef = useRef<{ at: number; x: number; y: number } | null>(null);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -89,16 +89,18 @@ export function AlbumForm({
     }
   }
 
-  // Click (desktop) / long-press (mobile) paste — reads the clipboard
-  // directly via the async Clipboard API instead of waiting for a Ctrl/Cmd+V
-  // keyboard event, which mobile has no equivalent of. Needs a user gesture
-  // (the click/long-press itself satisfies that) and a secure context (this
-  // app is HTTPS-only, see AGENTS.md/SETUP.md).
+  // Click (desktop) / long-press (mobile) paste — reads the clipboard via the
+  // async Clipboard API, since mobile has no Ctrl/Cmd+V. It MUST be called
+  // straight from the gesture handler (click / touchend): the API needs
+  // transient user activation, which a deferred callback (e.g. a setTimeout
+  // that only fires once the press is long enough) no longer carries —
+  // Safari and Chrome both reject it with NotAllowedError then. Also needs a
+  // secure context, which the app always has (HTTPS-only, see AGENTS.md).
   async function pasteFromClipboard() {
     setPasteError(null);
     if (!navigator.clipboard?.read) {
       setPasteError(
-        "Collage non supporté par ce navigateur — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
+        "Presse-papiers non accessible sur ce navigateur — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
       );
       return;
     }
@@ -112,40 +114,53 @@ export function AlbumForm({
         onCoverFileSelected?.(new File([blob], "presse-papiers", { type: imageType }));
         return;
       }
-      setPasteError("Aucune image dans le presse-papiers.");
-    } catch {
+      setPasteError("Le presse-papiers ne contient pas d'image — copiez d'abord une image.");
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") console.warn("clipboard read failed", err);
+      const denied = err instanceof DOMException && err.name === "NotAllowedError";
       setPasteError(
-        "Impossible d'accéder au presse-papiers — autorisez l'accès, ou utilisez Ctrl/Cmd+V.",
+        denied
+          ? "Accès au presse-papiers refusé — autorisez-le pour ce site (ou validez « Coller » si le navigateur le propose), sinon utilisez Ctrl/Cmd+V ou les boutons ci-dessous."
+          : "Lecture du presse-papiers impossible — utilisez Ctrl/Cmd+V ou les boutons ci-dessous.",
       );
     } finally {
       setPasting(false);
     }
   }
 
-  function clearLongPressTimer() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-
   // "pointer: coarse" is the primary-pointer media feature (finger-driven —
   // true on phones/tablets, false on a mouse/trackpad-driven desktop, even
-  // one with a touchscreen). Used to route the gesture: a coarse pointer
-  // gets long-press only (a plain tap stays a no-op, so it doesn't fire a
-  // clipboard permission prompt on every tap), a fine one gets a plain click.
+  // one with a touchscreen). Routes the gesture: a coarse pointer pastes on
+  // a long-press only (a plain tap stays a no-op, so it doesn't nag for
+  // clipboard access on every tap), a fine one on a plain click.
   function isCoarsePointer(): boolean {
     return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
   }
 
   function handleCoverClick() {
-    if (isCoarsePointer()) return; // handled by long-press below instead
+    if (isCoarsePointer()) return; // touch: handled in handleTouchEnd
     pasteFromClipboard();
   }
 
-  function handleTouchStart() {
-    clearLongPressTimer();
-    longPressTimer.current = setTimeout(pasteFromClipboard, LONG_PRESS_MS);
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    coverPressRef.current = { at: Date.now(), x: t.clientX, y: t.clientY };
+  }
+
+  // Fire on release, not on a timer: a stationary press held past the
+  // threshold is a long-press, and touchend still carries the user
+  // activation that navigator.clipboard.read() needs.
+  function handleTouchEnd(e: React.TouchEvent) {
+    const press = coverPressRef.current;
+    coverPressRef.current = null;
+    if (!press) return;
+    const t = e.changedTouches[0];
+    const held = Date.now() - press.at;
+    const moved = Math.hypot(t.clientX - press.x, t.clientY - press.y);
+    if (held >= LONG_PRESS_MS && moved < 12) {
+      e.preventDefault(); // don't also fire the click this touch synthesizes
+      pasteFromClipboard();
+    }
   }
 
   function field<K extends keyof AlbumFormValues>(key: K) {
@@ -182,12 +197,13 @@ export function AlbumForm({
           onPaste={handlePaste}
           onClick={handleCoverClick}
           onTouchStart={handleTouchStart}
-          onTouchEnd={clearLongPressTimer}
-          onTouchMove={clearLongPressTimer}
-          onTouchCancel={clearLongPressTimer}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={() => {
+            coverPressRef.current = null;
+          }}
           title="Cliquez pour coller une image (appui long sur mobile) — Ctrl/Cmd+V aussi possible"
           style={{ WebkitTouchCallout: "none" }}
-          className="aspect-[2/3] w-full cursor-pointer touch-none select-none overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
+          className="aspect-[2/3] w-full cursor-pointer touch-manipulation select-none overflow-hidden rounded-md border border-black/10 bg-zinc-100 outline-none focus:border-yellow-500 dark:border-white/10 dark:bg-zinc-900"
         >
           {coverPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
