@@ -160,6 +160,8 @@ export default function NewAlbumPage() {
           onChange={(e) => setIsbnInput(e.target.value)}
           placeholder="Saisir ou scanner l'ISBN"
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           className="flex-1 rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
         />
         <button

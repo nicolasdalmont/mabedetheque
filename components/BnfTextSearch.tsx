@@ -61,6 +61,8 @@ export function BnfTextSearch({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Titre"
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           className={inputClass}
         />
         <input
@@ -68,6 +70,8 @@ export function BnfTextSearch({
           onChange={(e) => setSeries(e.target.value)}
           placeholder="Série"
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           className={inputClass}
         />
       </div>

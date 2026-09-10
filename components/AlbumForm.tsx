@@ -10,6 +10,22 @@ export type AlbumFormValues = AlbumInput;
 // (context menus, drag handles).
 const LONG_PRESS_MS = 500;
 
+// Per-field mobile-keyboard capitalisation (see the note in `field()`).
+// Titles read like a sentence; series / publisher / author names are proper
+// nouns; ISBN and legal deposit ("DL 2024") take no capitals at all.
+const AUTOCAPITALIZE: Partial<
+  Record<keyof AlbumFormValues, "none" | "words" | "sentences">
+> = {
+  isbn: "none",
+  legal_deposit: "none",
+  title: "sentences",
+  comment: "sentences",
+  series_name: "words",
+  publisher: "words",
+  writer: "words",
+  illustrator: "words",
+};
+
 const emptyValues: AlbumFormValues = {
   isbn: "",
   title: "",
@@ -164,8 +180,17 @@ export function AlbumForm({
   }
 
   function field<K extends keyof AlbumFormValues>(key: K) {
+    const cap = AUTOCAPITALIZE[key];
     return {
       value: values[key] ?? "",
+      // Set autocapitalize explicitly: left unset, iOS Safari re-runs its
+      // default "sentences" heuristic every time React re-assigns the
+      // controlled value, capitalising the *first two* letters of a word
+      // instead of one. On proper-noun fields also kill autocorrect (it
+      // mangles author/series names) — which helps the same glitch.
+      autoCapitalize: cap,
+      autoCorrect: cap === "words" || cap === "none" ? "off" : undefined,
+      spellCheck: cap === "words" || cap === "none" ? false : undefined,
       onChange: (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
       ) => {

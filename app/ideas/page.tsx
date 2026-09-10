@@ -112,6 +112,7 @@ export default function IdeasPage() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
+          autoCapitalize="sentences"
           placeholder="Une idée d'amélioration pour l'app…"
           className="mt-1 w-full resize-y rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
         />

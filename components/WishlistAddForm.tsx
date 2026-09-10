@@ -141,6 +141,8 @@ export function WishlistAddForm({
             onChange={(e) => setField("isbn", e.target.value)}
             placeholder="Saisir un ISBN"
             autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
             className={inputClass}
           />
           <button
@@ -169,6 +171,8 @@ export function WishlistAddForm({
             value={fields.series_name}
             onChange={(e) => setField("series_name", e.target.value)}
             autoComplete="off"
+            autoCapitalize="words"
+            autoCorrect="off"
             className={inputClass}
           />
         </div>
@@ -188,6 +192,8 @@ export function WishlistAddForm({
             value={fields.publisher}
             onChange={(e) => setField("publisher", e.target.value)}
             autoComplete="off"
+            autoCapitalize="words"
+            autoCorrect="off"
             className={inputClass}
           />
         </div>
@@ -197,6 +203,7 @@ export function WishlistAddForm({
             value={fields.title}
             onChange={(e) => setField("title", e.target.value)}
             autoComplete="off"
+            autoCapitalize="sentences"
             className={inputClass}
           />
         </div>

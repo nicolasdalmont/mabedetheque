@@ -38,6 +38,8 @@ export function LocalAlbumSearch({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
+        autoCapitalize="none"
+        autoCorrect="off"
         className={inputClass}
       />
       {query.trim() ? (

@@ -204,6 +204,8 @@ export function BuyWishlistModal({
             onChange={(e) => setIsbnInput(e.target.value)}
             placeholder="Saisir ou scanner l'ISBN"
             autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
             className={inputClass}
           />
           <button

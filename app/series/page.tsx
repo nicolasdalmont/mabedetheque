@@ -124,6 +124,8 @@ function SeriesContent() {
           onChange={(e) => setSeriesNameFilter(e.target.value)}
           placeholder="Filtrer par série"
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-56 sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
         />
         <select
