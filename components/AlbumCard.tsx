@@ -29,7 +29,7 @@ export function AlbumCard({ album }: { album: Album }) {
         {album.is_integrale ? (
           <span
             title="Intégrale"
-            className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900/85 text-white shadow dark:bg-zinc-100/90 dark:text-black"
+            className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-black shadow"
           >
             <Layers size={13} aria-hidden="true" />
           </span>

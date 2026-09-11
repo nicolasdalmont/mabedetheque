@@ -90,7 +90,7 @@ export default function AlbumDetailPage() {
                   </span>
                 ) : null}
                 {album.is_integrale ? (
-                  <span className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-zinc-900/85 px-2 py-0.5 text-[11px] font-medium text-white dark:bg-zinc-100/90 dark:text-black">
+                  <span className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
                     <Layers size={11} aria-hidden="true" />
                     Intégrale
                   </span>
