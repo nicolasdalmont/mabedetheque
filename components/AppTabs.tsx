@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_TABS } from "./navTabs";
 
-// Desktop tab bar (in the header). On mobile it is hidden and navigation
-// happens through <BottomNav> instead.
+// Desktop tab bar (in the header). Below `lg` there isn't reliably enough
+// width for the header (logo + 6 tabs + actions) to fit — it used to switch
+// in at `sm` (640px) and silently clip the last one or two tabs (Idées,
+// Stats) off the right edge with no visible affordance to reach them.
+// Navigation happens through <BottomNav> instead until `lg`.
 export function AppTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden min-w-0 gap-1 overflow-x-auto sm:flex">
+    <nav className="hidden min-w-0 gap-1 overflow-x-auto lg:flex">
       {NAV_TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (

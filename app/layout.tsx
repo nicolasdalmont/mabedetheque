@@ -59,8 +59,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ToastProvider>
           <OfflineBanner />
           <PullToRefresh />
-          {/* Room for the fixed mobile bottom nav (hidden on sm+). */}
-          <div className="flex flex-1 flex-col pb-16 sm:pb-0">{children}</div>
+          {/* Room for the fixed bottom nav (hidden on lg+, see BottomNav). */}
+          <div className="flex flex-1 flex-col pb-16 lg:pb-0">{children}</div>
           <BottomNav />
         </ToastProvider>
       </body>

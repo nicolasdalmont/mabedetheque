@@ -98,119 +98,121 @@ export default function VentePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
       <AppHeader />
 
-      <div className="rounded-lg border border-black/10 p-4 dark:border-white/10">
-        <p className="mb-2 text-xs font-medium">Mettre un album en vente</p>
-        <LocalAlbumSearch albums={searchPool} onSelect={handleAddToSale} />
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4">
+        <div className="rounded-lg border border-black/10 p-4 dark:border-white/10">
+          <p className="mb-2 text-xs font-medium">Mettre un album en vente</p>
+          <LocalAlbumSearch albums={searchPool} onSelect={handleAddToSale} />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("a_vendre")}
+            className={chipClass(statusFilter === "a_vendre")}
+          >
+            À vendre
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("vendu")}
+            className={chipClass(statusFilter === "vendu")}
+          >
+            Vendu
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={chipClass(statusFilter === "all")}
+          >
+            Toutes
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
+        ) : error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-16 text-center text-sm text-zinc-500">
+            {saleAlbums.length === 0
+              ? "Aucun album en vente pour le moment."
+              : "Aucun album ne correspond à ce filtre."}
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/5 dark:divide-white/10">
+            {filtered.map((album) => (
+              <li key={album.id} className="flex items-center justify-between gap-3 py-3">
+                <Link
+                  href={`/albums/${album.id}`}
+                  onClick={() => user && sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
+                  className="min-w-0"
+                >
+                  <p className="truncate text-sm font-medium">{album.title}</p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {album.series_name
+                      ? `${album.series_name}${album.issue_number != null ? ` #${album.issue_number}` : ""}`
+                      : " "}
+                  </p>
+                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  {album.sale_status === "a_vendre" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setPendingSold(album)}
+                        className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
+                      >
+                        Vendu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetStatus(album, "none")}
+                        className="-my-1 inline-flex min-h-9 items-center rounded-md px-2 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                      >
+                        Retirer
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800">
+                        Vendu
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSetStatus(album, "a_vendre")}
+                        className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
+                      >
+                        Annuler
+                      </button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <ConfirmDialog
+          open={pendingSold !== null}
+          tone="default"
+          title="Marquer comme vendu"
+          message={
+            pendingSold
+              ? `« ${pendingSold.title} » disparaîtra de la galerie, des séries et des stats. Il restera ici sous le filtre « Vendu ».`
+              : ""
+          }
+          confirmLabel="Vendu"
+          onConfirm={() => {
+            const album = pendingSold;
+            setPendingSold(null);
+            if (album) handleSetStatus(album, "vendu");
+          }}
+          onCancel={() => setPendingSold(null)}
+        />
       </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setStatusFilter("a_vendre")}
-          className={chipClass(statusFilter === "a_vendre")}
-        >
-          À vendre
-        </button>
-        <button
-          type="button"
-          onClick={() => setStatusFilter("vendu")}
-          className={chipClass(statusFilter === "vendu")}
-        >
-          Vendu
-        </button>
-        <button
-          type="button"
-          onClick={() => setStatusFilter("all")}
-          className={chipClass(statusFilter === "all")}
-        >
-          Toutes
-        </button>
-      </div>
-
-      {loading ? (
-        <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
-      ) : error ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : filtered.length === 0 ? (
-        <p className="py-16 text-center text-sm text-zinc-500">
-          {saleAlbums.length === 0
-            ? "Aucun album en vente pour le moment."
-            : "Aucun album ne correspond à ce filtre."}
-        </p>
-      ) : (
-        <ul className="divide-y divide-black/5 dark:divide-white/10">
-          {filtered.map((album) => (
-            <li key={album.id} className="flex items-center justify-between gap-3 py-3">
-              <Link
-                href={`/albums/${album.id}`}
-                onClick={() => user && sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
-                className="min-w-0"
-              >
-                <p className="truncate text-sm font-medium">{album.title}</p>
-                <p className="truncate text-xs text-zinc-500">
-                  {album.series_name
-                    ? `${album.series_name}${album.issue_number != null ? ` #${album.issue_number}` : ""}`
-                    : " "}
-                </p>
-              </Link>
-              <div className="flex shrink-0 items-center gap-2">
-                {album.sale_status === "a_vendre" ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setPendingSold(album)}
-                      className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
-                    >
-                      Vendu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSetStatus(album, "none")}
-                      className="-my-1 inline-flex min-h-9 items-center rounded-md px-2 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
-                    >
-                      Retirer
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800">
-                      Vendu
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleSetStatus(album, "a_vendre")}
-                      className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
-                    >
-                      Annuler
-                    </button>
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <ConfirmDialog
-        open={pendingSold !== null}
-        tone="default"
-        title="Marquer comme vendu"
-        message={
-          pendingSold
-            ? `« ${pendingSold.title} » disparaîtra de la galerie, des séries et des stats. Il restera ici sous le filtre « Vendu ».`
-            : ""
-        }
-        confirmLabel="Vendu"
-        onConfirm={() => {
-          const album = pendingSold;
-          setPendingSold(null);
-          if (album) handleSetStatus(album, "vendu");
-        }}
-        onCancel={() => setPendingSold(null)}
-      />
     </div>
   );
 }

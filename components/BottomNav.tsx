@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { NAV_TABS } from "./navTabs";
 import { useSession } from "@/hooks/useSession";
 
-// Mobile-only bottom navigation (thumb reach). Always visible — including on
-// the add/edit album screens, which previously dropped the tab bar entirely
-// and, in an installed PWA (no browser chrome), left no way out but the
-// in-page "← Retour". Rendered once from the root layout.
+// Bottom navigation for phones and narrow/tablet-width windows (below `lg`,
+// where <AppTabs> doesn't fit — see its comment). Always visible — including
+// on the add/edit album screens, which previously dropped the tab bar
+// entirely and, in an installed PWA (no browser chrome), left no way out but
+// the in-page "← Retour". Rendered once from the root layout.
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useSession();
@@ -17,7 +18,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-black/10 bg-zinc-50/95 backdrop-blur sm:hidden dark:border-white/10 dark:bg-black/95"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-black/10 bg-zinc-50/95 backdrop-blur lg:hidden dark:border-white/10 dark:bg-black/95"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {NAV_TABS.map(({ href, label, icon: Icon }) => {

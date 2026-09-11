@@ -146,81 +146,83 @@ export default function NewAlbumPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       <AppHeader />
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
-        >
-          ← Retour
-        </button>
-        <h1 className="text-lg font-semibold">Ajouter un album</h1>
-      </div>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
+          >
+            ← Retour
+          </button>
+          <h1 className="text-lg font-semibold">Ajouter un album</h1>
+        </div>
 
-      <div className="flex gap-2 rounded-lg border border-black/10 p-4 dark:border-white/10">
-        <input
-          value={isbnInput}
-          onChange={(e) => setIsbnInput(e.target.value)}
-          placeholder="Saisir ou scanner l'ISBN"
-          autoComplete="off"
-          autoCapitalize="none"
-          autoCorrect="off"
-          className="flex-1 rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
+        <div className="flex gap-2 rounded-lg border border-black/10 p-4 dark:border-white/10">
+          <input
+            value={isbnInput}
+            onChange={(e) => setIsbnInput(e.target.value)}
+            placeholder="Saisir ou scanner l'ISBN"
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="flex-1 rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
+          />
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            title="Scanner le code-barres"
+            aria-label="Scanner le code-barres"
+            className="rounded-md border border-black/15 px-3 py-2 text-black hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/5"
+          >
+            <ScanBarcode size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleLookup()}
+            disabled={searching || !isbnInput}
+            className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
+          >
+            {searching ? "Recherche..." : "Rechercher"}
+          </button>
+        </div>
+        {searchError ? (
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            {searchError} Vous pouvez continuer en saisie 100% manuelle ci-dessous.
+          </p>
+        ) : null}
+        {showScanner ? (
+          <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
+        ) : null}
+
+        {Object.keys(prefill).length > 0 ? (
+          <details className="[&_summary]:marker:text-zinc-500">
+            <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              Pas le bon album ? Rechercher par titre / série
+            </summary>
+            <div className="mt-2">
+              <BnfTextSearch onSelect={handleTextSearchSelect} />
+            </div>
+          </details>
+        ) : (
+          <BnfTextSearch onSelect={handleTextSearchSelect} />
+        )}
+
+        <AlbumForm
+          initial={{ isbn: isbnInput, ...prefill }}
+          coverPreview={coverPreview}
+          onCoverFileSelected={handleCoverFileSelected}
+          onSearchCover={handleSearchCover}
+          onSubmit={handleSubmit}
+          submitLabel="Enregistrer l'album"
+          pending={saving}
         />
-        <button
-          type="button"
-          onClick={() => setShowScanner(true)}
-          title="Scanner le code-barres"
-          aria-label="Scanner le code-barres"
-          className="rounded-md border border-black/15 px-3 py-2 text-black hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/5"
-        >
-          <ScanBarcode size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleLookup()}
-          disabled={searching || !isbnInput}
-          className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-300 disabled:opacity-50"
-        >
-          {searching ? "Recherche..." : "Rechercher"}
-        </button>
+        {saveError ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
+        ) : null}
       </div>
-      {searchError ? (
-        <p className="text-sm text-amber-600 dark:text-amber-400">
-          {searchError} Vous pouvez continuer en saisie 100% manuelle ci-dessous.
-        </p>
-      ) : null}
-      {showScanner ? (
-        <IsbnScanner onDetected={handleScanned} onClose={() => setShowScanner(false)} />
-      ) : null}
-
-      {Object.keys(prefill).length > 0 ? (
-        <details className="[&_summary]:marker:text-zinc-500">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
-            Pas le bon album ? Rechercher par titre / série
-          </summary>
-          <div className="mt-2">
-            <BnfTextSearch onSelect={handleTextSearchSelect} />
-          </div>
-        </details>
-      ) : (
-        <BnfTextSearch onSelect={handleTextSearchSelect} />
-      )}
-
-      <AlbumForm
-        initial={{ isbn: isbnInput, ...prefill }}
-        coverPreview={coverPreview}
-        onCoverFileSelected={handleCoverFileSelected}
-        onSearchCover={handleSearchCover}
-        onSubmit={handleSubmit}
-        submitLabel="Enregistrer l'album"
-        pending={saving}
-      />
-      {saveError ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
-      ) : null}
     </div>
   );
 }

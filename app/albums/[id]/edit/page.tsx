@@ -163,7 +163,7 @@ export default function EditAlbumPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
         <AppHeader />
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       </div>
@@ -171,7 +171,7 @@ export default function EditAlbumPage() {
   }
   if (loadError || !album) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
         <AppHeader />
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">
           {loadError ?? "Album introuvable."}
@@ -181,108 +181,110 @@ export default function EditAlbumPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       <AppHeader />
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
-        >
-          ← Retour
-        </button>
-        <h1 className="text-lg font-semibold">Modifier l&apos;album</h1>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">
-        <span className="text-xs font-medium text-zinc-500">Vente :</span>
-        {album.sale_status === "none" ? (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => handleSetSaleStatus("a_vendre")}
-            className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+            onClick={() => router.back()}
+            className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
           >
-            Déclarer à vendre
+            ← Retour
           </button>
-        ) : album.sale_status === "a_vendre" ? (
-          <>
-            <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-medium text-black">
-              À vendre
-            </span>
-            <button
-              type="button"
-              onClick={() => setConfirmSell(true)}
-              className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
-            >
-              Vendu
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetSaleStatus("none")}
-              className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
-            >
-              Retirer de la vente
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800">
-              Vendu
-            </span>
+          <h1 className="text-lg font-semibold">Modifier l&apos;album</h1>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">
+          <span className="text-xs font-medium text-zinc-500">Vente :</span>
+          {album.sale_status === "none" ? (
             <button
               type="button"
               onClick={() => handleSetSaleStatus("a_vendre")}
-              className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
+              className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
             >
-              Annuler la vente
+              Déclarer à vendre
             </button>
-          </>
-        )}
+          ) : album.sale_status === "a_vendre" ? (
+            <>
+              <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-medium text-black">
+                À vendre
+              </span>
+              <button
+                type="button"
+                onClick={() => setConfirmSell(true)}
+                className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+              >
+                Vendu
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetSaleStatus("none")}
+                className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
+              >
+                Retirer de la vente
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800">
+                Vendu
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSetSaleStatus("a_vendre")}
+                className="-my-1 inline-flex min-h-9 items-center rounded px-2 text-xs text-zinc-500 hover:underline"
+              >
+                Annuler la vente
+              </button>
+            </>
+          )}
+        </div>
+
+        <AlbumForm
+          initial={album}
+          coverPreview={coverPreview}
+          onCoverFileSelected={handleCoverFileSelected}
+          onSearchCover={handleSearchCover}
+          onSubmit={handleSubmit}
+          submitLabel="Enregistrer les modifications"
+          pending={saving}
+          extraActions={
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+            >
+              Supprimer
+            </button>
+          }
+        />
+        {saveError ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
+        ) : null}
+
+        <ConfirmDialog
+          open={confirmDelete}
+          title="Supprimer l'album"
+          message={`Supprimer définitivement « ${album.title} » et sa couverture ? Cette action est irréversible.`}
+          confirmLabel={deleting ? "Suppression…" : "Supprimer"}
+          pending={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+        <ConfirmDialog
+          open={confirmSell}
+          tone="default"
+          title="Marquer comme vendu"
+          message={`« ${album.title} » disparaîtra de la galerie, des séries et des stats. Il restera consultable dans l'onglet Ventes (filtre « Vendu »).`}
+          confirmLabel="Vendu"
+          onConfirm={() => {
+            setConfirmSell(false);
+            handleSetSaleStatus("vendu");
+          }}
+          onCancel={() => setConfirmSell(false)}
+        />
       </div>
-
-      <AlbumForm
-        initial={album}
-        coverPreview={coverPreview}
-        onCoverFileSelected={handleCoverFileSelected}
-        onSearchCover={handleSearchCover}
-        onSubmit={handleSubmit}
-        submitLabel="Enregistrer les modifications"
-        pending={saving}
-        extraActions={
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-          >
-            Supprimer
-          </button>
-        }
-      />
-      {saveError ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
-      ) : null}
-
-      <ConfirmDialog
-        open={confirmDelete}
-        title="Supprimer l'album"
-        message={`Supprimer définitivement « ${album.title} » et sa couverture ? Cette action est irréversible.`}
-        confirmLabel={deleting ? "Suppression…" : "Supprimer"}
-        pending={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDelete(false)}
-      />
-      <ConfirmDialog
-        open={confirmSell}
-        tone="default"
-        title="Marquer comme vendu"
-        message={`« ${album.title} » disparaîtra de la galerie, des séries et des stats. Il restera consultable dans l'onglet Ventes (filtre « Vendu »).`}
-        confirmLabel="Vendu"
-        onConfirm={() => {
-          setConfirmSell(false);
-          handleSetSaleStatus("vendu");
-        }}
-        onCancel={() => setConfirmSell(false)}
-      />
-    </div>
+      </div>
   );
 }
