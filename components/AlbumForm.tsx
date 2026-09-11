@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
@@ -65,6 +65,16 @@ export function AlbumForm({
   const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
+  // Starts false (matching the server-rendered markup) and is corrected
+  // right after mount — avoids a hydration mismatch from reading
+  // matchMedia during render. The one-frame flash on mobile (button
+  // briefly visible before this resolves) is an accepted tradeoff of that
+  // pattern.
+  const [coarsePointer, setCoarsePointer] = useState(false);
+  useEffect(() => {
+    const update = () => setCoarsePointer(window.matchMedia("(pointer: coarse)").matches);
+    update();
+  }, []);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -156,23 +166,6 @@ export function AlbumForm({
     pasteFromClipboard();
   }
 
-  // Same mobile/desktop split as handleCoverClick, but for the visible
-  // "Coller" button: on a coarse pointer, calling pasteFromClipboard()
-  // wasn't a silent no-op like the invisible layer — it actively ran
-  // clipboard.read() and surfaced the "refusée" error, since mobile
-  // browsers gate that permission behind something an installed PWA often
-  // can't grant (see the invisible-layer comment above). Redirect to the
-  // one path that does work instead of showing a scary permission error.
-  function handlePasteButtonClick() {
-    if (isCoarsePointer()) {
-      setPasteError(
-        "Le bouton ne fonctionne que sur ordinateur — sur mobile, appui long sur la couverture pour ouvrir le menu « Coller » du système.",
-      );
-      return;
-    }
-    pasteFromClipboard();
-  }
-
   function field<K extends keyof AlbumFormValues>(key: K) {
     const cap = AUTOCAPITALIZE[key];
     return {
@@ -251,7 +244,7 @@ export function AlbumForm({
           <p className="text-xs text-red-600 dark:text-red-400">{pasteError}</p>
         ) : null}
 
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className={`grid gap-1.5 ${coarsePointer ? "grid-cols-2" : "grid-cols-3"}`}>
           <label className="block cursor-pointer rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 dark:border-white/20 dark:hover:bg-white/5">
             Galerie
             <input
@@ -276,14 +269,20 @@ export function AlbumForm({
               }}
             />
           </label>
-          <button
-            type="button"
-            onClick={handlePasteButtonClick}
-            disabled={pasting}
-            className="rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
-          >
-            {pasting ? "…" : "Coller"}
-          </button>
+          {/* Desktop only — on mobile navigator.clipboard.read() is reliably
+              refused by the browser permission (see the invisible-layer
+              comment above), so the button can't do anything useful there;
+              the long-press → native "Coller" menu is the only path. */}
+          {!coarsePointer ? (
+            <button
+              type="button"
+              onClick={pasteFromClipboard}
+              disabled={pasting}
+              className="rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
+            >
+              {pasting ? "…" : "Coller"}
+            </button>
+          ) : null}
         </div>
 
         {onSearchCover ? (

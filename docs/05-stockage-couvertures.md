@@ -76,15 +76,14 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 ## Interaction cover dans `AlbumForm`
 
 `components/AlbumForm.tsx` fournit :
-- **3 boutons** sous la vignette — **"Galerie"** / **"Fichiers"** (`<input type="file"
-  accept="image/*">` **sans** `capture` : choix dans la photothèque / le gestionnaire de
-  fichiers, jamais l'appareil photo directement) + **"Coller"** (`navigator.clipboard.read()`,
-  fiable au clic/clavier sur desktop — `handlePasteButtonClick()` détecte le pointeur
-  `coarse` et n'appelle **pas** `clipboard.read()` sur mobile, où l'appel échouerait de
-  toute façon avec l'erreur de permission décrite ci-dessous : il affiche directement le
-  message renvoyant vers l'appui long, plutôt que de laisser l'utilisateur croire que le
-  bouton a essayé et échoué). Les inputs fichier sont `sr-only` (atteignables au clavier,
-  anneau de focus sur le label).
+- **"Galerie"** / **"Fichiers"** sous la vignette (`<input type="file" accept="image/*">`
+  **sans** `capture` : choix dans la photothèque / le gestionnaire de fichiers, jamais
+  l'appareil photo directement) — `sr-only` (atteignables au clavier, anneau de focus sur
+  le label) — **+ "Coller"** (`navigator.clipboard.read()`, fiable au clic/clavier), mais
+  **uniquement sur pointeur fin** (`grid-cols-2` sans lui / `grid-cols-3` avec, via un état
+  `coarsePointer` résolu au montage — voir plus bas). Sur mobile ce bouton ne peut rien
+  faire d'utile : `clipboard.read()` y est refusé par la permission décrite ci-dessous, donc
+  il est simplement retiré plutôt que de rester visible pour échouer.
 - une **couche `contentEditable` invisible** superposée à la vignette (`absolute inset-0`),
   `aria-hidden` + `tabIndex -1` (le bouton « Coller » est le chemin accessible) : elle sert
   au **collage mobile par appui long** — l'appui long fait apparaître le menu **« Coller »
@@ -101,11 +100,12 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 > détecter l'appui long (cassé : le callback perd l'« activation utilisateur transitoire »
 > qu'exige `clipboard.read()`), puis détection sur `touchend` (fonctionnait mais
 > `clipboard.read()` restait refusé par la permission mobile), puis la couche
-> `contentEditable` + menu natif retenue aujourd'hui. Le bouton visible "Coller" avait
-> initialement le même défaut que la couche invisible avant sa correction : il appelait
-> `pasteFromClipboard()` sans condition, donc sur mobile il déclenchait bien
-> `clipboard.read()` et affichait l'erreur de permission au lieu de rediriger vers l'appui
-> long — corrigé après coup, une fois le symptôme remonté séparément.
+> `contentEditable` + menu natif retenue aujourd'hui. Le bouton visible "Coller" a suivi la
+> même trajectoire après coup, une fois le symptôme remonté séparément : il appelait
+> d'abord `pasteFromClipboard()` sans condition (donc `clipboard.read()` refusé + erreur de
+> permission sur mobile), une première correction l'a fait rediriger vers un message
+> expliquant l'appui long, avant qu'il ne soit finalement retiré du DOM sur pointeur
+> `coarse` (aucune action utile à proposer derrière un bouton qui ne peut jamais réussir).
 
 ## `KNOWN_DEAD_COVER_URL` — une couverture cassée partagée par 423 albums
 
