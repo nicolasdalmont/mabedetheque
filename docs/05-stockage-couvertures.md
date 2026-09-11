@@ -79,8 +79,12 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 - **3 boutons** sous la vignette — **"Galerie"** / **"Fichiers"** (`<input type="file"
   accept="image/*">` **sans** `capture` : choix dans la photothèque / le gestionnaire de
   fichiers, jamais l'appareil photo directement) + **"Coller"** (`navigator.clipboard.read()`,
-  fiable au clic/clavier sur desktop). Les inputs fichier sont `sr-only` (atteignables au
-  clavier, anneau de focus sur le label).
+  fiable au clic/clavier sur desktop — `handlePasteButtonClick()` détecte le pointeur
+  `coarse` et n'appelle **pas** `clipboard.read()` sur mobile, où l'appel échouerait de
+  toute façon avec l'erreur de permission décrite ci-dessous : il affiche directement le
+  message renvoyant vers l'appui long, plutôt que de laisser l'utilisateur croire que le
+  bouton a essayé et échoué). Les inputs fichier sont `sr-only` (atteignables au clavier,
+  anneau de focus sur le label).
 - une **couche `contentEditable` invisible** superposée à la vignette (`absolute inset-0`),
   `aria-hidden` + `tabIndex -1` (le bouton « Coller » est le chemin accessible) : elle sert
   au **collage mobile par appui long** — l'appui long fait apparaître le menu **« Coller »
@@ -97,7 +101,11 @@ efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 > détecter l'appui long (cassé : le callback perd l'« activation utilisateur transitoire »
 > qu'exige `clipboard.read()`), puis détection sur `touchend` (fonctionnait mais
 > `clipboard.read()` restait refusé par la permission mobile), puis la couche
-> `contentEditable` + menu natif retenue aujourd'hui.
+> `contentEditable` + menu natif retenue aujourd'hui. Le bouton visible "Coller" avait
+> initialement le même défaut que la couche invisible avant sa correction : il appelait
+> `pasteFromClipboard()` sans condition, donc sur mobile il déclenchait bien
+> `clipboard.read()` et affichait l'erreur de permission au lieu de rediriger vers l'appui
+> long — corrigé après coup, une fois le symptôme remonté séparément.
 
 ## `KNOWN_DEAD_COVER_URL` — une couverture cassée partagée par 423 albums
 

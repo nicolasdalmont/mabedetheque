@@ -156,6 +156,23 @@ export function AlbumForm({
     pasteFromClipboard();
   }
 
+  // Same mobile/desktop split as handleCoverClick, but for the visible
+  // "Coller" button: on a coarse pointer, calling pasteFromClipboard()
+  // wasn't a silent no-op like the invisible layer — it actively ran
+  // clipboard.read() and surfaced the "refusée" error, since mobile
+  // browsers gate that permission behind something an installed PWA often
+  // can't grant (see the invisible-layer comment above). Redirect to the
+  // one path that does work instead of showing a scary permission error.
+  function handlePasteButtonClick() {
+    if (isCoarsePointer()) {
+      setPasteError(
+        "Le bouton ne fonctionne que sur ordinateur — sur mobile, appui long sur la couverture pour ouvrir le menu « Coller » du système.",
+      );
+      return;
+    }
+    pasteFromClipboard();
+  }
+
   function field<K extends keyof AlbumFormValues>(key: K) {
     const cap = AUTOCAPITALIZE[key];
     return {
@@ -261,7 +278,7 @@ export function AlbumForm({
           </label>
           <button
             type="button"
-            onClick={pasteFromClipboard}
+            onClick={handlePasteButtonClick}
             disabled={pasting}
             className="rounded-md border border-black/15 px-1 py-2 text-center text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
           >
