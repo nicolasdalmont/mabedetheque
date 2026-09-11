@@ -11,6 +11,7 @@ import { LocalAlbumSearch } from "@/components/LocalAlbumSearch";
 import { useToast } from "@/components/Toast";
 import type { Album, SaleStatus } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
+import { tomeLabel } from "@/lib/format";
 
 const chipClass = (active: boolean) =>
   `rounded-full border px-3 py-1 text-xs font-medium ${
@@ -153,7 +154,7 @@ export default function VentePage() {
                   <p className="truncate text-sm font-medium">{album.title}</p>
                   <p className="truncate text-xs text-zinc-500">
                     {album.series_name
-                      ? `${album.series_name}${album.issue_number != null ? ` #${album.issue_number}` : ""}`
+                      ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}`
                       : " "}
                   </p>
                 </Link>

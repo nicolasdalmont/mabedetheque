@@ -216,7 +216,10 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 - **`IdeaCard`** : carte d'idée avec sélecteur de statut coloré et suppression.
 - **`lib/format.ts`** — `formatDate` / `formatDateTime` (`Intl.DateTimeFormat("fr-FR")`) :
   formatage de date unifié, utilisé par `AlbumTable` et `IdeaCard` (la vue Liste affichait
-  l'ISO brut avant).
+  l'ISO brut avant). `tomeLabel(issueNumber, isIntegrale)` : libellé unique pour le
+  numéro de tome (`"#N"`) ou "Intégrale" (`is_integrale`, mutuellement exclusifs — voir
+  [02](./02-donnees.md)) ; utilisé par `AlbumCard`, `AlbumTable` et l'onglet Ventes partout
+  où un tome est affiché.
 
 ## Note transverse : `<dialog>`
 

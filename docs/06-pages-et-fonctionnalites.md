@@ -150,8 +150,9 @@ compte (ambre si > 0, gris si 0). Chaque ligne non nulle est un lien vers l'ongl
 Albums filtré (`/?missing=cover|tome|achat`) qui affiche un chip ambre récapitulatif :
 - *Sans couverture* — `cover_url` vide **ou** égale à `KNOWN_DEAD_COVER_URL` (voir
   [05](./05-stockage-couvertures.md)).
-- *En série, sans numéro de tome* — `series_name` renseigné mais `issue_number` nul (un
-  album hors série n'est pas une anomalie).
+- *En série, sans numéro de tome* — `series_name` renseigné, `issue_number` nul **et**
+  `is_integrale = false` (un album hors série n'est pas une anomalie, et une intégrale n'a
+  légitimement pas de numéro — voir `tomeLabel()` dans [07](./07-composants-et-hooks.md)).
 - *Sans date d'achat* — `purchase_date` nul.
 
 **2 classements « Top 10 »** (`RankingList`, barres horizontales maison — `BarChart` est
@@ -182,7 +183,11 @@ réservé aux séries valeur/année) :
    replie dans un `<details>` (« Pas le bon album ? »).
 3. `AlbumForm` reste éditable dans tous les cas, y compris en saisie 100% manuelle si rien
    n'est trouvé.
-4. À la soumission : upload de la couverture (fichier local ou URL distante, voir
+4. Case **« Intégrale »** sous le champ numéro de tome — les deux sont exclusifs
+   (`is_integrale`, voir [02](./02-donnees.md)) : cocher désactive et vide le numéro de
+   tome, remplacé partout à l'affichage par le libellé « Intégrale » (`tomeLabel()`,
+   [07](./07-composants-et-hooks.md)).
+5. À la soumission : upload de la couverture (fichier local ou URL distante, voir
    [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
    succès → `router.back()`.
 

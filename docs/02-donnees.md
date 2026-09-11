@@ -1,10 +1,11 @@
 # 2. Modèle de données
 
 Toutes les migrations sont dans `db/migrations/`, numérotées et exécutées manuellement
-(pas de runner automatique) sur le projet Neon — via l'éditeur SQL du dashboard ou
-`psql "$NEON_DATABASE_URL" -f db/migrations/000X_xxx.sql`. Chacune est idempotente
-(`if not exists`, `drop policy if exists` puis recréation) pour pouvoir être rejouée sans
-risque.
+(pas de runner automatique) sur le projet Neon — via l'éditeur SQL du dashboard,
+`psql "$NEON_DATABASE_URL" -f db/migrations/000X_xxx.sql`, ou (environnement sans `psql`,
+ex. `node scripts/db/run-migration.mjs db/migrations/000X_xxx.sql`, qui exécute le fichier
+tel quel via `pg`). Chacune est idempotente (`if not exists`, `drop policy if exists` puis
+recréation, `update ... where ... and not déjà fait`) pour pouvoir être rejouée sans risque.
 
 ## Historique des migrations
 
@@ -16,6 +17,7 @@ risque.
 | `0004_ideas.sql` | Table `ideas` ("boîte à idées") |
 | `0005_wishlist.sql` | Table `wishlist_items` (liste d'achats) |
 | `0006_sale_status.sql` | Colonne `albums.sale_status` (onglet Ventes) |
+| `0007_integrale.sql` | Colonne `albums.is_integrale` + backfill depuis les commentaires |
 
 ## Table `albums`
 
@@ -39,12 +41,31 @@ create table albums (
   sale_status text not null default 'none'
     check (sale_status in ('none', 'a_vendre', 'vendu')),  -- ajouté en 0006
 
+  is_integrale boolean not null default false,  -- ajouté en 0007
+
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 ```
 
 Index : `owner_id`, `isbn`, `series_name`, `sale_status`.
+
+`is_integrale` remplace `issue_number` comme indicateur de position dans la série pour un
+album qui compile plusieurs tomes (les deux sont mutuellement exclusifs — cocher
+« Intégrale » dans `AlbumForm` vide et désactive le numéro de tome). Affiché via
+`tomeLabel()` ([07](./07-composants-et-hooks.md)) et exclu de l'anomalie Stats "en série
+sans numéro de tome" ([06](./06-pages-et-fonctionnalites.md)).
+
+0007 a aussi fait un **backfill en une fois** sur la collection existante : l'import
+initial (`scripts/db/prepare-import.py`) avait recopié le champ "NumA" (référence
+complémentaire) du logiciel d'origine dans `comment`, sous la forme
+`"Réf. complémentaire : INT"` (parfois suivi d'un suffixe : `INT01`, `INTa1999`...) pour
+les albums possédés en intégrale. 34 albums correspondaient à ce motif exact, tous déjà
+`issue_number = null` — vérifiés un par un avant application (à ne pas confondre avec
+`"Collection : Intégra"`, une collection éditoriale sans rapport, ou une série nommée
+`"(Intégrale)"` dont les tomes ont chacun un vrai numéro). Une future intégrale ajoutée
+via le formulaire n'a pas ce marqueur textuel — c'est un cas particulier de migration, pas
+un mécanisme permanent de détection.
 
 Trigger `set_updated_at()` (fonction plpgsql partagée par toutes les tables) maintient
 `updated_at` à jour à chaque `UPDATE`.

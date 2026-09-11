@@ -23,6 +23,7 @@ export type Album = {
   purchase_date: string | null;
   comment: string | null;
   cover_url: string;
+  is_integrale: boolean;
   sale_status: SaleStatus;
   created_at: string;
   updated_at: string;

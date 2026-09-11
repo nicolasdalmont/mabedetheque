@@ -117,7 +117,11 @@ export default function AlbumDetailPage() {
               {album.series_name ? (
                 <p className="mt-0.5 text-sm text-zinc-500">
                   {album.series_name}
-                  {album.issue_number != null ? ` — tome ${album.issue_number}` : ""}
+                  {album.is_integrale
+                    ? " — intégrale"
+                    : album.issue_number != null
+                      ? ` — tome ${album.issue_number}`
+                      : ""}
                 </p>
               ) : null}
 

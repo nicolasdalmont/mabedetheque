@@ -27,3 +27,13 @@ export function formatDateTime(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : dateTimeFmt.format(d);
 }
+
+// "Intégrale" remplace le numéro de tome quand l'album compile plusieurs
+// tomes en un seul volume (voir AlbumForm) — les deux notions sont exclusives.
+export function tomeLabel(
+  issueNumber: number | null | undefined,
+  isIntegrale: boolean,
+): string | null {
+  if (isIntegrale) return "Intégrale";
+  return issueNumber != null ? `#${issueNumber}` : null;
+}

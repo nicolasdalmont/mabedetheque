@@ -92,7 +92,8 @@ function HomeContent() {
         if (publisher && a.publisher !== publisher) return false;
         if (author && a.writer !== author && a.illustrator !== author) return false;
         if (missing === "cover" && a.cover_url && a.cover_url !== KNOWN_DEAD_COVER_URL) return false;
-        if (missing === "tome" && !(a.series_name && a.issue_number == null)) return false;
+        if (missing === "tome" && !(a.series_name && a.issue_number == null && !a.is_integrale))
+          return false;
         if (missing === "achat" && a.purchase_date) return false;
         if (!q) return true;
         return [a.title, a.series_name, a.writer, a.illustrator, a.isbn]

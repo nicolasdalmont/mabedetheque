@@ -33,6 +33,7 @@ const emptyValues: AlbumFormValues = {
   purchase_date: null,
   comment: null,
   cover_url: "",
+  is_integrale: false,
 };
 
 export function AlbumForm({
@@ -313,6 +314,7 @@ export function AlbumForm({
           <input
             type="number"
             autoComplete="off"
+            disabled={values.is_integrale}
             value={values.issue_number ?? ""}
             onChange={(e) =>
               setValues((prev) => ({
@@ -320,8 +322,23 @@ export function AlbumForm({
                 issue_number: e.target.value ? Number(e.target.value) : null,
               }))
             }
-            className={inputClass}
+            className={`${inputClass} disabled:opacity-50`}
           />
+          <label className="flex items-center gap-1.5 pt-0.5 text-xs text-zinc-500">
+            <input
+              type="checkbox"
+              checked={values.is_integrale}
+              onChange={(e) =>
+                setValues((prev) => ({
+                  ...prev,
+                  is_integrale: e.target.checked,
+                  issue_number: e.target.checked ? null : prev.issue_number,
+                }))
+              }
+              className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+            />
+            Intégrale (remplace le numéro de tome)
+          </label>
         </div>
 
         <div className="space-y-1">

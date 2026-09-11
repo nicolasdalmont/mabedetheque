@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
-import { formatDate } from "@/lib/format";
+import { formatDate, tomeLabel } from "@/lib/format";
 
 function rememberAlbum(id: string) {
   sessionStorage.setItem(LAST_ALBUM_KEY, id);
@@ -32,7 +32,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
               <p className="mt-0.5 truncate text-xs text-zinc-500">
                 {[
                   album.series_name
-                    ? `${album.series_name}${album.issue_number != null ? ` #${album.issue_number}` : ""}`
+                    ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}`
                     : null,
                   album.publisher,
                   album.purchase_date ? `acheté le ${formatDate(album.purchase_date)}` : null,
@@ -74,7 +74,9 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
                   </Link>
                 </td>
                 <td className="px-3 py-2 text-zinc-500">{album.series_name ?? "—"}</td>
-                <td className="px-3 py-2 text-zinc-500">{album.issue_number ?? "—"}</td>
+                <td className="px-3 py-2 text-zinc-500">
+                  {tomeLabel(album.issue_number, album.is_integrale)?.replace(/^#/, "") ?? "—"}
+                </td>
                 <td className="px-3 py-2 text-zinc-500">{album.publisher ?? "—"}</td>
                 <td className="px-3 py-2 text-zinc-500">{formatDate(album.purchase_date)}</td>
               </tr>

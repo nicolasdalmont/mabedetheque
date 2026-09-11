@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tag } from "lucide-react";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
+import { tomeLabel } from "@/lib/format";
 
 export function AlbumCard({ album }: { album: Album }) {
   const [broken, setBroken] = useState(false);
@@ -45,7 +46,7 @@ export function AlbumCard({ album }: { album: Album }) {
         {album.series_name ? (
           <span className="truncate text-[11px] text-zinc-500 sm:text-xs">
             {album.series_name}
-            {album.issue_number ? ` #${album.issue_number}` : ""}
+            {tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}
           </span>
         ) : null}
       </div>

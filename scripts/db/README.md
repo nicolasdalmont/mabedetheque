@@ -1,3 +1,12 @@
+# Appliquer une migration sans `psql`
+
+```bash
+node scripts/db/run-migration.mjs db/migrations/000X_xxx.sql
+```
+
+Exécute le fichier SQL tel quel contre `NEON_DATABASE_URL` (connexion directe, via `pg`),
+en repli quand `psql` n'est pas installé localement.
+
 # Import en masse depuis un export BDGest-like
 
 Utilisé pour importer une collection existante (export CSV `;`-séparé avec
