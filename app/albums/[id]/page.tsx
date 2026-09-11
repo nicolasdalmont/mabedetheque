@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Pencil, Tag } from "lucide-react";
+import { Layers, Pencil, Tag } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
 import { formatDate } from "@/lib/format";
@@ -87,6 +87,12 @@ export default function AlbumDetailPage() {
                   <span className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
                     <Tag size={11} aria-hidden="true" />
                     {SALE_STATUS_LABEL[album.sale_status]}
+                  </span>
+                ) : null}
+                {album.is_integrale ? (
+                  <span className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-zinc-900/85 px-2 py-0.5 text-[11px] font-medium text-white dark:bg-zinc-100/90 dark:text-black">
+                    <Layers size={11} aria-hidden="true" />
+                    Intégrale
                   </span>
                 ) : null}
                 {album.cover_url && !broken ? (

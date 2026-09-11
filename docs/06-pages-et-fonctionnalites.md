@@ -29,7 +29,7 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
 (albums avec `sale_status !== "vendu"`, via `useAlbums()`).
 
 - **État dans l'URL, pas en `useState`** : `q` (recherche texte), `series`, `publisher`,
-  `author`, `sort`, `view` sont tous des search params, mis à jour via
+  `author`, `integrale`, `sort`, `view` sont tous des search params, mis à jour via
   `router.replace(..., { scroll: false })`. Choix délibéré : naviguer vers un album est une
   navigation `push` normale, donc revenir en arrière restaure exactement cette URL — aucune
   plomberie supplémentaire n'est nécessaire pour préserver les filtres/tri/vue au retour
@@ -38,8 +38,9 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
   dessinateur, ISBN (substring insensible à la casse).
 - **Filtres** (`FilterSortBar`) : série (select), éditeur (select), **auteur** (select,
   fusion scénariste + dessinateur dédupliquée — sélectionner un nom matche l'un ou
-  l'autre rôle), tri (alphabétique / série puis tome / date d'achat / dépôt légal),
-  bascule galerie/liste.
+  l'autre rôle), **Intégrales** (case à cocher, `?integrale=1` — ne garde que
+  `is_integrale = true`), tri (alphabétique / série puis tome / date d'achat / dépôt
+  légal), bascule galerie/liste.
 - **Scroll-to-album au retour** : avant de naviguer vers une fiche, l'id de l'album est
   stocké dans `sessionStorage` (`LAST_ALBUM_KEY`) ; au retour sur la galerie, un effet
   scrolle jusqu'à cet album une fois la liste chargée, plutôt que de repartir en haut de
@@ -58,10 +59,12 @@ Liste alphabétique des séries (albums sans `series_name` exclus), une carte pa
 (numéro croissant, titre en repli pour les tomes non numérotés ; `KNOWN_DEAD_COVER_URL`
 exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possédés.
 
-- **Filtres** : texte libre sur le nom de série (`?q`) et menu déroulant auteur
-  (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums) — combinables,
-  **dans l'URL** comme la page Albums (partageables, restaurés au retour d'un album).
-  Compteur `X sur Y séries` + bouton **« Effacer les filtres »** sous la barre.
+- **Filtres** : texte libre sur le nom de série (`?q`), menu déroulant auteur
+  (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums) et case
+  **« Avec une intégrale »** (`?integrale=1` — ne garde que les séries ayant au moins un
+  album `is_integrale = true`) — combinables, **dans l'URL** comme la page Albums
+  (partageables, restaurés au retour d'un album). Compteur `X sur Y séries` + bouton
+  **« Effacer les filtres »** sous la barre.
 - **Badge "achat"** : une icône panier apparaît sur une carte série si au moins un item de
   la wishlist correspond à cette série — comparaison via `seriesTitlesMatch()` (pas une
   égalité stricte de chaîne, car un item wishlist peut venir d'une recherche BnF dont le
@@ -196,8 +199,11 @@ réservé aux séries valeur/année) :
 **Vue lecture seule** — c'est là qu'atterrissent toutes les vignettes/lignes d'album
 (galerie, vue liste, fiche série, onglet Ventes), au lieu d'ouvrir directement le
 formulaire d'édition : moins d'édits accidentels en parcourant la collection. Grande
-couverture (+ badge `SALE_STATUS_LABEL` si concerné) + toutes les métadonnées (dates via
-`formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`. Re-fetch au retour de focus.
+couverture (+ badge `SALE_STATUS_LABEL` en haut à droite si concerné, badge « Intégrale »
+en haut à gauche si `is_integrale` — coins opposés, les deux peuvent coexister) + le
+sous-titre série reprend aussi « — intégrale » (au lieu de « — tome N ») + toutes les
+métadonnées (dates via `formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`.
+Re-fetch au retour de focus.
 
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)
 

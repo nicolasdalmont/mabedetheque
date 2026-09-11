@@ -14,9 +14,11 @@ export function FilterSortBar({
   series,
   publisher,
   author,
+  integrale,
   onSeriesChange,
   onPublisherChange,
   onAuthorChange,
+  onIntegraleChange,
   sortKey,
   onSortChange,
   viewMode,
@@ -31,9 +33,11 @@ export function FilterSortBar({
   series: string;
   publisher: string;
   author: string;
+  integrale: boolean;
   onSeriesChange: (value: string) => void;
   onPublisherChange: (value: string) => void;
   onAuthorChange: (value: string) => void;
+  onIntegraleChange: (value: boolean) => void;
   sortKey: SortKey;
   onSortChange: (value: SortKey) => void;
   viewMode: ViewMode;
@@ -85,6 +89,16 @@ export function FilterSortBar({
           </option>
         ))}
       </select>
+
+      <label className="flex items-center gap-1.5 rounded-md border border-black/15 px-2 py-2 text-base sm:py-1.5 sm:text-sm dark:border-white/20">
+        <input
+          type="checkbox"
+          checked={integrale}
+          onChange={(e) => onIntegraleChange(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+        />
+        Intégrales
+      </label>
 
       <select
         className={selectClass}

@@ -206,8 +206,11 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 
 - **`SearchBar`** : simple `<input type="search">` contrôlé, pas de debounce (le filtrage
   est fait en mémoire côté client sur un dataset de quelques centaines d'albums).
-- **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + bascule
-  galerie/liste, utilisé uniquement par l'onglet Albums. `aria-label` sur chaque select.
+- **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + case
+  Intégrales + bascule galerie/liste, utilisé uniquement par l'onglet Albums. `aria-label`
+  sur chaque select. L'onglet Séries a son propre filtre équivalent (texte + select auteur
+  + case « Avec une intégrale ») directement dans `app/series/page.tsx`, pas dans ce
+  composant partagé.
 - **`BarChart`** : mini bar-chart maison sans dépendance (`components/BarChart.tsx`),
   barres de largeur fixe qui scrollent horizontalement plutôt que de s'écraser sur une
   longue série de valeurs (ex. un an par décennie). Réservé aux séries valeur/catégorie ;

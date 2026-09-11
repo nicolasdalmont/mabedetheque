@@ -32,6 +32,7 @@ function HomeContent() {
   const series = searchParams.get("series") ?? "";
   const publisher = searchParams.get("publisher") ?? "";
   const author = searchParams.get("author") ?? "";
+  const integrale = searchParams.get("integrale") === "1";
   const missing = searchParams.get("missing") ?? ""; // cover | tome | achat (depuis Stats › Anomalies)
   const sortKey = (searchParams.get("sort") as SortKey | null) ?? "title";
   const viewMode = (searchParams.get("view") as ViewMode | null) ?? "grid";
@@ -94,6 +95,7 @@ function HomeContent() {
         if (missing === "cover" && a.cover_url && a.cover_url !== KNOWN_DEAD_COVER_URL) return false;
         if (missing === "tome" && !(a.series_name && a.issue_number == null && !a.is_integrale))
           return false;
+        if (integrale && !a.is_integrale) return false;
         if (missing === "achat" && a.purchase_date) return false;
         if (!q) return true;
         return [a.title, a.series_name, a.writer, a.illustrator, a.isbn]
@@ -116,11 +118,11 @@ function HomeContent() {
         const bv = b[sortKey] ?? "";
         return String(av).localeCompare(String(bv));
       });
-  }, [albums, query, series, publisher, author, missing, sortKey]);
+  }, [albums, query, series, publisher, author, integrale, missing, sortKey]);
 
-  const hasActiveFilters = Boolean(query || series || publisher || author || missing);
+  const hasActiveFilters = Boolean(query || series || publisher || author || integrale || missing);
   const clearFilters = () =>
-    updateParams({ q: "", series: "", publisher: "", author: "", missing: "" });
+    updateParams({ q: "", series: "", publisher: "", author: "", integrale: "", missing: "" });
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -145,9 +147,11 @@ function HomeContent() {
         series={series}
         publisher={publisher}
         author={author}
+        integrale={integrale}
         onSeriesChange={(v) => updateParams({ series: v })}
         onPublisherChange={(v) => updateParams({ publisher: v })}
         onAuthorChange={(v) => updateParams({ author: v })}
+        onIntegraleChange={(v) => updateParams({ integrale: v ? "1" : "" })}
         sortKey={sortKey}
         onSortChange={(v) => updateParams({ sort: v })}
         viewMode={viewMode}
