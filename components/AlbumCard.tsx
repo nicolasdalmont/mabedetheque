@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Tag } from "lucide-react";
+import { Layers, Tag } from "lucide-react";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 import { tomeLabel } from "@/lib/format";
@@ -24,6 +24,14 @@ export function AlbumCard({ album }: { album: Album }) {
             className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-black shadow"
           >
             <Tag size={13} aria-hidden="true" />
+          </span>
+        ) : null}
+        {album.is_integrale ? (
+          <span
+            title="Intégrale"
+            className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900/85 text-white shadow dark:bg-zinc-100/90 dark:text-black"
+          >
+            <Layers size={13} aria-hidden="true" />
           </span>
         ) : null}
         {album.cover_url && !broken ? (

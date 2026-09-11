@@ -92,11 +92,13 @@ l'app, et recharge la page une fois qu'un nouveau worker a pris le contrôle —
 ### `AlbumCard` / `AlbumGrid` / `AlbumTable`
 
 - `AlbumCard` : vignette (ratio `2/3`, `object-contain` pour ne jamais rogner la
-  couverture), titre, série+tome. Icône `Tag` en badge (coin haut-droit) si
-  `sale_status === "a_vendre"`. État local `broken` : bascule vers "Pas de couverture" au
-  premier `onError` de l'`<img>`, quelle que soit la cause (URL vide, 404, réseau...).
-  Mémorise l'id de l'album dans `sessionStorage` (`LAST_ALBUM_KEY`) avant de naviguer vers
-  sa fiche, pour le scroll-to-album au retour.
+  couverture), titre, série+tome (`tomeLabel()`, voir plus bas). Icône `Tag` en badge
+  (coin haut-droit) si `sale_status === "a_vendre"` ; icône `Layers` en badge (coin
+  haut-gauche, mêmes dimensions) si `is_integrale` — les deux coexistent sans se
+  chevaucher. État local `broken` : bascule vers "Pas de couverture" au premier `onError`
+  de l'`<img>`, quelle que soit la cause (URL vide, 404, réseau...). Mémorise l'id de
+  l'album dans `sessionStorage` (`LAST_ALBUM_KEY`) avant de naviguer vers sa fiche, pour le
+  scroll-to-album au retour.
 - `AlbumGrid` : grille responsive (3 colonnes en mobile → 6 en desktop large) de
   `AlbumCard`, message vide dédié.
 - `AlbumTable` : vue liste — **deux rendus** : lignes empilées cliquables sous `sm`
