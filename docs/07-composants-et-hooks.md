@@ -48,28 +48,52 @@ cliquable, tantôt `<Link>`).
 
 ### `navTabs.ts` (`components/navTabs.ts`)
 
-`NAV_TABS` — la liste des 6 onglets (href, label, icône lucide), source unique partagée
-par `AppTabs` (desktop) et `BottomNav` (mobile).
+`NAV_TABS` — la liste des 6 onglets (href, label, icône lucide, `secondary?: true` pour
+Idées/Stats — voir `BottomNav`), source unique partagée par `AppTabs` (desktop) et
+`BottomNav` (mobile).
 
 ### `AppTabs` (`components/AppTabs.tsx`)
 
-Barre d'onglets **desktop uniquement** (`hidden sm:flex`), dans l'`AppHeader`. Largeur
-fixe par onglet (`w-28`), `overflow-x-auto` sur le `<nav>` en cas de fenêtre étroite.
+Barre d'onglets **desktop uniquement** (`hidden lg:flex`, tous les 6, `secondary` ignoré —
+à cette largeur il y a la place), dans l'`AppHeader`. Largeur fixe par onglet (`w-28`),
+`overflow-x-auto` sur le `<nav>` en cas de fenêtre étroite (filet de sécurité résiduel :
+voir l'historique du seuil `lg` ci-dessous, qui couvre déjà le cas normal).
 
-> **Historique** : une régression avait fait disparaître le logo sur desktop quand la
-> fenêtre était plus étroite que le contenu du header — un `shrink-0` posé uniquement sur
-> les onglets faisait retomber toute la compression sur le logo. Corrigé en faisant
-> scroller la barre (`overflow-x-auto`) et en protégeant logo + déconnexion (`shrink-0`).
-> Depuis le passage en `hidden sm:flex` + `BottomNav` sur mobile, le header mobile ne
-> contient plus que le logo et la déconnexion, donc le problème ne peut plus se poser.
+> **Historique — logo disparu** : une régression avait fait disparaître le logo sur
+> desktop quand la fenêtre était plus étroite que le contenu du header — un `shrink-0`
+> posé uniquement sur les onglets faisait retomber toute la compression sur le logo.
+> Corrigé en faisant scroller la barre (`overflow-x-auto`) et en protégeant logo +
+> déconnexion (`shrink-0`).
+>
+> **Historique — seuil `sm` → `lg`** : le header (logo + 6 onglets + actions) a besoin
+> d'environ 900px pour tenir sans rogner un onglet. Le seuil `sm` (640px) d'origine
+> laissait une zone de largeurs (640–900px) où la barre desktop s'affichait déjà mais
+> coupait "Idées"/"Stats" sans aucun indice visuel qu'ils restaient accessibles en
+> scrollant — remonté séparément par l'utilisateur sur les pages Achats/Ventes/Idées/Stats
+> ([06](./06-pages-et-fonctionnalites.md) en documente la cause exacte, propre au
+> conteneur `max-w-3xl` de ces pages). Le seuil est passé à `lg` (1024px, marge
+> confortable) ; en dessous, `BottomNav` — qui s'adapte à n'importe quelle largeur — prend
+> le relais.
 
 ### `BottomNav` (`components/BottomNav.tsx`)
 
-Barre de navigation **mobile uniquement** (`sm:hidden`), `fixed` en bas de l'écran (icône
-+ petit libellé, `env(safe-area-inset-bottom)`). Rendue une seule fois par
-`app/layout.tsx`, masquée si pas de session ou sur `/login`. Toujours visible, y compris
-sur Ajout/Édition — indispensable en PWA installée. Le layout ajoute un `pb-16 sm:pb-0`
-sous le contenu pour lui laisser la place.
+Barre de navigation pour téléphone et fenêtres étroites/tablette (**sous `lg`**, là où
+`AppTabs` ne tient pas — voir son historique), `fixed` en bas de l'écran (icône + petit
+libellé, `env(safe-area-inset-bottom)`). Rendue une seule fois par `app/layout.tsx`,
+masquée si pas de session ou sur `/login`. Toujours visible, y compris sur Ajout/Édition —
+indispensable en PWA installée. Le layout ajoute un `pb-16 lg:pb-0` sous le contenu pour
+lui laisser la place.
+
+**5 items, pas 6** : Idées et Stats (`secondary: true` dans `navTabs.ts`) sont regroupés
+sous un bouton **« Plus »** (icône `MoreHorizontal`) plutôt que 6 items à plat, trop
+resserrés en largeur téléphone. Tap → petit popover ancré au-dessus du bouton
+(`absolute bottom-full`, pas une feuille plein écran — seulement deux entrées, pas de quoi
+justifier une UI plus lourde), avec un overlay plein écran transparent pour fermer au clic
+extérieur. Le bouton « Plus » se met en évidence (icône jaune) si la page courante est
+Idées ou Stats. Fermeture aussi à la navigation : état `prevPathname` comparé au rendu
+(pattern React "adjuster l'état pendant le rendu", même idiome que `AlbumForm.prevInitial`
+— pas un `useEffect`, pour éviter d'appeler `setState` de façon synchrone dedans, ce
+qu'interdit la règle ESLint `react-hooks/set-state-in-effect`).
 
 ### `SignOutButton` (`components/SignOutButton.tsx`)
 
