@@ -73,6 +73,15 @@ Commun à `app/albums/new/page.tsx`, `app/albums/[id]/edit/page.tsx` et
 envoyé à `/api/covers` — jamais les deux en même temps (sélectionner un fichier local
 efface la `remoteCoverUrl` et inversement, voir `handleCoverFileSelected`).
 
+**Couverture optionnelle à la création** (`app/albums/new/page.tsx` et
+`BuyWishlistModal`) : si ni `coverFile` ni `remoteCoverUrl` ne sont renseignés à la
+soumission, l'album est créé avec `cover_url: ""` plutôt que de bloquer la sauvegarde —
+la couverture peut être ajoutée plus tard depuis l'édition. Contrairement à
+`KNOWN_DEAD_COVER_URL` ci-dessus (un accident d'import historique), c'est ici un état
+`""` volontaire et attendu ; les deux sont traités de façon identique partout où « a une
+couverture » est testé (galerie, fiche détail, pick de couverture de série, anomalie
+« Sans couverture »).
+
 ## Interaction cover dans `AlbumForm`
 
 `components/AlbumForm.tsx` fournit :

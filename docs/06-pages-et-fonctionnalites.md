@@ -195,7 +195,11 @@ réservé aux séries valeur/année) :
    succès → `router.back()`. Si le champ « Date d'achat » (`purchase_date`) est resté vide,
    la date du jour est forcée avant l'insertion (jamais de `null` sur un album créé via ce
    formulaire — voir l'anomalie « Sans date d'achat » plus haut, qui ne peut donc concerner
-   que des albums plus anciens ou importés).
+   que des albums plus anciens ou importés). La couverture, elle, reste optionnelle :
+   si ni la recherche ISBN ni une photo n'ont abouti, l'album est créé avec
+   `cover_url: ""` (traité comme « Sans couverture » partout dans l'app, voir
+   [05](./05-stockage-couvertures.md)) — elle peut être ajoutée après coup depuis
+   l'édition.
 
 ## Détail d'album (`app/albums/[id]/page.tsx`)
 
