@@ -107,7 +107,7 @@ export default function NewAlbumPage() {
     setSaveError(null);
 
     try {
-      let coverUrl: string;
+      let coverUrl = "";
 
       if (coverFile) {
         const form = new FormData();
@@ -125,8 +125,6 @@ export default function NewAlbumPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Échec du rapatriement de l'image.");
         coverUrl = data.url;
-      } else {
-        throw new Error("Une couverture est requise (recherche ISBN ou photo).");
       }
 
       const { error } = await getDataClient().from("albums").insert({

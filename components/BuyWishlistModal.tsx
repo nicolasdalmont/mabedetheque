@@ -131,7 +131,7 @@ export function BuyWishlistModal({
     setSaving(true);
     setSaveError(null);
     try {
-      let coverUrl: string;
+      let coverUrl = "";
       if (coverFile) {
         const form = new FormData();
         form.append("file", coverFile);
@@ -148,8 +148,6 @@ export function BuyWishlistModal({
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Échec du rapatriement de l'image.");
         coverUrl = data.url;
-      } else {
-        throw new Error("Une couverture est requise (recherche ISBN ou photo).");
       }
 
       const { error: insertError } = await getDataClient()
