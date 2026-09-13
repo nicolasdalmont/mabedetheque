@@ -192,7 +192,10 @@ réservé aux séries valeur/année) :
    [07](./07-composants-et-hooks.md)).
 5. À la soumission : upload de la couverture (fichier local ou URL distante, voir
    [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
-   succès → `router.back()`.
+   succès → `router.back()`. Si le champ « Date d'achat » (`purchase_date`) est resté vide,
+   la date du jour est forcée avant l'insertion (jamais de `null` sur un album créé via ce
+   formulaire — voir l'anomalie « Sans date d'achat » plus haut, qui ne peut donc concerner
+   que des albums plus anciens ou importés).
 
 ## Détail d'album (`app/albums/[id]/page.tsx`)
 
