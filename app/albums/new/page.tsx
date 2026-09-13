@@ -131,6 +131,7 @@ export default function NewAlbumPage() {
 
       const { error } = await getDataClient().from("albums").insert({
         ...values,
+        purchase_date: values.purchase_date ?? new Date().toISOString().slice(0, 10),
         cover_url: coverUrl,
         owner_id: user.id,
       });
