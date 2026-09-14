@@ -12,6 +12,7 @@ import { AlbumTable } from "@/components/AlbumTable";
 import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import type { SortKey, ViewMode } from "@/types/album";
 import { KNOWN_DEAD_COVER_URL, LAST_ALBUM_KEY } from "@/lib/constants";
+import { compareAlbums } from "@/lib/sort";
 
 const MISSING_LABEL: Record<string, string> = {
   cover: "sans couverture",
@@ -102,22 +103,7 @@ function HomeContent() {
           .filter(Boolean)
           .some((field) => field!.toLowerCase().includes(q));
       })
-      .sort((a, b) => {
-        if (sortKey === "series") {
-          if (!a.series_name && !b.series_name) return a.title.localeCompare(b.title);
-          if (!a.series_name) return -1;
-          if (!b.series_name) return 1;
-          const seriesCmp = a.series_name.localeCompare(b.series_name);
-          if (seriesCmp !== 0) return seriesCmp;
-          const aIssue = a.issue_number ?? Infinity;
-          const bIssue = b.issue_number ?? Infinity;
-          if (aIssue !== bIssue) return aIssue - bIssue;
-          return a.title.localeCompare(b.title);
-        }
-        const av = a[sortKey] ?? "";
-        const bv = b[sortKey] ?? "";
-        return String(av).localeCompare(String(bv));
-      });
+      .sort((a, b) => compareAlbums(a, b, sortKey));
   }, [albums, query, series, publisher, author, integrale, missing, sortKey]);
 
   const hasActiveFilters = Boolean(query || series || publisher || author || integrale || missing);

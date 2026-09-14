@@ -40,7 +40,8 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
   fusion scénariste + dessinateur dédupliquée — sélectionner un nom matche l'un ou
   l'autre rôle), **Intégrales** (case à cocher, `?integrale=1` — ne garde que
   `is_integrale = true`), tri (alphabétique / série puis tome / date d'achat / dépôt
-  légal), bascule galerie/liste.
+  légal — comparateur `compareAlbums` dans [`lib/sort.ts`](../lib/sort.ts), réutilisé par
+  l'onglet Ventes), bascule galerie/liste.
 - **Scroll-to-album au retour** : avant de naviguer vers une fiche, l'id de l'album est
   stocké dans `sessionStorage` (`LAST_ALBUM_KEY`) ; au retour sur la galerie, un effet
   scrolle jusqu'à cet album une fois la liste chargée, plutôt que de repartir en haut de
@@ -99,7 +100,9 @@ exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possé
 
 Liste des tomes que l'utilisateur veut se procurer (`wishlist_items`).
 
-- **Filtres** (chips) : À acheter / Acheté / Toutes.
+- **Filtres** (chips) : À acheter / Acheté / Toutes. **Tri** (select, `compareWishlistItems` dans
+  [`lib/sort.ts`](../lib/sort.ts)) : alphabétique (par défaut — `title`, ou `series_name` en repli
+  pour les entrées manuelles sans titre) / série puis tome.
 - **"+ Ajouter"** ouvre `WishlistAddForm` : recherche par ISBN (préremplissage uniquement,
   jamais obligatoire) ou recherche libre BnF (`BnfTextSearch`, avec exclusion des candidats
   déjà possédés via `ownedAlbums` — comparaison par ISBN ou par série+numéro via
@@ -124,7 +127,9 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
   collection de l'utilisateur** (pas la BnF), pool restreint aux albums actifs et pas
   déjà en vente (`sale_status === "none"`). Sélectionner un résultat met à jour son
   statut à `a_vendre` (optimiste, puis confirmé côté serveur).
-- **Filtres** (chips) : À vendre / Vendu / Toutes. Charge sa propre liste via
+- **Filtres** (chips) : À vendre / Vendu / Toutes. **Tri** (select, `compareAlbums` dans
+  [`lib/sort.ts`](../lib/sort.ts), partagé avec l'onglet Albums) : alphabétique (par défaut) /
+  série puis tome. Charge sa propre liste via
   `getDataClient().from("albums").neq("sale_status", "none")` — volontairement en dehors
   de `useAlbums()`, qui exclut les albums vendus.
 - Actions par ligne, pour un album `a_vendre` : bouton **"Vendu"** (jaune plein, comme

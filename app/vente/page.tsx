@@ -9,9 +9,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LocalAlbumSearch } from "@/components/LocalAlbumSearch";
 import { useToast } from "@/components/Toast";
-import type { Album, SaleStatus } from "@/types/album";
+import type { Album, SaleStatus, SortKey } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 import { tomeLabel } from "@/lib/format";
+import { compareAlbums } from "@/lib/sort";
 
 const chipClass = (active: boolean) =>
   `rounded-full border px-3 py-1 text-xs font-medium ${
@@ -32,6 +33,7 @@ export default function VentePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<SaleStatus | "all">("a_vendre");
+  const [sortKey, setSortKey] = useState<Extract<SortKey, "title" | "series">>("title");
   const [pendingSold, setPendingSold] = useState<Album | null>(null);
 
   useEffect(() => {
@@ -52,8 +54,11 @@ export default function VentePage() {
     };
   }, []);
 
-  const filtered =
-    statusFilter === "all" ? saleAlbums : saleAlbums.filter((a) => a.sale_status === statusFilter);
+  const filtered = (
+    statusFilter === "all" ? saleAlbums : saleAlbums.filter((a) => a.sale_status === statusFilter)
+  )
+    .slice()
+    .sort((a, b) => compareAlbums(a, b, sortKey));
   const searchPool = activeAlbums.filter((a) => a.sale_status === "none");
 
   async function handleAddToSale(album: Album) {
@@ -108,28 +113,40 @@ export default function VentePage() {
           <LocalAlbumSearch albums={searchPool} onSelect={handleAddToSale} />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("a_vendre")}
-            className={chipClass(statusFilter === "a_vendre")}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("a_vendre")}
+              className={chipClass(statusFilter === "a_vendre")}
+            >
+              À vendre
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("vendu")}
+              className={chipClass(statusFilter === "vendu")}
+            >
+              Vendu
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={chipClass(statusFilter === "all")}
+            >
+              Toutes
+            </button>
+          </div>
+
+          <select
+            className="rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-yellow-500 dark:border-white/20 dark:focus:border-yellow-400"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as "title" | "series")}
+            aria-label="Trier"
           >
-            À vendre
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("vendu")}
-            className={chipClass(statusFilter === "vendu")}
-          >
-            Vendu
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("all")}
-            className={chipClass(statusFilter === "all")}
-          >
-            Toutes
-          </button>
+            <option value="title">Tri : Alphabétique</option>
+            <option value="series">Tri : Série puis tome</option>
+          </select>
         </div>
 
         {loading ? (

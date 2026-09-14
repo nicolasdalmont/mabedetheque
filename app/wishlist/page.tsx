@@ -11,6 +11,7 @@ import { WishlistAddForm } from "@/components/WishlistAddForm";
 import { BuyWishlistModal } from "@/components/BuyWishlistModal";
 import { useToast } from "@/components/Toast";
 import { findSeriesGaps } from "@/lib/series-gaps";
+import { compareWishlistItems } from "@/lib/sort";
 import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
 import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
 
@@ -31,6 +32,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<WishlistStatus | "all">("a_acheter");
+  const [sortKey, setSortKey] = useState<"title" | "series">("title");
   const [showAddForm, setShowAddForm] = useState(false);
   const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
   const [buyingItem, setBuyingItem] = useState<WishlistItem | null>(null);
@@ -54,7 +56,9 @@ export default function WishlistPage() {
     };
   }, []);
 
-  const filtered = statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter);
+  const filtered = (statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter))
+    .slice()
+    .sort((a, b) => compareWishlistItems(a, b, sortKey));
 
   async function handleToggleStatus(item: WishlistItem) {
     const status: WishlistStatus = item.status === "a_acheter" ? "achete" : "a_acheter";
@@ -137,28 +141,40 @@ export default function WishlistPage() {
           />
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("a_acheter")}
-            className={chipClass(statusFilter === "a_acheter")}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("a_acheter")}
+              className={chipClass(statusFilter === "a_acheter")}
+            >
+              À acheter
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("achete")}
+              className={chipClass(statusFilter === "achete")}
+            >
+              Acheté
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={chipClass(statusFilter === "all")}
+            >
+              Toutes
+            </button>
+          </div>
+
+          <select
+            className="rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-yellow-500 dark:border-white/20 dark:focus:border-yellow-400"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as "title" | "series")}
+            aria-label="Trier"
           >
-            À acheter
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("achete")}
-            className={chipClass(statusFilter === "achete")}
-          >
-            Acheté
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("all")}
-            className={chipClass(statusFilter === "all")}
-          >
-            Toutes
-          </button>
+            <option value="title">Tri : Alphabétique</option>
+            <option value="series">Tri : Série puis tome</option>
+          </select>
         </div>
 
         {loading ? (
