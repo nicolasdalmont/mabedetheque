@@ -21,11 +21,17 @@ NEON_STORAGE_REGION=
 NEON_STORAGE_ACCESS_KEY_ID=
 NEON_STORAGE_SECRET_ACCESS_KEY=
 NEON_STORAGE_BUCKET=mabedetheque-covers
+
+# --- Google Books (fallback ISBN) ---
+GOOGLE_BOOKS_API_KEY=
 ```
 
-Optionnelle et non listée dans `.env.example` : `GOOGLE_BOOKS_API_KEY` (relève le quota
-Google Books par IP — sans elle, repli automatique sur Open Library, voir
-[04](./04-recherche-isbn-bnf.md)).
+`GOOGLE_BOOKS_API_KEY` est optionnelle (l'app démarre sans) mais **fortement
+recommandée** : Google Books sert désormais de repli texte (titre/éditeur/scénariste), pas
+seulement de couverture, quand la BnF n'a pas encore catalogué l'album (voir
+[04](./04-recherche-isbn-bnf.md)) — sans clé, Google applique un quota anonyme par IP
+quasi nul (`429`), ce qui désactive ce repli. Clé gratuite à créer sur la
+[Google Cloud Console](https://console.cloud.google.com/apis/library/books.googleapis.com).
 
 `NEXT_PUBLIC_NEON_DATA_API_URL` est la seule variable exposée au client (préfixe
 `NEXT_PUBLIC_`) — toutes les autres (secrets Auth, credentials Object Storage) ne sont
