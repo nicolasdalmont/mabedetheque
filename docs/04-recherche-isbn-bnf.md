@@ -83,20 +83,32 @@ const illustrator = illustratorNames.length
     : undefined;
 ```
 
-### Google Books / Open Library (couverture uniquement)
+### Google Books / Open Library (repli quand la BnF n'a rien)
 
 Appelées en parallèle de la BnF via `Promise.allSettled` (jamais bloquantes l'une pour
 l'autre) :
-- **Google Books** (`volumes?q=isbn:...`) — clé API optionnelle
-  (`GOOGLE_BOOKS_API_KEY`) ; sans clé, Google applique un quota bas par IP, d'où le repli
-  automatique.
-- **Open Library** (`covers.openlibrary.org/b/isbn/<isbn>-L.jpg`) — un fichier de moins de
-  1 Ko est traité comme "pas de couverture" (Open Library sert un placeholder minuscule
-  quand elle n'a rien).
+- **Google Books** (`volumes?q=isbn:...`, `lookupGoogleBooks()`) — titre, éditeur, auteurs
+  (`authors[]`) et couverture. Clé API optionnelle (`GOOGLE_BOOKS_API_KEY`) mais
+  **fortement recommandée** : sans clé, Google renvoie régulièrement un `429` avec
+  `quota_limit_value: "0"` (quota anonyme par IP quasi nul), ce qui désactive tout le
+  repli. Google Books ne distingue pas scénariste/dessinateur : `authors` est reversé tel
+  quel dans `writer`, jamais dans `illustrator`.
+- **Open Library** (`covers.openlibrary.org/b/isbn/<isbn>-L.jpg`) — couverture seule ; un
+  fichier de moins de 1 Ko est traité comme "pas de couverture" (Open Library sert un
+  placeholder minuscule quand elle n'a rien).
 
-`lookupIsbn(isbn)` fusionne : les champs texte viennent de la BnF (`base`), la couverture
-de Google Books en priorité puis Open Library. Retourne `null` seulement si ni l'un ni
-l'autre n'a rien donné.
+`lookupIsbn(isbn)` fusionne champ par champ : la BnF (`base`) est prioritaire, Google
+Books comble `title`/`publisher`/`writer` quand la BnF n'a pas de notice — c'est le cas
+courant pour un album trop récent pour être encore au dépôt légal (le catalogage BnF peut
+prendre plusieurs mois à plus d'un an). La couverture vient de Google Books en priorité
+puis Open Library. Retourne `null` seulement si aucune des trois sources n'a rien donné.
+
+**Limite observée** : Google Books n'a pas non plus une couverture exhaustive des sorties
+BD franco-belges récentes — vérifié sur *Donjon Monsters* T19 *La Dernière Heure* (sorti
+2024), absent à la fois de la BnF et de Google Books (`totalItems: 0`, y compris en
+recherche par titre) au moment du test. Ce repli aide pour une partie des albums récents
+(ceux que Google indexe avant la BnF), pas pour tous — la saisie manuelle reste le dernier
+recours.
 
 ## `lib/bnf-series.ts` — tous les tomes d'une série connue
 
@@ -191,3 +203,7 @@ ligne de défense.
 - Un tome publié au-delà du plus haut numéro déjà possédé dans une série ne peut pas être
   détecté par la détection de trous locale (`lib/series-gaps.ts`) — seule la recherche BnF
   élargie (`bnf-series.ts`) peut aller plus loin, et seulement si BnF le référence.
+- Aucune source gratuite ne couvre à 100% les sorties BD très récentes : la BnF a un délai
+  de catalogage (dépôt légal), Google Books une couverture inégale sur le franco-belge. Un
+  album peut donc n'être trouvé nulle part et nécessiter une saisie 100% manuelle — voir
+  ci-dessus le cas de *Donjon Monsters* T19.

@@ -116,7 +116,18 @@ type GoogleBooksItem = {
   };
 };
 
-async function lookupGoogleBooksCover(isbn: string): Promise<string | null> {
+type GoogleBooksResult = {
+  title?: string;
+  publisher?: string;
+  writer?: string;
+  cover_url?: string;
+};
+
+// Text fallback for albums too recent to be in the BnF's legal-deposit
+// catalogue yet (catalog lag runs from months to well over a year for BD).
+// Google Books has no writer/illustrator distinction, so its "authors" list
+// is folded into `writer` rather than left unmapped.
+async function lookupGoogleBooks(isbn: string): Promise<GoogleBooksResult | null> {
   try {
     const key = process.env.GOOGLE_BOOKS_API_KEY;
     const url = new URL("https://www.googleapis.com/books/v1/volumes");
@@ -126,10 +137,19 @@ async function lookupGoogleBooksCover(isbn: string): Promise<string | null> {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const data = (await res.json()) as { items?: GoogleBooksItem[] };
-    const links = data.items?.[0]?.volumeInfo?.imageLinks;
+    const info = data.items?.[0]?.volumeInfo;
+    if (!info) return null;
+
+    const links = info.imageLinks;
     const cover = links?.thumbnail ?? links?.smallThumbnail;
-    // Google serves http by default; force https to avoid mixed content.
-    return cover ? cover.replace(/^http:/, "https:") : null;
+
+    return {
+      title: info.title,
+      publisher: info.publisher,
+      writer: info.authors?.length ? info.authors.join(", ") : undefined,
+      // Google serves http by default; force https to avoid mixed content.
+      cover_url: cover ? cover.replace(/^http:/, "https:") : undefined,
+    };
   } catch {
     return null;
   }
@@ -154,26 +174,28 @@ async function lookupOpenLibraryCover(isbn: string): Promise<string | null> {
 }
 
 export async function lookupIsbn(isbn: string): Promise<IsbnLookupResult | null> {
-  const [bnf, googleCover, openLibraryCover] = await Promise.allSettled([
+  const [bnf, google, openLibraryCover] = await Promise.allSettled([
     lookupBnf(isbn),
-    lookupGoogleBooksCover(isbn),
+    lookupGoogleBooks(isbn),
     lookupOpenLibraryCover(isbn),
   ]);
 
   const base = bnf.status === "fulfilled" ? bnf.value : null;
+  const googleData = google.status === "fulfilled" ? google.value : null;
   const cover =
-    (googleCover.status === "fulfilled" ? googleCover.value : null) ??
+    googleData?.cover_url ??
     (openLibraryCover.status === "fulfilled" ? openLibraryCover.value : null);
+  const title = base?.title ?? googleData?.title;
 
-  if (!base && !cover) return null;
+  if (!title && !cover) return null;
 
   return {
     isbn,
-    title: base?.title ?? "",
+    title: title ?? "",
     series_name: base?.series_name,
     issue_number: base?.issue_number,
-    publisher: base?.publisher,
-    writer: base?.writer,
+    publisher: base?.publisher ?? googleData?.publisher,
+    writer: base?.writer ?? googleData?.writer,
     illustrator: base?.illustrator,
     legal_deposit: base?.legal_deposit,
     cover_url: cover ?? undefined,
