@@ -11,13 +11,15 @@ import { SeriesCard } from "@/components/SeriesCard";
 import { SeriesDetailModal } from "@/components/SeriesDetailModal";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
 import { seriesTitlesMatch } from "@/lib/bnf-series";
+import { normalizeForSearch } from "@/lib/search";
 import type { Album } from "@/types/album";
 
 type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
 
 // `onChange` writes to the URL (router.replace), same as the Albums search
-// bar — buffer keystrokes locally and debounce before propagating so fast
-// typing doesn't race the re-render.
+// bar — buffer keystrokes locally and debounce before propagating, entirely
+// from the event handler (no effect) so a fast re-render never clears a
+// pending keystroke before it commits.
 function SeriesFilterInput({
   value,
   onChange,
@@ -26,23 +28,24 @@ function SeriesFilterInput({
   onChange: (value: string) => void;
 }) {
   const [text, setText] = useState(value);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  useEffect(() => {
+  const [lastExternalValue, setLastExternalValue] = useState(value);
+  if (value !== lastExternalValue) {
+    setLastExternalValue(value);
     setText(value);
-  }, [value]);
+  }
 
-  useEffect(() => {
-    if (text === value) return;
-    const timeout = setTimeout(() => onChangeRef.current(text), 250);
-    return () => clearTimeout(timeout);
-  }, [text, value]);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleChange = (next: string) => {
+    setText(next);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => onChange(next), 250);
+  };
 
   return (
     <input
       value={text}
-      onChange={(e) => setText(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
       placeholder="Filtrer par série"
       aria-label="Filtrer par nom de série"
       autoComplete="off"
@@ -121,9 +124,9 @@ function SeriesContent() {
     seriesNameFilter.trim() || authorFilter || integraleFilter || horsSerieFilter,
   );
   const visibleSeriesList = useMemo(() => {
-    const q = seriesNameFilter.trim().toLowerCase();
+    const q = normalizeForSearch(seriesNameFilter.trim());
     return seriesList.filter((s) => {
-      if (q && !s.name.toLowerCase().includes(q)) return false;
+      if (q && !normalizeForSearch(s.name).includes(q)) return false;
       if (
         authorFilter &&
         !s.albums.some((a) => a.writer === authorFilter || a.illustrator === authorFilter)

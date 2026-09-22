@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Album } from "@/types/album";
+import { normalizeForSearch } from "@/lib/search";
 
 const inputClass =
   "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
@@ -24,10 +25,10 @@ export function LocalAlbumSearch({
   const [query, setQuery] = useState("");
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeForSearch(query.trim());
     if (!q) return [];
     return albums
-      .filter((a) => [a.title, a.series_name].filter(Boolean).some((f) => f!.toLowerCase().includes(q)))
+      .filter((a) => [a.title, a.series_name].filter(Boolean).some((f) => normalizeForSearch(f!).includes(q)))
       .slice(0, 20);
   }, [albums, query]);
 

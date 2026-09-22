@@ -58,7 +58,12 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
   plomberie supplémentaire n'est nécessaire pour préserver les filtres/tri/vue au retour
   d'une fiche album.
 - **Recherche** (`SearchBar`) : filtre côté client sur titre, série, scénariste,
-  dessinateur, ISBN (substring insensible à la casse).
+  dessinateur, ISBN (substring insensible à la casse et aux accents, via
+  `normalizeForSearch` dans [`lib/search.ts`](../lib/search.ts) — « ecole » retrouve
+  « École »). Le champ garde son propre état local et ne répercute la saisie vers l'URL
+  (`onChange` → `router.replace`) qu'après 250 ms sans frappe (debounce géré dans le
+  handler, pas dans un effet) : sans ça, chaque frappe déclenchait un re-rendu complet de
+  la grille assez coûteux pour que taper vite fasse perdre des caractères.
 - **Filtres** (`FilterSortBar`) : série (select), éditeur (select), **auteur** (select,
   fusion scénariste + dessinateur dédupliquée — sélectionner un nom matche l'un ou
   l'autre rôle), **Intégrales** (case à cocher, `?integrale=1` — ne garde que
@@ -84,7 +89,9 @@ Liste alphabétique des séries (albums sans `series_name` exclus), une carte pa
 (numéro croissant, titre en repli pour les tomes non numérotés ; `KNOWN_DEAD_COVER_URL`
 exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possédés.
 
-- **Filtres** : texte libre sur le nom de série (`?q`), menu déroulant auteur
+- **Filtres** : texte libre sur le nom de série (`?q`, insensible à la casse et aux
+  accents comme sur Albums — `normalizeForSearch`, debounce 250 ms géré dans
+  `SeriesFilterInput`, même logique que `SearchBar`), menu déroulant auteur
   (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums), case
   **« Avec une intégrale »** (`?integrale=1` — ne garde que les séries ayant au moins un
   album `is_integrale = true`) et case **« Avec un hors série »** (`?hors_serie=1`, même

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { normalizeForSearch } from "@/lib/search";
 
 /**
  * Plain text input with a suggestions dropdown, filtered client-side
@@ -24,10 +25,10 @@ export function SuggestInput({
   const [open, setOpen] = useState(false);
 
   const matches = useMemo(() => {
-    const q = value.trim().toLowerCase();
+    const q = normalizeForSearch(value.trim());
     if (!q) return [];
     return suggestions
-      .filter((s) => s.toLowerCase() !== q && s.toLowerCase().includes(q))
+      .filter((s) => normalizeForSearch(s) !== q && normalizeForSearch(s).includes(q))
       .slice(0, 8);
   }, [suggestions, value]);
 

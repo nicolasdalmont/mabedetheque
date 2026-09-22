@@ -164,8 +164,9 @@ voir [04](./04-recherche-isbn-bnf.md)).
 
 ### `LocalAlbumSearch` (`components/LocalAlbumSearch.tsx`)
 
-Recherche dans la **propre collection** de l'utilisateur (titre/série, substring), pas la
-BnF — utilisée dans l'onglet Ventes pour choisir un album à mettre en vente. Le pool
+Recherche dans la **propre collection** de l'utilisateur (titre/série, substring insensible
+à la casse et aux accents — `normalizeForSearch`, voir [`lib/search.ts`](../lib/search.ts)),
+pas la BnF — utilisée dans l'onglet Ventes pour choisir un album à mettre en vente. Le pool
 `albums` passé en prop doit déjà être filtré par l'appelant (ex. exclure ce qui est déjà en
 vente).
 
@@ -202,8 +203,9 @@ le composant qui garantit que ces trois flux restent en parité de champs.
   pertinente en prop `suggestions` à chaque champ. Le rendu (label + dropdown filtré) délègue
   à `SuggestInput` ci-dessous.
 - **`SuggestInput`** (`components/SuggestInput.tsx`, exporté) : input contrôlé générique
-  avec liste de suggestions — filtrage côté client (substring insensible à la casse, valeur
-  déjà tapée à l'identique exclue), jusqu'à 8 résultats dans une liste déroulante sous le
+  avec liste de suggestions — filtrage côté client (substring insensible à la casse et aux
+  accents via `normalizeForSearch`, valeur déjà tapée à l'identique exclue), jusqu'à 8
+  résultats dans une liste déroulante sous le
   champ ; `onMouseDown` + `preventDefault` sur chaque suggestion pour que le clic s'applique
   avant que le `onBlur` de l'input ne referme la liste. Réutilisé tel quel par
   `WishlistAddForm` pour le champ Série (mêmes suggestions, tirées de la même requête sur
@@ -252,8 +254,18 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 
 ## Autres composants
 
-- **`SearchBar`** : simple `<input type="search">` contrôlé, pas de debounce (le filtrage
-  est fait en mémoire côté client sur un dataset de quelques centaines d'albums).
+- **`SearchBar`** : `<input type="search">` avec état local et debounce 250 ms avant de
+  répercuter la valeur au parent (qui l'écrit dans l'URL). Historique : la première version
+  écrivait dans l'URL à chaque frappe (`onChange` → `router.replace` direct, sans état
+  local) ; le `router.replace` déclenchait un re-rendu complet de `AlbumGrid` assez coûteux
+  pour que taper vite fasse perdre des caractères. Le debounce est géré dans le handler
+  d'événement (ref pour le timer, pas d'effet) plutôt que dans un `useEffect`, pour rester
+  conforme aux règles `react-hooks/refs` et `react-hooks/set-state-in-effect`
+  (eslint-plugin-react-hooks ≥ 7, moteur React Compiler) qui interdisent respectivement de
+  muter un ref pendant le rendu et d'appeler `setState` de façon synchrone dans un effet.
+  Le filtrage lui-même reste en mémoire côté client sur un dataset de quelques centaines
+  d'albums, insensible à la casse et aux accents (voir `normalizeForSearch` plus bas).
+  `app/series/page.tsx` a son propre `SeriesFilterInput` interne, même logique.
 - **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + cases
   Intégrales / Hors séries + bascule galerie/liste, utilisé uniquement par l'onglet Albums.
   `aria-label` sur chaque select. L'onglet Séries a son propre filtre équivalent (texte +
@@ -271,6 +283,12 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
   pour le numéro de tome (`"#N"`), "Intégrale" (`is_integrale`) ou "Hors série"
   (`is_hors_serie`) — les trois mutuellement exclusifs (voir [02](./02-donnees.md)) ;
   utilisé par `AlbumCard`, `AlbumTable` et l'onglet Ventes partout où un tome est affiché.
+- **`lib/search.ts`** — `normalizeForSearch(text)` : minuscules + suppression des
+  diacritiques (`normalize("NFD")` puis retrait des marques combinantes), pour qu'une
+  recherche/autocomplétion texte matche indépendamment des accents (« ecole » ↔ « École »).
+  Utilisé par `SearchBar`, `SeriesFilterInput` (`app/series/page.tsx`), `LocalAlbumSearch`
+  et `SuggestInput` — partout où un filtre fait un `includes()` sur du texte saisi par
+  l'utilisateur.
 
 ## Note transverse : `<dialog>`
 

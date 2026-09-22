@@ -13,6 +13,7 @@ import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import type { SortKey, ViewMode } from "@/types/album";
 import { KNOWN_DEAD_COVER_URL, LAST_ALBUM_KEY } from "@/lib/constants";
 import { compareAlbums } from "@/lib/sort";
+import { normalizeForSearch } from "@/lib/search";
 
 const MISSING_LABEL: Record<string, string> = {
   cover: "sans couverture",
@@ -88,7 +89,7 @@ function HomeContent() {
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeForSearch(query.trim());
     return albums
       .filter((a) => {
         if (series && a.series_name !== series) return false;
@@ -106,7 +107,7 @@ function HomeContent() {
         if (!q) return true;
         return [a.title, a.series_name, a.writer, a.illustrator, a.isbn]
           .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(q));
+          .some((field) => normalizeForSearch(field!).includes(q));
       })
       .sort((a, b) => compareAlbums(a, b, sortKey));
   }, [albums, query, series, publisher, author, integrale, horsSerie, missing, sortKey]);

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 // `onChange` writes to the URL (router.replace) which re-renders the whole
 // album grid — expensive enough that firing it on every keystroke makes
 // fast typing race the re-render and drop/scramble characters. Buffer
-// keystrokes in local state and debounce before propagating.
+// keystrokes in local state and debounce before propagating, entirely from
+// the event handler (no effect) so a fast re-render never clears a pending
+// keystroke before it commits.
 export function SearchBar({
   value,
   onChange,
@@ -12,25 +14,27 @@ export function SearchBar({
   onChange: (value: string) => void;
 }) {
   const [text, setText] = useState(value);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  // Stay in sync when the value changes from outside (e.g. "Effacer les filtres").
-  useEffect(() => {
+  // Mirrors `value` so an external change (e.g. "Effacer les filtres") can
+  // be told apart from one we're about to debounce ourselves.
+  const [lastExternalValue, setLastExternalValue] = useState(value);
+  if (value !== lastExternalValue) {
+    setLastExternalValue(value);
     setText(value);
-  }, [value]);
+  }
 
-  useEffect(() => {
-    if (text === value) return;
-    const timeout = setTimeout(() => onChangeRef.current(text), 250);
-    return () => clearTimeout(timeout);
-  }, [text, value]);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleChange = (next: string) => {
+    setText(next);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => onChange(next), 250);
+  };
 
   return (
     <input
       type="search"
       value={text}
-      onChange={(e) => setText(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
       autoCapitalize="none"
       autoCorrect="off"
       aria-label="Rechercher dans la collection"
