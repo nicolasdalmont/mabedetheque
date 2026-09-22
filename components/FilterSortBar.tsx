@@ -15,10 +15,12 @@ export function FilterSortBar({
   publisher,
   author,
   integrale,
+  horsSerie,
   onSeriesChange,
   onPublisherChange,
   onAuthorChange,
   onIntegraleChange,
+  onHorsSerieChange,
   sortKey,
   onSortChange,
   viewMode,
@@ -34,10 +36,12 @@ export function FilterSortBar({
   publisher: string;
   author: string;
   integrale: boolean;
+  horsSerie: boolean;
   onSeriesChange: (value: string) => void;
   onPublisherChange: (value: string) => void;
   onAuthorChange: (value: string) => void;
   onIntegraleChange: (value: boolean) => void;
+  onHorsSerieChange: (value: boolean) => void;
   sortKey: SortKey;
   onSortChange: (value: SortKey) => void;
   viewMode: ViewMode;
@@ -98,6 +102,16 @@ export function FilterSortBar({
           className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
         />
         Intégrales
+      </label>
+
+      <label className="flex items-center gap-1.5 rounded-md border border-black/15 px-2 py-2 text-base sm:py-1.5 sm:text-sm dark:border-white/20">
+        <input
+          type="checkbox"
+          checked={horsSerie}
+          onChange={(e) => onHorsSerieChange(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+        />
+        Hors séries
       </label>
 
       <select

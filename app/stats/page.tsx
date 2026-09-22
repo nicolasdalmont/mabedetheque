@@ -125,8 +125,9 @@ export default function StatsPage() {
   // Data gaps worth cleaning up. KNOWN_DEAD_COVER_URL counts as "no cover"
   // (it's a placeholder 404, see lib/constants). "En série sans tome" only
   // flags albums that *do* have a series_name — a standalone album is not
-  // an anomaly — and excludes intégrales, for which is_integrale legitimately
-  // replaces the tome number (see lib/format.ts tomeLabel).
+  // an anomaly — and excludes intégrales/hors séries, for which is_integrale
+  // or is_hors_serie legitimately replaces the tome number (see lib/format.ts
+  // tomeLabel).
   const anomalies = useMemo(
     () => [
       {
@@ -137,8 +138,9 @@ export default function StatsPage() {
       {
         key: "tome",
         label: "En série, sans numéro de tome",
-        count: albums.filter((a) => a.series_name && a.issue_number == null && !a.is_integrale)
-          .length,
+        count: albums.filter(
+          (a) => a.series_name && a.issue_number == null && !a.is_integrale && !a.is_hors_serie,
+        ).length,
       },
       {
         key: "achat",

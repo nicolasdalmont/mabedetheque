@@ -18,6 +18,7 @@ recréation, `update ... where ... and not déjà fait`) pour pouvoir être rejo
 | `0005_wishlist.sql` | Table `wishlist_items` (liste d'achats) |
 | `0006_sale_status.sql` | Colonne `albums.sale_status` (onglet Ventes) |
 | `0007_integrale.sql` | Colonne `albums.is_integrale` + backfill depuis les commentaires |
+| `0008_hors_serie.sql` | Colonne `albums.is_hors_serie` |
 
 ## Table `albums`
 
@@ -42,6 +43,7 @@ create table albums (
     check (sale_status in ('none', 'a_vendre', 'vendu')),  -- ajouté en 0006
 
   is_integrale boolean not null default false,  -- ajouté en 0007
+  is_hors_serie boolean not null default false, -- ajouté en 0008
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -51,10 +53,12 @@ create table albums (
 Index : `owner_id`, `isbn`, `series_name`, `sale_status`.
 
 `is_integrale` remplace `issue_number` comme indicateur de position dans la série pour un
-album qui compile plusieurs tomes (les deux sont mutuellement exclusifs — cocher
-« Intégrale » dans `AlbumForm` vide et désactive le numéro de tome). Affiché via
-`tomeLabel()` ([07](./07-composants-et-hooks.md)) et exclu de l'anomalie Stats "en série
-sans numéro de tome" ([06](./06-pages-et-fonctionnalites.md)).
+album qui compile plusieurs tomes ; `is_hors_serie` fait de même pour un album qui sort de
+la numérotation normale d'une série (spécial, one-shot...). Les trois (`issue_number`,
+`is_integrale`, `is_hors_serie`) sont mutuellement exclusifs — cocher « Intégrale » ou
+« Hors série » dans `AlbumForm` vide et désactive le numéro de tome, et décoche l'autre
+case. Affichés via `tomeLabel()` ([07](./07-composants-et-hooks.md)) et tous deux exclus de
+l'anomalie Stats "en série sans numéro de tome" ([06](./06-pages-et-fonctionnalites.md)).
 
 0007 a aussi fait un **backfill en une fois** sur la collection existante : l'import
 initial (`scripts/db/prepare-import.py`) avait recopié le champ "NumA" (référence

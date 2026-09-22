@@ -56,6 +56,7 @@ function SeriesContent() {
   const seriesNameFilter = searchParams.get("q") ?? "";
   const authorFilter = searchParams.get("author") ?? "";
   const integraleFilter = searchParams.get("integrale") === "1";
+  const horsSerieFilter = searchParams.get("hors_serie") === "1";
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -79,7 +80,7 @@ function SeriesContent() {
     [albums],
   );
   const seriesFiltersActive = Boolean(
-    seriesNameFilter.trim() || authorFilter || integraleFilter,
+    seriesNameFilter.trim() || authorFilter || integraleFilter || horsSerieFilter,
   );
   const visibleSeriesList = useMemo(() => {
     const q = seriesNameFilter.trim().toLowerCase();
@@ -92,9 +93,10 @@ function SeriesContent() {
         return false;
       }
       if (integraleFilter && !s.albums.some((a) => a.is_integrale)) return false;
+      if (horsSerieFilter && !s.albums.some((a) => a.is_hors_serie)) return false;
       return true;
     });
-  }, [seriesList, seriesNameFilter, authorFilter, integraleFilter]);
+  }, [seriesList, seriesNameFilter, authorFilter, integraleFilter, horsSerieFilter]);
 
   const [wishlist, setWishlist] = useState<
     { series_name: string; issue_number: number | null; title: string | null }[]
@@ -170,6 +172,15 @@ function SeriesContent() {
           />
           Avec une intégrale
         </label>
+        <label className="flex items-center gap-1.5 rounded-md border border-black/15 px-2 py-2 text-base sm:py-1.5 sm:text-sm dark:border-white/20">
+          <input
+            type="checkbox"
+            checked={horsSerieFilter}
+            onChange={(e) => updateParams({ hors_serie: e.target.checked ? "1" : "" })}
+            className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+          />
+          Avec un hors série
+        </label>
       </div>
 
       {!loading && !error && seriesList.length > 0 ? (
@@ -182,7 +193,7 @@ function SeriesContent() {
           {seriesFiltersActive ? (
             <button
               type="button"
-              onClick={() => updateParams({ q: "", author: "", integrale: "" })}
+              onClick={() => updateParams({ q: "", author: "", integrale: "", hors_serie: "" })}
               className="rounded px-2 py-1 font-medium text-zinc-600 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/5"
             >
               Effacer les filtres

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getDataClient } from "@/lib/neon-client";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
@@ -17,8 +18,6 @@ const AUTOCAPITALIZE: Partial<
   comment: "sentences",
   series_name: "words",
   publisher: "words",
-  writer: "words",
-  illustrator: "words",
 };
 
 const emptyValues: AlbumFormValues = {
@@ -34,6 +33,7 @@ const emptyValues: AlbumFormValues = {
   comment: null,
   cover_url: "",
   is_integrale: false,
+  is_hors_serie: false,
 };
 
 export function AlbumForm({
@@ -74,6 +74,28 @@ export function AlbumForm({
   useEffect(() => {
     const update = () => setCoarsePointer(window.matchMedia("(pointer: coarse)").matches);
     update();
+  }, []);
+
+  // Author suggestions for Scénariste/Dessinateur, drawn from every writer
+  // and illustrator name already in the user's own collection (merged —
+  // same "auteur" notion as the app's filters) — fetched once per mount,
+  // filtered client-side as the user types (see `AuthorField` below).
+  const [authorSuggestions, setAuthorSuggestions] = useState<string[]>([]);
+  useEffect(() => {
+    let ignore = false;
+    getDataClient()
+      .from("albums")
+      .select("writer, illustrator")
+      .then(({ data }) => {
+        if (ignore || !data) return;
+        const names = Array.from(
+          new Set(data.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
+        ).sort() as string[];
+        setAuthorSuggestions(names);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
@@ -330,7 +352,7 @@ export function AlbumForm({
           <input
             type="number"
             autoComplete="off"
-            disabled={values.is_integrale}
+            disabled={values.is_integrale || values.is_hors_serie}
             value={values.issue_number ?? ""}
             onChange={(e) =>
               setValues((prev) => ({
@@ -348,12 +370,29 @@ export function AlbumForm({
                 setValues((prev) => ({
                   ...prev,
                   is_integrale: e.target.checked,
+                  is_hors_serie: e.target.checked ? false : prev.is_hors_serie,
                   issue_number: e.target.checked ? null : prev.issue_number,
                 }))
               }
               className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
             />
             Intégrale (remplace le numéro de tome)
+          </label>
+          <label className="flex items-center gap-1.5 pt-0.5 text-xs text-zinc-500">
+            <input
+              type="checkbox"
+              checked={values.is_hors_serie}
+              onChange={(e) =>
+                setValues((prev) => ({
+                  ...prev,
+                  is_hors_serie: e.target.checked,
+                  is_integrale: e.target.checked ? false : prev.is_integrale,
+                  issue_number: e.target.checked ? null : prev.issue_number,
+                }))
+              }
+              className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+            />
+            Hors série (remplace le numéro de tome)
           </label>
         </div>
 
@@ -367,15 +406,25 @@ export function AlbumForm({
           <input autoComplete="off" {...field("legal_deposit")} className={inputClass} />
         </div>
 
-        <div className="space-y-1">
-          <label className={labelClass}>Scénariste</label>
-          <input autoComplete="off" {...field("writer")} className={inputClass} />
-        </div>
+        <AuthorField
+          label="Scénariste"
+          valueKey="writer"
+          values={values}
+          setValues={setValues}
+          suggestions={authorSuggestions}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
 
-        <div className="space-y-1">
-          <label className={labelClass}>Dessinateur</label>
-          <input autoComplete="off" {...field("illustrator")} className={inputClass} />
-        </div>
+        <AuthorField
+          label="Dessinateur"
+          valueKey="illustrator"
+          values={values}
+          setValues={setValues}
+          suggestions={authorSuggestions}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
 
         <div className="space-y-1">
           <label className={labelClass}>Date d&apos;achat</label>
@@ -409,5 +458,77 @@ export function AlbumForm({
         </div>
       </div>
     </form>
+  );
+}
+
+// Scénariste/Dessinateur field with a suggestions dropdown drawn from
+// `authorSuggestions` (writer+illustrator names already in the collection),
+// filtered as the user types. `onMouseDown` + `preventDefault` on the
+// suggestion button lets the click register before the input's `onBlur`
+// would otherwise close the list first.
+function AuthorField({
+  label,
+  valueKey,
+  values,
+  setValues,
+  suggestions,
+  inputClass,
+  labelClass,
+}: {
+  label: string;
+  valueKey: "writer" | "illustrator";
+  values: AlbumFormValues;
+  setValues: React.Dispatch<React.SetStateAction<AlbumFormValues>>;
+  suggestions: string[];
+  inputClass: string;
+  labelClass: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const value = values[valueKey] ?? "";
+
+  const matches = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return [];
+    return suggestions.filter((s) => s.toLowerCase() !== q && s.toLowerCase().includes(q)).slice(0, 8);
+  }, [suggestions, value]);
+
+  return (
+    <div className="relative space-y-1">
+      <label className={labelClass}>{label}</label>
+      <input
+        autoComplete="off"
+        autoCapitalize="words"
+        autoCorrect="off"
+        spellCheck={false}
+        value={value}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setValues((prev) => ({ ...prev, [valueKey]: raw === "" ? null : raw }));
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        className={inputClass}
+      />
+      {open && matches.length > 0 ? (
+        <ul className="absolute z-10 mt-1 max-h-40 w-full divide-y divide-black/5 overflow-y-auto rounded-md border border-black/10 bg-white shadow-md dark:divide-white/10 dark:border-white/10 dark:bg-zinc-900">
+          {matches.map((name) => (
+            <li key={name}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setValues((prev) => ({ ...prev, [valueKey]: name }));
+                  setOpen(false);
+                }}
+                className="block w-full px-2 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                {name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }

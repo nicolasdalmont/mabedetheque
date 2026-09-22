@@ -29,7 +29,7 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
 (albums avec `sale_status !== "vendu"`, via `useAlbums()`).
 
 - **État dans l'URL, pas en `useState`** : `q` (recherche texte), `series`, `publisher`,
-  `author`, `integrale`, `sort`, `view` sont tous des search params, mis à jour via
+  `author`, `integrale`, `hors_serie`, `sort`, `view` sont tous des search params, mis à jour via
   `router.replace(..., { scroll: false })`. Choix délibéré : naviguer vers un album est une
   navigation `push` normale, donc revenir en arrière restaure exactement cette URL — aucune
   plomberie supplémentaire n'est nécessaire pour préserver les filtres/tri/vue au retour
@@ -39,7 +39,8 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
 - **Filtres** (`FilterSortBar`) : série (select), éditeur (select), **auteur** (select,
   fusion scénariste + dessinateur dédupliquée — sélectionner un nom matche l'un ou
   l'autre rôle), **Intégrales** (case à cocher, `?integrale=1` — ne garde que
-  `is_integrale = true`), tri (alphabétique / série puis tome / date d'achat / dépôt
+  `is_integrale = true`), **Hors séries** (case à cocher, `?hors_serie=1` — ne garde que
+  `is_hors_serie = true`), tri (alphabétique / série puis tome / date d'achat / dépôt
   légal — comparateur `compareAlbums` dans [`lib/sort.ts`](../lib/sort.ts), réutilisé par
   l'onglet Ventes), bascule galerie/liste.
 - **Scroll-to-album au retour** : avant de naviguer vers une fiche, l'id de l'album est
@@ -61,9 +62,10 @@ Liste alphabétique des séries (albums sans `series_name` exclus), une carte pa
 exclue — voir [05](./05-stockage-couvertures.md)) et le nombre d'albums possédés.
 
 - **Filtres** : texte libre sur le nom de série (`?q`), menu déroulant auteur
-  (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums) et case
+  (`?author`, même liste fusionnée scénariste/dessinateur que sur Albums), case
   **« Avec une intégrale »** (`?integrale=1` — ne garde que les séries ayant au moins un
-  album `is_integrale = true`) — combinables, **dans l'URL** comme la page Albums
+  album `is_integrale = true`) et case **« Avec un hors série »** (`?hors_serie=1`, même
+  principe sur `is_hors_serie`) — combinables, **dans l'URL** comme la page Albums
   (partageables, restaurés au retour d'un album). Compteur `X sur Y séries` + bouton
   **« Effacer les filtres »** sous la barre.
 - **Badge "achat"** : une icône panier apparaît sur une carte série si au moins un item de
@@ -158,9 +160,10 @@ compte (ambre si > 0, gris si 0). Chaque ligne non nulle est un lien vers l'ongl
 Albums filtré (`/?missing=cover|tome|achat`) qui affiche un chip ambre récapitulatif :
 - *Sans couverture* — `cover_url` vide **ou** égale à `KNOWN_DEAD_COVER_URL` (voir
   [05](./05-stockage-couvertures.md)).
-- *En série, sans numéro de tome* — `series_name` renseigné, `issue_number` nul **et**
-  `is_integrale = false` (un album hors série n'est pas une anomalie, et une intégrale n'a
-  légitimement pas de numéro — voir `tomeLabel()` dans [07](./07-composants-et-hooks.md)).
+- *En série, sans numéro de tome* — `series_name` renseigné, `issue_number` nul,
+  `is_integrale = false` **et** `is_hors_serie = false` (un album sans série n'est pas une
+  anomalie, et une intégrale ou un hors série n'a légitimement pas de numéro — voir
+  `tomeLabel()` dans [07](./07-composants-et-hooks.md)).
 - *Sans date d'achat* — `purchase_date` nul.
 
 **2 classements « Top 10 »** (`RankingList`, barres horizontales maison — `BarChart` est
@@ -191,11 +194,15 @@ réservé aux séries valeur/année) :
    replie dans un `<details>` (« Pas le bon album ? »).
 3. `AlbumForm` reste éditable dans tous les cas, y compris en saisie 100% manuelle si rien
    n'est trouvé.
-4. Case **« Intégrale »** sous le champ numéro de tome — les deux sont exclusifs
-   (`is_integrale`, voir [02](./02-donnees.md)) : cocher désactive et vide le numéro de
-   tome, remplacé partout à l'affichage par le libellé « Intégrale » (`tomeLabel()`,
+4. Cases **« Intégrale »** et **« Hors série »** sous le champ numéro de tome — les trois
+   sont mutuellement exclusifs (`is_integrale` / `is_hors_serie`, voir [02](./02-donnees.md)) :
+   cocher l'une désactive et vide le numéro de tome et décoche l'autre, remplacé partout à
+   l'affichage par le libellé « Intégrale » ou « Hors série » (`tomeLabel()`,
    [07](./07-composants-et-hooks.md)).
-5. À la soumission : upload de la couverture (fichier local ou URL distante, voir
+5. Champs **Scénariste**/**Dessinateur** : suggestions en cours de saisie, tirées des noms
+   déjà utilisés (scénariste + dessinateur fusionnés) ailleurs dans la collection —
+   voir `AuthorField` dans [07](./07-composants-et-hooks.md).
+6. À la soumission : upload de la couverture (fichier local ou URL distante, voir
    [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
    succès → `router.back()`. Si le champ « Date d'achat » (`purchase_date`) est resté vide,
    la date du jour est forcée avant l'insertion (jamais de `null` sur un album créé via ce
@@ -212,9 +219,10 @@ réservé aux séries valeur/année) :
 (galerie, vue liste, fiche série, onglet Ventes), au lieu d'ouvrir directement le
 formulaire d'édition : moins d'édits accidentels en parcourant la collection. Grande
 couverture (+ badge `SALE_STATUS_LABEL` en haut à droite si concerné, badge « Intégrale »
-en haut à gauche si `is_integrale` — coins opposés, les deux peuvent coexister) + le
-sous-titre série reprend aussi « — intégrale » (au lieu de « — tome N ») + toutes les
-métadonnées (dates via `formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`.
+ou « Hors série » en haut à gauche selon `is_integrale`/`is_hors_serie` — mutuellement
+exclusifs, coin opposé au badge de vente donc les deux peuvent coexister) + le sous-titre
+série reprend aussi « — intégrale » ou « — hors série » (au lieu de « — tome N ») + toutes
+les métadonnées (dates via `formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`.
 Re-fetch au retour de focus.
 
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)

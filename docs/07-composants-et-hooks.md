@@ -117,9 +117,10 @@ l'app, et recharge la page une fois qu'un nouveau worker a pris le contrôle —
 
 - `AlbumCard` : vignette (ratio `2/3`, `object-contain` pour ne jamais rogner la
   couverture), titre, série+tome (`tomeLabel()`, voir plus bas). Icône `Tag` en badge
-  (coin haut-droit) si `sale_status === "a_vendre"` ; icône `Layers` en badge (coin
-  haut-gauche, mêmes dimensions) si `is_integrale` — les deux coexistent sans se
-  chevaucher. État local `broken` : bascule vers "Pas de couverture" au premier `onError`
+  (coin haut-droit) si `sale_status === "a_vendre"` ; icône `Layers` (intégrale) ou
+  `Sparkles` (hors série) en badge (coin haut-gauche, mêmes dimensions) selon
+  `is_integrale`/`is_hors_serie` (mutuellement exclusifs) — les deux badges coexistent sans
+  se chevaucher. État local `broken` : bascule vers "Pas de couverture" au premier `onError`
   de l'`<img>`, quelle que soit la cause (URL vide, 404, réseau...). Mémorise l'id de
   l'album dans `sessionStorage` (`LAST_ALBUM_KEY`) avant de naviguer vers sa fiche, pour le
   scroll-to-album au retour.
@@ -182,12 +183,23 @@ Formulaire générique d'ajout/édition d'un album, réutilisé tel quel par
 `app/albums/new/page.tsx`, `app/albums/[id]/edit/page.tsx` et `BuyWishlistModal` — c'est
 le composant qui garantit que ces trois flux restent en parité de champs.
 
-- Champs : ISBN, titre (requis), série, numéro de tome, éditeur, dépôt légal, scénariste,
+- Champs : ISBN, titre (requis), série, numéro de tome (+ cases Intégrale/Hors série,
+  mutuellement exclusives — voir [02](./02-donnees.md)), éditeur, dépôt légal, scénariste,
   dessinateur, date d'achat, commentaire.
-- Chaque champ passe par le helper `field(key)` qui, en plus de `value`/`onChange`, pose
-  l'attribut `autoCapitalize` semantique (`sentences` pour titre/commentaire, `words` pour
-  série/éditeur/scénariste/dessinateur, `none` pour ISBN/dépôt légal) et coupe
+- Chaque champ texte simple passe par le helper `field(key)` qui, en plus de
+  `value`/`onChange`, pose l'attribut `autoCapitalize` semantique (`sentences` pour
+  titre/commentaire, `words` pour série/éditeur, `none` pour ISBN/dépôt légal) et coupe
   `autoCorrect`/`spellCheck` sur les noms propres — voir la note transverse en bas.
+  Scénariste/dessinateur n'y passent pas : voir `AuthorField` ci-dessous.
+- **`AuthorField`** (sous-composant local, non exporté) : gère Scénariste et Dessinateur.
+  Au montage du formulaire, `AlbumForm` récupère tous les `writer`/`illustrator` déjà
+  présents dans la collection (`getDataClient().from("albums").select("writer, illustrator")`,
+  fusionnés/dédupliqués/triés comme la liste « auteur » des filtres) et la passe en prop
+  `suggestions`. Chaque `AuthorField` filtre cette liste côté client (substring insensible à
+  la casse, en excluant la valeur déjà tapée à l'identique) et affiche jusqu'à 8 résultats
+  dans une liste déroulante sous le champ ; `onMouseDown` + `preventDefault` sur chaque
+  suggestion pour que le clic s'applique avant que le `onBlur` de l'input ne referme la
+  liste.
 - Couverture : 3 boutons ("Galerie" / "Fichiers" / "Coller") + couche `contentEditable`
   `aria-hidden` pour l'appui long mobile + bouton optionnel "Rechercher une couverture"
   (`onSearchCover`). Détail complet en [05](./05-stockage-couvertures.md).
@@ -232,11 +244,11 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 
 - **`SearchBar`** : simple `<input type="search">` contrôlé, pas de debounce (le filtrage
   est fait en mémoire côté client sur un dataset de quelques centaines d'albums).
-- **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + case
-  Intégrales + bascule galerie/liste, utilisé uniquement par l'onglet Albums. `aria-label`
-  sur chaque select. L'onglet Séries a son propre filtre équivalent (texte + select auteur
-  + case « Avec une intégrale ») directement dans `app/series/page.tsx`, pas dans ce
-  composant partagé.
+- **`FilterSortBar`** : ensemble de `<select>` (série, éditeur, auteur, tri) + cases
+  Intégrales / Hors séries + bascule galerie/liste, utilisé uniquement par l'onglet Albums.
+  `aria-label` sur chaque select. L'onglet Séries a son propre filtre équivalent (texte +
+  select auteur + cases « Avec une intégrale » / « Avec un hors série ») directement dans
+  `app/series/page.tsx`, pas dans ce composant partagé.
 - **`BarChart`** : mini bar-chart maison sans dépendance (`components/BarChart.tsx`),
   barres de largeur fixe qui scrollent horizontalement plutôt que de s'écraser sur une
   longue série de valeurs (ex. un an par décennie). Réservé aux séries valeur/catégorie ;
@@ -245,10 +257,10 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 - **`IdeaCard`** : carte d'idée avec sélecteur de statut coloré et suppression.
 - **`lib/format.ts`** — `formatDate` / `formatDateTime` (`Intl.DateTimeFormat("fr-FR")`) :
   formatage de date unifié, utilisé par `AlbumTable` et `IdeaCard` (la vue Liste affichait
-  l'ISO brut avant). `tomeLabel(issueNumber, isIntegrale)` : libellé unique pour le
-  numéro de tome (`"#N"`) ou "Intégrale" (`is_integrale`, mutuellement exclusifs — voir
-  [02](./02-donnees.md)) ; utilisé par `AlbumCard`, `AlbumTable` et l'onglet Ventes partout
-  où un tome est affiché.
+  l'ISO brut avant). `tomeLabel(issueNumber, isIntegrale, isHorsSerie)` : libellé unique
+  pour le numéro de tome (`"#N"`), "Intégrale" (`is_integrale`) ou "Hors série"
+  (`is_hors_serie`) — les trois mutuellement exclusifs (voir [02](./02-donnees.md)) ;
+  utilisé par `AlbumCard`, `AlbumTable` et l'onglet Ventes partout où un tome est affiché.
 
 ## Note transverse : `<dialog>`
 

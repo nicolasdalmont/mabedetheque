@@ -171,7 +171,7 @@ export default function VentePage() {
                   <p className="truncate text-sm font-medium">{album.title}</p>
                   <p className="truncate text-xs text-zinc-500">
                     {album.series_name
-                      ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}`
+                      ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}`
                       : " "}
                   </p>
                 </Link>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Layers, Tag } from "lucide-react";
+import { Layers, Sparkles, Tag } from "lucide-react";
 import type { Album } from "@/types/album";
 import { LAST_ALBUM_KEY } from "@/lib/constants";
 import { tomeLabel } from "@/lib/format";
@@ -33,6 +33,13 @@ export function AlbumCard({ album }: { album: Album }) {
           >
             <Layers size={13} aria-hidden="true" />
           </span>
+        ) : album.is_hors_serie ? (
+          <span
+            title="Hors série"
+            className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-black shadow"
+          >
+            <Sparkles size={13} aria-hidden="true" />
+          </span>
         ) : null}
         {album.cover_url && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
@@ -54,7 +61,7 @@ export function AlbumCard({ album }: { album: Album }) {
         {album.series_name ? (
           <span className="truncate text-[11px] text-zinc-500 sm:text-xs">
             {album.series_name}
-            {tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}
+            {tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}
           </span>
         ) : null}
       </div>

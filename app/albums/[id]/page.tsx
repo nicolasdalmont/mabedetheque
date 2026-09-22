@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Layers, Pencil, Tag } from "lucide-react";
+import { Layers, Pencil, Sparkles, Tag } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
 import { formatDate } from "@/lib/format";
@@ -94,6 +94,11 @@ export default function AlbumDetailPage() {
                     <Layers size={11} aria-hidden="true" />
                     Intégrale
                   </span>
+                ) : album.is_hors_serie ? (
+                  <span className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
+                    <Sparkles size={11} aria-hidden="true" />
+                    Hors série
+                  </span>
                 ) : null}
                 {album.cover_url && !broken ? (
                   // eslint-disable-next-line @next/next/no-img-element -- remote, per-user cover
@@ -125,9 +130,11 @@ export default function AlbumDetailPage() {
                   {album.series_name}
                   {album.is_integrale
                     ? " — intégrale"
-                    : album.issue_number != null
-                      ? ` — tome ${album.issue_number}`
-                      : ""}
+                    : album.is_hors_serie
+                      ? " — hors série"
+                      : album.issue_number != null
+                        ? ` — tome ${album.issue_number}`
+                        : ""}
                 </p>
               ) : null}
 

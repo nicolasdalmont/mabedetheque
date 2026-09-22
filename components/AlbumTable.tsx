@@ -32,7 +32,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
               <p className="mt-0.5 truncate text-xs text-zinc-500">
                 {[
                   album.series_name
-                    ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale) ? ` ${tomeLabel(album.issue_number, album.is_integrale)}` : ""}`
+                    ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}`
                     : null,
                   album.publisher,
                   album.purchase_date ? `acheté le ${formatDate(album.purchase_date)}` : null,
@@ -75,7 +75,7 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
                 </td>
                 <td className="px-3 py-2 text-zinc-500">{album.series_name ?? "—"}</td>
                 <td className="px-3 py-2 text-zinc-500">
-                  {tomeLabel(album.issue_number, album.is_integrale)?.replace(/^#/, "") ?? "—"}
+                  {tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)?.replace(/^#/, "") ?? "—"}
                 </td>
                 <td className="px-3 py-2 text-zinc-500">{album.publisher ?? "—"}</td>
                 <td className="px-3 py-2 text-zinc-500">{formatDate(album.purchase_date)}</td>

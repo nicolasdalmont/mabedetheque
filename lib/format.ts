@@ -29,11 +29,14 @@ export function formatDateTime(iso: string | null | undefined): string {
 }
 
 // "Intégrale" remplace le numéro de tome quand l'album compile plusieurs
-// tomes en un seul volume (voir AlbumForm) — les deux notions sont exclusives.
+// tomes en un seul volume, "Hors série" quand il sort de la numérotation
+// normale (voir AlbumForm) — les trois notions sont mutuellement exclusives.
 export function tomeLabel(
   issueNumber: number | null | undefined,
   isIntegrale: boolean,
+  isHorsSerie: boolean,
 ): string | null {
   if (isIntegrale) return "Intégrale";
+  if (isHorsSerie) return "Hors série";
   return issueNumber != null ? `#${issueNumber}` : null;
 }

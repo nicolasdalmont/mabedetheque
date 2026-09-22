@@ -24,6 +24,7 @@ export type Album = {
   comment: string | null;
   cover_url: string;
   is_integrale: boolean;
+  is_hors_serie: boolean;
   sale_status: SaleStatus;
   created_at: string;
   updated_at: string;
