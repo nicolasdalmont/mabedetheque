@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
 import { BnfTextSearch } from "@/components/BnfTextSearch";
+import { SuggestInput } from "@/components/SuggestInput";
 import { seriesTitlesMatch } from "@/lib/bnf-series";
 import type { Album } from "@/types/album";
 import type { WishlistItem } from "@/types/wishlist";
@@ -42,6 +43,25 @@ export function WishlistAddForm({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Série suggestions, drawn from the user's own collection — same source
+  // and behaviour as the equivalent field in AlbumForm.
+  const [seriesSuggestions, setSeriesSuggestions] = useState<string[]>([]);
+  useEffect(() => {
+    let ignore = false;
+    getDataClient()
+      .from("albums")
+      .select("series_name")
+      .then(({ data }) => {
+        if (ignore || !data) return;
+        setSeriesSuggestions(
+          Array.from(new Set(data.map((a) => a.series_name).filter(Boolean))).sort() as string[],
+        );
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   function setField<K extends keyof typeof emptyFields>(key: K, value: string) {
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -166,10 +186,11 @@ export function WishlistAddForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
           <label className={labelClass}>Série *</label>
-          <input
+          <SuggestInput
             required
             value={fields.series_name}
-            onChange={(e) => setField("series_name", e.target.value)}
+            onChange={(v) => setField("series_name", v)}
+            suggestions={seriesSuggestions}
             autoComplete="off"
             autoCapitalize="words"
             autoCorrect="off"

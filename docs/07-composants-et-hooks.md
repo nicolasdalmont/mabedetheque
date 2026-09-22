@@ -188,18 +188,23 @@ le composant qui garantit que ces trois flux restent en parité de champs.
   dessinateur, date d'achat, commentaire.
 - Chaque champ texte simple passe par le helper `field(key)` qui, en plus de
   `value`/`onChange`, pose l'attribut `autoCapitalize` semantique (`sentences` pour
-  titre/commentaire, `words` pour série/éditeur, `none` pour ISBN/dépôt légal) et coupe
+  titre/commentaire, `words` pour éditeur, `none` pour ISBN/dépôt légal) et coupe
   `autoCorrect`/`spellCheck` sur les noms propres — voir la note transverse en bas.
-  Scénariste/dessinateur n'y passent pas : voir `AuthorField` ci-dessous.
-- **`AuthorField`** (sous-composant local, non exporté) : gère Scénariste et Dessinateur.
-  Au montage du formulaire, `AlbumForm` récupère tous les `writer`/`illustrator` déjà
-  présents dans la collection (`getDataClient().from("albums").select("writer, illustrator")`,
-  fusionnés/dédupliqués/triés comme la liste « auteur » des filtres) et la passe en prop
-  `suggestions`. Chaque `AuthorField` filtre cette liste côté client (substring insensible à
-  la casse, en excluant la valeur déjà tapée à l'identique) et affiche jusqu'à 8 résultats
-  dans une liste déroulante sous le champ ; `onMouseDown` + `preventDefault` sur chaque
-  suggestion pour que le clic s'applique avant que le `onBlur` de l'input ne referme la
-  liste.
+  Série/scénariste/dessinateur n'y passent pas : voir `SuggestField` ci-dessous.
+- **`SuggestField`** (sous-composant local à `AlbumForm`, non exporté) : gère Série,
+  Scénariste et Dessinateur. Au montage du formulaire, `AlbumForm` récupère en une seule
+  requête tous les `series_name`/`writer`/`illustrator` déjà présents dans la collection
+  (`getDataClient().from("albums").select("series_name, writer, illustrator")` — writer et
+  illustrator fusionnés/dédupliqués comme la liste « auteur » des filtres) et passe la liste
+  pertinente en prop `suggestions` à chaque champ. Le rendu (label + dropdown filtré) délègue
+  à `SuggestInput` ci-dessous.
+- **`SuggestInput`** (`components/SuggestInput.tsx`, exporté) : input contrôlé générique
+  avec liste de suggestions — filtrage côté client (substring insensible à la casse, valeur
+  déjà tapée à l'identique exclue), jusqu'à 8 résultats dans une liste déroulante sous le
+  champ ; `onMouseDown` + `preventDefault` sur chaque suggestion pour que le clic s'applique
+  avant que le `onBlur` de l'input ne referme la liste. Réutilisé tel quel par
+  `WishlistAddForm` pour le champ Série (mêmes suggestions, tirées de la même requête sur
+  `albums`).
 - Couverture : 3 boutons ("Galerie" / "Fichiers" / "Coller") + couche `contentEditable`
   `aria-hidden` pour l'appui long mobile + bouton optionnel "Rechercher une couverture"
   (`onSearchCover`). Détail complet en [05](./05-stockage-couvertures.md).
@@ -214,7 +219,9 @@ le composant qui garantit que ces trois flux restent en parité de champs.
 Ajout manuel/recherché à la wishlist. Recherche ISBN en préremplissage optionnel (jamais
 bloquant), `BnfTextSearch` avec exclusion des tomes déjà possédés
 (`isAlreadyOwned` — comparaison par ISBN normalisé ou par série+tome via
-`seriesTitlesMatch()`). Seul `series_name` est obligatoire à la soumission.
+`seriesTitlesMatch()`). Seul `series_name` est obligatoire à la soumission. Champ Série sur
+`SuggestInput` (voir `AlbumForm` plus haut) — mêmes suggestions de séries existantes,
+récupérées par sa propre requête (`select("series_name")` sur `albums`).
 
 ### `BuyWishlistModal` (`components/BuyWishlistModal.tsx`)
 

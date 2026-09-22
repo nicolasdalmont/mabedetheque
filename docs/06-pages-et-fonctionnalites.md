@@ -108,7 +108,9 @@ Liste des tomes que l'utilisateur veut se procurer (`wishlist_items`).
 - **"+ Ajouter"** ouvre `WishlistAddForm` : recherche par ISBN (préremplissage uniquement,
   jamais obligatoire) ou recherche libre BnF (`BnfTextSearch`, avec exclusion des candidats
   déjà possédés via `ownedAlbums` — comparaison par ISBN ou par série+numéro via
-  `seriesTitlesMatch()`), ou saisie 100% manuelle (seul `series_name` est requis).
+  `seriesTitlesMatch()`), ou saisie 100% manuelle (seul `series_name` est requis). Le champ
+  Série propose, en cours de saisie, les séries déjà présentes dans la collection (même
+  mécanisme `SuggestInput` que sur `AlbumForm`, voir [07](./07-composants-et-hooks.md)).
 - **Bouton "Acheté"** (jaune plein) sur un item `a_acheter` → ouvre `BuyWishlistModal`, qui
   reproduit l'expérience complète d'ajout d'album (recherche ISBN/scan, recherche
   titre/série, tous les champs + couverture), préremplie avec ce que l'item wishlist
@@ -199,9 +201,9 @@ réservé aux séries valeur/année) :
    cocher l'une désactive et vide le numéro de tome et décoche l'autre, remplacé partout à
    l'affichage par le libellé « Intégrale » ou « Hors série » (`tomeLabel()`,
    [07](./07-composants-et-hooks.md)).
-5. Champs **Scénariste**/**Dessinateur** : suggestions en cours de saisie, tirées des noms
-   déjà utilisés (scénariste + dessinateur fusionnés) ailleurs dans la collection —
-   voir `AuthorField` dans [07](./07-composants-et-hooks.md).
+5. Champs **Série**/**Scénariste**/**Dessinateur** : suggestions en cours de saisie, tirées
+   des valeurs déjà utilisées (scénariste + dessinateur fusionnés) ailleurs dans la
+   collection — voir `SuggestField`/`SuggestInput` dans [07](./07-composants-et-hooks.md).
 6. À la soumission : upload de la couverture (fichier local ou URL distante, voir
    [05](./05-stockage-couvertures.md)) → `insert` dans `albums` avec `owner_id` → toast de
    succès → `router.back()`. Si le champ « Date d'achat » (`purchase_date`) est resté vide,

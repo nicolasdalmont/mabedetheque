@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
+import { SuggestInput } from "@/components/SuggestInput";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
@@ -16,7 +17,6 @@ const AUTOCAPITALIZE: Partial<
   legal_deposit: "none",
   title: "sentences",
   comment: "sentences",
-  series_name: "words",
   publisher: "words",
 };
 
@@ -76,22 +76,28 @@ export function AlbumForm({
     update();
   }, []);
 
-  // Author suggestions for Scénariste/Dessinateur, drawn from every writer
-  // and illustrator name already in the user's own collection (merged —
-  // same "auteur" notion as the app's filters) — fetched once per mount,
-  // filtered client-side as the user types (see `AuthorField` below).
+  // Suggestions for Série/Scénariste/Dessinateur, drawn from every value
+  // already in the user's own collection (writer + illustrator merged —
+  // same "auteur" notion as the app's filters) — fetched once per mount in
+  // a single query, filtered client-side as the user types (see
+  // `SuggestField` below).
+  const [seriesSuggestions, setSeriesSuggestions] = useState<string[]>([]);
   const [authorSuggestions, setAuthorSuggestions] = useState<string[]>([]);
   useEffect(() => {
     let ignore = false;
     getDataClient()
       .from("albums")
-      .select("writer, illustrator")
+      .select("series_name, writer, illustrator")
       .then(({ data }) => {
         if (ignore || !data) return;
-        const names = Array.from(
-          new Set(data.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
-        ).sort() as string[];
-        setAuthorSuggestions(names);
+        setSeriesSuggestions(
+          Array.from(new Set(data.map((a) => a.series_name).filter(Boolean))).sort() as string[],
+        );
+        setAuthorSuggestions(
+          Array.from(
+            new Set(data.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
+          ).sort() as string[],
+        );
       });
     return () => {
       ignore = true;
@@ -342,10 +348,15 @@ export function AlbumForm({
           />
         </div>
 
-        <div className="space-y-1">
-          <label className={labelClass}>Série</label>
-          <input autoComplete="off" {...field("series_name")} className={inputClass} />
-        </div>
+        <SuggestField
+          label="Série"
+          valueKey="series_name"
+          values={values}
+          setValues={setValues}
+          suggestions={seriesSuggestions}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
 
         <div className="space-y-1">
           <label className={labelClass}>Numéro de tome</label>
@@ -406,7 +417,7 @@ export function AlbumForm({
           <input autoComplete="off" {...field("legal_deposit")} className={inputClass} />
         </div>
 
-        <AuthorField
+        <SuggestField
           label="Scénariste"
           valueKey="writer"
           values={values}
@@ -416,7 +427,7 @@ export function AlbumForm({
           labelClass={labelClass}
         />
 
-        <AuthorField
+        <SuggestField
           label="Dessinateur"
           valueKey="illustrator"
           values={values}
@@ -461,12 +472,10 @@ export function AlbumForm({
   );
 }
 
-// Scénariste/Dessinateur field with a suggestions dropdown drawn from
-// `authorSuggestions` (writer+illustrator names already in the collection),
-// filtered as the user types. `onMouseDown` + `preventDefault` on the
-// suggestion button lets the click register before the input's `onBlur`
-// would otherwise close the list first.
-function AuthorField({
+// Série/Scénariste/Dessinateur field with a suggestions dropdown (see
+// `SuggestInput`) drawn from `seriesSuggestions`/`authorSuggestions` (values
+// already used elsewhere in the collection).
+function SuggestField({
   label,
   valueKey,
   values,
@@ -476,59 +485,26 @@ function AuthorField({
   labelClass,
 }: {
   label: string;
-  valueKey: "writer" | "illustrator";
+  valueKey: "series_name" | "writer" | "illustrator";
   values: AlbumFormValues;
   setValues: React.Dispatch<React.SetStateAction<AlbumFormValues>>;
   suggestions: string[];
   inputClass: string;
   labelClass: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const value = values[valueKey] ?? "";
-
-  const matches = useMemo(() => {
-    const q = value.trim().toLowerCase();
-    if (!q) return [];
-    return suggestions.filter((s) => s.toLowerCase() !== q && s.toLowerCase().includes(q)).slice(0, 8);
-  }, [suggestions, value]);
-
   return (
-    <div className="relative space-y-1">
+    <div className="space-y-1">
       <label className={labelClass}>{label}</label>
-      <input
+      <SuggestInput
+        value={values[valueKey] ?? ""}
+        onChange={(raw) => setValues((prev) => ({ ...prev, [valueKey]: raw === "" ? null : raw }))}
+        suggestions={suggestions}
         autoComplete="off"
         autoCapitalize="words"
         autoCorrect="off"
         spellCheck={false}
-        value={value}
-        onChange={(e) => {
-          const raw = e.target.value;
-          setValues((prev) => ({ ...prev, [valueKey]: raw === "" ? null : raw }));
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
         className={inputClass}
       />
-      {open && matches.length > 0 ? (
-        <ul className="absolute z-10 mt-1 max-h-40 w-full divide-y divide-black/5 overflow-y-auto rounded-md border border-black/10 bg-white shadow-md dark:divide-white/10 dark:border-white/10 dark:bg-zinc-900">
-          {matches.map((name) => (
-            <li key={name}>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setValues((prev) => ({ ...prev, [valueKey]: name }));
-                  setOpen(false);
-                }}
-                className="block w-full px-2 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                {name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }
