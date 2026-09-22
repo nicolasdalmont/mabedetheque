@@ -48,12 +48,18 @@ export default function Home() {
     [albums],
   );
   // Most recently *bought* albums, not most recently added — sorted on
-  // purchase_date (ISO string, so a plain string compare sorts correctly).
+  // purchase_date (ISO strings, so a plain string compare sorts correctly),
+  // then on updated_at to break ties between albums bought the same day
+  // (purchase_date has no time component, updated_at does).
   const recentPurchases = useMemo(
     () =>
       albums
         .filter((a) => a.purchase_date)
-        .sort((a, b) => b.purchase_date!.localeCompare(a.purchase_date!))
+        .sort(
+          (a, b) =>
+            b.purchase_date!.localeCompare(a.purchase_date!) ||
+            b.updated_at.localeCompare(a.updated_at),
+        )
         .slice(0, RECENT_PURCHASES_COUNT),
     [albums],
   );
