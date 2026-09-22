@@ -373,38 +373,40 @@ export function AlbumForm({
             }
             className={`${inputClass} disabled:opacity-50`}
           />
-          <label className="flex items-center gap-1.5 pt-0.5 text-xs text-zinc-500">
-            <input
-              type="checkbox"
-              checked={values.is_integrale}
-              onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  is_integrale: e.target.checked,
-                  is_hors_serie: e.target.checked ? false : prev.is_hors_serie,
-                  issue_number: e.target.checked ? null : prev.issue_number,
-                }))
-              }
-              className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
-            />
-            Intégrale (remplace le numéro de tome)
-          </label>
-          <label className="flex items-center gap-1.5 pt-0.5 text-xs text-zinc-500">
-            <input
-              type="checkbox"
-              checked={values.is_hors_serie}
-              onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  is_hors_serie: e.target.checked,
-                  is_integrale: e.target.checked ? false : prev.is_integrale,
-                  issue_number: e.target.checked ? null : prev.issue_number,
-                }))
-              }
-              className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
-            />
-            Hors série (remplace le numéro de tome)
-          </label>
+          <div className="flex items-center gap-3 pt-0.5">
+            <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <input
+                type="checkbox"
+                checked={values.is_integrale}
+                onChange={(e) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    is_integrale: e.target.checked,
+                    is_hors_serie: e.target.checked ? false : prev.is_hors_serie,
+                    issue_number: e.target.checked ? null : prev.issue_number,
+                  }))
+                }
+                className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+              />
+              Intégrale
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <input
+                type="checkbox"
+                checked={values.is_hors_serie}
+                onChange={(e) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    is_hors_serie: e.target.checked,
+                    is_integrale: e.target.checked ? false : prev.is_integrale,
+                    issue_number: e.target.checked ? null : prev.issue_number,
+                  }))
+                }
+                className="h-3.5 w-3.5 rounded border-black/30 text-yellow-500 focus:ring-yellow-500 dark:border-white/30"
+              />
+              Hors série
+            </label>
+          </div>
         </div>
 
         <div className="space-y-1">
