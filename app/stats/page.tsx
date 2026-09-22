@@ -215,7 +215,7 @@ export default function StatsPage() {
               {anomalies.map((a) => (
                 <li key={a.key}>
                   <Link
-                    href={a.count > 0 ? `/?missing=${a.key}` : "/"}
+                    href={a.count > 0 ? `/albums?missing=${a.key}` : "/albums"}
                     aria-disabled={a.count === 0}
                     className={`flex items-center justify-between py-2 text-sm ${
                       a.count > 0

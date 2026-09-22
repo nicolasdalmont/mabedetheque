@@ -6,7 +6,7 @@ import { Library, Layers, ShoppingCart, Tag, Lightbulb, ChartColumn } from "luci
 // `secondary` entries under a "Plus" menu to keep 5 items in thumb reach
 // instead of 6 cramped ones).
 export const NAV_TABS = [
-  { href: "/", label: "Albums", icon: Library },
+  { href: "/albums", label: "Albums", icon: Library },
   { href: "/series", label: "Séries", icon: Layers },
   { href: "/wishlist", label: "Achats", icon: ShoppingCart },
   { href: "/vente", label: "Ventes", icon: Tag },
