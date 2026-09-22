@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
@@ -14,6 +14,44 @@ import { seriesTitlesMatch } from "@/lib/bnf-series";
 import type { Album } from "@/types/album";
 
 type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
+
+// `onChange` writes to the URL (router.replace), same as the Albums search
+// bar — buffer keystrokes locally and debounce before propagating so fast
+// typing doesn't race the re-render.
+function SeriesFilterInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (text === value) return;
+    const timeout = setTimeout(() => onChangeRef.current(text), 250);
+    return () => clearTimeout(timeout);
+  }, [text, value]);
+
+  return (
+    <input
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      placeholder="Filtrer par série"
+      aria-label="Filtrer par nom de série"
+      autoComplete="off"
+      autoCapitalize="none"
+      autoCorrect="off"
+      className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-56 sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
+    />
+  );
+}
 
 // The series' cover is the first tome (lowest issue number, title as
 // tiebreak/fallback for unnumbered entries) that actually has one — covers
@@ -140,16 +178,7 @@ function SeriesContent() {
       <AppHeader />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <input
-          value={seriesNameFilter}
-          onChange={(e) => updateParams({ q: e.target.value })}
-          placeholder="Filtrer par série"
-          aria-label="Filtrer par nom de série"
-          autoComplete="off"
-          autoCapitalize="none"
-          autoCorrect="off"
-          className="w-full rounded-md border border-black/15 bg-transparent px-2 py-2 text-base outline-none focus:border-yellow-500 sm:w-56 sm:py-1.5 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400"
-        />
+        <SeriesFilterInput value={seriesNameFilter} onChange={(v) => updateParams({ q: v })} />
         <select
           value={authorFilter}
           onChange={(e) => updateParams({ author: e.target.value })}
