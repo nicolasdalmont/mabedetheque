@@ -28,7 +28,9 @@ voit que ses propres données, via RLS Postgres — rien n'empêche plusieurs co
 - **Recherche automatique des métadonnées** : catalogue SRU de la BnF (UNIMARC), avec
   repli sur Google Books / Open Library pour la couverture.
 - **PWA** : installable, service worker (Serwist), icônes clair/sombre.
-- **6 onglets** : Albums, Séries, Achats, Ventes, Idées, Stats.
+- **Accueil** (`/`) : compteurs cliquables (Albums/Séries/Achats/Ventes) + 6 derniers
+  achats, accessible via le logo de l'en-tête.
+- **6 onglets** : Albums (`/albums`), Séries, Achats, Ventes, Idées, Stats.
 
 Toute la donnée applicative vit dans 3 tables Postgres (`albums`, `wishlist_items`,
 `ideas`), chacune protégée par Row Level Security sur `owner_id`.

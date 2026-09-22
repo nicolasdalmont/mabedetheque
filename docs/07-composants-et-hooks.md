@@ -30,10 +30,11 @@ Voir [03-authentification.md](./03-authentification.md). Retourne
 
 ### `AppHeader` (`components/AppHeader.tsx`)
 
-En-tête partagé rendu par **chaque** page (6 onglets + Détail + Ajout + Édition) : logo
-(`<Link href="/">`) + `AppTabs` à gauche, `RefreshButton` + `SignOutButton` à droite.
-Extrait pour que les en-têtes ne divergent plus (avant : logo tantôt `<h1>` non
-cliquable, tantôt `<Link>`).
+En-tête partagé rendu par **chaque** page (Accueil + 6 onglets + Détail + Ajout +
+Édition) : logo (`<Link href="/" aria-label="Accueil">`, vers la page d'Accueil — voir
+[06](./06-pages-et-fonctionnalites.md)) + `AppTabs` à gauche, `RefreshButton` +
+`SignOutButton` à droite. Extrait pour que les en-têtes ne divergent plus (avant : logo
+tantôt `<h1>` non cliquable, tantôt `<Link>`).
 
 ### `RefreshButton` / `PullToRefresh` / `OfflineBanner`
 
@@ -125,7 +126,9 @@ l'app, et recharge la page une fois qu'un nouveau worker a pris le contrôle —
   l'album dans `sessionStorage` (`LAST_ALBUM_KEY`) avant de naviguer vers sa fiche, pour le
   scroll-to-album au retour.
 - `AlbumGrid` : grille responsive (3 colonnes en mobile → 6 en desktop large) de
-  `AlbumCard`, message vide dédié.
+  `AlbumCard`, message vide dédié. Réutilisée telle quelle par la page d'Accueil pour sa
+  section « Derniers achats » (voir [06](./06-pages-et-fonctionnalites.md)), pas
+  seulement par la vue galerie de l'onglet Albums.
 - `AlbumTable` : vue liste — **deux rendus** : lignes empilées cliquables sous `sm`
   (titre + `série #tome · éditeur · date`), table complète à partir de `sm` (un tableau
   640px scrollant horizontalement était inutilisable sur téléphone). L'id

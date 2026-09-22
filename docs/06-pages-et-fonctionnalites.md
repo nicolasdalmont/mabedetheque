@@ -12,7 +12,7 @@ mobile) sont rendus une fois par le layout racine, au-dessus de tout le contenu.
 
 ## Navigation
 
-6 onglets, dans cet ordre : **Albums** (`/`) · **Séries** (`/series`) ·
+6 onglets, dans cet ordre : **Albums** (`/albums`) · **Séries** (`/series`) ·
 **Achats** (`/wishlist`) · **Ventes** (`/vente`) · **Idées** (`/ideas`) ·
 **Stats** (`/stats`).
 
@@ -22,8 +22,31 @@ mobile) sont rendus une fois par le layout racine, au-dessus de tout le contenu.
   layout racine et **toujours visible**, y compris sur Ajout/Édition — indispensable en
   PWA installée où il n'y a pas de barre navigateur.
 - Source unique des onglets : `components/navTabs.ts` (`NAV_TABS`), partagée par les deux.
+- La racine `/` n'est **pas** un onglet : c'est la page d'Accueil (voir ci-dessous),
+  atteignable uniquement via le logo de l'en-tête (`AppHeader`, `aria-label="Accueil"`) —
+  aucun des deux jeux d'onglets ne la met en surbrillance.
 
-## Onglet Albums (`app/page.tsx`)
+## Accueil (`app/page.tsx`)
+
+Page d'atterrissage après connexion : vue d'ensemble de la collection plutôt que la
+liste complète des albums (qui a déménagé vers son propre onglet, voir plus bas).
+
+- **4 compteurs cliquables** (mêmes valeurs que les 4 cartes de l'onglet Stats, voir plus
+  bas, mais chacune est un lien plutôt qu'une carte statique) : **Albums** (`albums.length`,
+  → `/albums`), **Séries** (nombre de `series_name` distincts, → `/series`), **Achats**
+  (items `wishlist_items` où `status = 'a_acheter'`, requête dédiée comme sur Stats,
+  → `/wishlist`), **Ventes** (`sale_status === "a_vendre"`, → `/vente`).
+- **Section « Derniers achats »** : les 6 albums dont la `purchase_date` est la plus
+  récente, rendus avec `AlbumGrid` — **même composant** que la vue galerie de l'onglet
+  Albums (voir [07](./07-composants-et-hooks.md)). Tri décroissant sur `purchase_date`
+  (chaîne ISO, comparaison directe) puis, à égalité (plusieurs achats le même jour,
+  `purchase_date` n'a pas d'heure), sur `updated_at` décroissant pour départager. Les
+  albums sans `purchase_date` sont exclus (message « Aucun achat enregistré. » si la liste
+  est vide).
+- Basée sur `useAlbums()` : exclut donc les albums `sale_status = 'vendu'`, comme partout
+  ailleurs où ce hook est utilisé.
+
+## Onglet Albums (`app/albums/page.tsx`)
 
 Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection active
 (albums avec `sale_status !== "vendu"`, via `useAlbums()`).
@@ -159,7 +182,7 @@ Suppression via `ConfirmDialog` ; erreurs remontées en toast.
 
 **Section « Anomalies »** — données incomplètes à compléter, une ligne par type avec un
 compte (ambre si > 0, gris si 0). Chaque ligne non nulle est un lien vers l'onglet
-Albums filtré (`/?missing=cover|tome|achat`) qui affiche un chip ambre récapitulatif :
+Albums filtré (`/albums?missing=cover|tome|achat`) qui affiche un chip ambre récapitulatif :
 - *Sans couverture* — `cover_url` vide **ou** égale à `KNOWN_DEAD_COVER_URL` (voir
   [05](./05-stockage-couvertures.md)).
 - *En série, sans numéro de tome* — `series_name` renseigné, `issue_number` nul,
@@ -245,7 +268,8 @@ Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
 
 | Route | Page |
 |---|---|
-| `/` | Albums |
+| `/` | Accueil |
+| `/albums` | Albums |
 | `/series` | Séries |
 | `/wishlist` | Achats |
 | `/vente` | Ventes |
