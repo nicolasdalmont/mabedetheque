@@ -11,7 +11,10 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    /* règles dédiées, voir plus bas */
+    ...defaultCache,
+  ],
 });
 
 serwist.setCatchHandler(async ({ request }) => {
@@ -29,14 +32,61 @@ serwist.addEventListeners();
   immédiatement dès qu'il est activé, sans attendre la fermeture de tous les onglets —
   nécessaire pour que la logique de mise à jour forcée (`AppUpdater`) fonctionne (voir
   plus bas).
-- `runtimeCaching: defaultCache` — stratégie de cache par défaut fournie par
-  `@serwist/next/worker`.
+- `runtimeCaching` — trois règles dédiées (voir "Hors ligne : cache des données"
+  ci-dessous), placées **avant** `defaultCache` (`@serwist/next/worker`) dont elles
+  outrepassent les règles génériques par ordre de déclaration (Serwist prend la première
+  règle qui matche).
 - **`setCatchHandler`** : les stratégies de `defaultCache` rejettent le `FetchEvent`
   quand elles ne peuvent produire de réponse (hors ligne sans cache, ou requête réseau
   échouée — timeout BnF…), ce qui fait logger `FetchEvent.respondWith received an error:
   no-response` par Chrome pour **chaque** requête concernée. Le catch handler renvoie une
   réponse concrète (document en cache pour une navigation, `503` vide sinon) — l'app et
   `OfflineBanner` gèrent déjà une requête en échec.
+
+### Hors ligne : cache des données (token, Data API, couvertures)
+
+`defaultCache` seul rendait l'app quasi inutilisable hors ligne au-delà d'une heure sans
+réseau, pour deux raisons :
+
+1. **`/api/auth/token`** tombe dans la règle générale `/api/auth/.*` de `defaultCache`
+   (`NetworkOnly`, volontaire — voir
+   [serwist/serwist#28](https://github.com/serwist/serwist/discussions/28) pour éviter de
+   mettre en cache le callback d'auth). Or `getDataClient()` (`lib/neon-client.ts`)
+   récupère ce token **avant** chaque appel au Data API, et `fetchWithToken` lève une
+   erreur si ce fetch échoue — sans jamais émettre la requête Data API elle-même. Hors
+   ligne, plus aucune donnée ne pouvait donc être servie, même si elle était par ailleurs
+   en cache.
+2. **Les appels au Data API Neon** (`NEXT_PUBLIC_NEON_DATA_API_URL`, cross-origin)
+   tombaient, faute de règle dédiée, dans le cache cross-origin générique de
+   `defaultCache` : 1h de validité, 32 entrées partagées avec toute autre requête
+   cross-origin (dont les couvertures, si elles ne matchaient pas déjà la règle image de
+   `defaultCache`).
+
+Trois règles, ajoutées en tête de `runtimeCaching` :
+
+| Cache | Requêtes | Stratégie | Rétention |
+|---|---|---|---|
+| `auth-token` | `GET /api/auth/token` (same-origin) | `NetworkFirst` | 1 entrée, 30 jours |
+| `album-covers` | images cross-origin (Neon Object Storage) | `CacheFirst` | 1000 entrées, 90 jours (`last-used`) |
+| `neon-data-api` | `GET` cross-origin non-image (Data API) | `NetworkFirst`, timeout 8s | 64 entrées, 30 jours (`last-used`) |
+
+- **`auth-token`** : un token périmé suffit — hors ligne, l'appel Data API qu'il débloque
+  est lui-même servi depuis le cache `neon-data-api`, jamais réellement vérifié par Neon.
+  Le but est seulement de ne pas laisser `fetchWithToken` lever une exception avant que la
+  requête de données ait une chance d'être tentée.
+- **`album-covers`** : `CacheFirst` (pas de revalidation réseau) car les couvertures sont
+  immuables — un remplacement de couverture change d'URL (nouvel UUID, voir
+  `lib/storage.ts`), il n'y a donc jamais de contenu à rafraîchir sous une même URL. 1000
+  entrées pour couvrir toute la collection sans éviction prématurée.
+- **`neon-data-api`** : `NetworkFirst` — privilégie toujours la donnée fraîche quand le
+  réseau répond, ne retombe sur le cache qu'en cas d'échec réseau (ou timeout > 8s). 30
+  jours de rétention pour survivre à plusieurs jours sans connexion.
+
+Le matcher distingue image vs. non-image (`request.destination === "image"`) plutôt que de
+cibler une extension ou un hostname : il n'y a que deux familles de requêtes cross-origin
+dans l'app (Data API JSON, couvertures Object Storage), donc pas besoin de connaître
+l'URL exacte du Data API — utile pour que la règle reste valable quel que soit
+l'environnement (`NEXT_PUBLIC_NEON_DATA_API_URL` diffère entre local/prod).
 
 Généré uniquement au **build de production** (`next build --webpack`) : `next.config.ts`
 désactive explicitement le plugin Serwist hors production

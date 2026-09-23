@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { WifiOff } from "lucide-react";
 
-// The service worker caches the app shell, so it keeps opening offline — but
-// data fetches then fail silently. This makes the state explicit.
+// The service worker caches the app shell and, since app/sw.ts's dedicated
+// runtime-caching rules, the collection data and cover images too — so the
+// app keeps opening and showing (possibly stale) data offline. This banner
+// makes that staleness explicit rather than leaving it implicit.
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
 
