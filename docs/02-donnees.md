@@ -19,6 +19,7 @@ recréation, `update ... where ... and not déjà fait`) pour pouvoir être rejo
 | `0006_sale_status.sql` | Colonne `albums.sale_status` (onglet Ventes) |
 | `0007_integrale.sql` | Colonne `albums.is_integrale` + backfill depuis les commentaires |
 | `0008_hors_serie.sql` | Colonne `albums.is_hors_serie` |
+| `0009_collection.sql` | Colonne `albums.collection` + backfill depuis les commentaires |
 
 ## Table `albums`
 
@@ -32,6 +33,7 @@ create table albums (
   series_name text,
   issue_number integer,
   publisher text,
+  collection text,               -- ajouté en 0009
   writer text,
   illustrator text,
   legal_deposit text,           -- texte libre (ex. "DL 2024", "02/1993")
@@ -70,6 +72,14 @@ les albums possédés en intégrale. 34 albums correspondaient à ce motif exact
 `"(Intégrale)"` dont les tomes ont chacun un vrai numéro). Une future intégrale ajoutée
 via le formulaire n'a pas ce marqueur textuel — c'est un cas particulier de migration, pas
 un mécanisme permanent de détection.
+
+`collection` est la collection éditoriale (ex. « Signé Bamboo »), distincte de la série —
+un éditeur publie plusieurs collections, une collection peut regrouper plusieurs séries.
+0009 a fait le même type de backfill que 0007 : l'import initial avait recopié le champ
+"Collection" du logiciel d'origine dans `comment` sous forme d'une ligne
+`"Collection : nom de la collection"` (voir `build_comment()` dans
+`scripts/db/prepare-import.py`) ; la migration l'extrait vers la nouvelle colonne et retire
+la ligne du commentaire.
 
 Trigger `set_updated_at()` (fonction plpgsql partagée par toutes les tables) maintient
 `updated_at` à jour à chaque `UPDATE`.

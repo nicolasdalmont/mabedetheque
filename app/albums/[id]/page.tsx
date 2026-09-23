@@ -140,6 +140,7 @@ export default function AlbumDetailPage() {
 
               <dl className="mt-4">
                 <Field label="Éditeur" value={album.publisher} />
+                <Field label="Collection" value={album.collection} />
                 <Field label="Scénariste" value={album.writer} />
                 <Field label="Dessinateur" value={album.illustrator} />
                 <Field label="Dépôt légal" value={album.legal_deposit} />

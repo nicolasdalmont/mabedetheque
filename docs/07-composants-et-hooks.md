@@ -188,20 +188,25 @@ Formulaire générique d'ajout/édition d'un album, réutilisé tel quel par
 le composant qui garantit que ces trois flux restent en parité de champs.
 
 - Champs : ISBN, titre (requis), série, numéro de tome (+ cases Intégrale/Hors série,
-  mutuellement exclusives — voir [02](./02-donnees.md)), éditeur, dépôt légal, scénariste,
-  dessinateur, date d'achat, commentaire.
+  mutuellement exclusives — voir [02](./02-donnees.md)), éditeur, collection (juste après
+  éditeur), dépôt légal, scénariste, dessinateur, date d'achat, commentaire.
 - Chaque champ texte simple passe par le helper `field(key)` qui, en plus de
   `value`/`onChange`, pose l'attribut `autoCapitalize` semantique (`sentences` pour
-  titre/commentaire, `words` pour éditeur, `none` pour ISBN/dépôt légal) et coupe
-  `autoCorrect`/`spellCheck` sur les noms propres — voir la note transverse en bas.
-  Série/scénariste/dessinateur n'y passent pas : voir `SuggestField` ci-dessous.
+  titre/commentaire, `none` pour ISBN/dépôt légal) et coupe `autoCorrect`/`spellCheck` sur
+  les noms propres — voir la note transverse en bas. Série/éditeur/collection/
+  scénariste/dessinateur n'y passent pas : voir `SuggestField` ci-dessous.
 - **`SuggestField`** (sous-composant local à `AlbumForm`, non exporté) : gère Série,
-  Scénariste et Dessinateur. Au montage du formulaire, `AlbumForm` récupère en une seule
-  requête tous les `series_name`/`writer`/`illustrator` déjà présents dans la collection
-  (`getDataClient().from("albums").select("series_name, writer, illustrator")` — writer et
-  illustrator fusionnés/dédupliqués comme la liste « auteur » des filtres) et passe la liste
-  pertinente en prop `suggestions` à chaque champ. Le rendu (label + dropdown filtré) délègue
-  à `SuggestInput` ci-dessous.
+  Éditeur, Collection, Scénariste et Dessinateur. Au montage du formulaire, `AlbumForm`
+  récupère en une seule requête tous les `series_name`/`writer`/`illustrator`/`publisher`/
+  `collection` déjà présents dans la collection
+  (`getDataClient().from("albums").select("series_name, writer, illustrator, publisher,
+  collection")` — writer et illustrator fusionnés/dédupliqués comme la liste « auteur » des
+  filtres) et passe la liste pertinente en prop `suggestions` à chaque champ. Le champ
+  Collection est un cas particulier : ses suggestions sont recalculées (`useMemo`) à partir
+  des paires éditeur/collection déjà vues dans la collection, filtrées sur l'éditeur
+  actuellement saisi (comparaison insensible à la casse/aux accents via
+  `normalizeForSearch`) — ou sur toutes les collections connues tant qu'aucun éditeur n'est
+  encore saisi. Le rendu (label + dropdown filtré) délègue à `SuggestInput` ci-dessous.
 - **`SuggestInput`** (`components/SuggestInput.tsx`, exporté) : input contrôlé générique
   avec liste de suggestions — filtrage côté client (substring insensible à la casse et aux
   accents via `normalizeForSearch`, valeur déjà tapée à l'identique exclue), jusqu'à 8

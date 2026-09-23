@@ -17,6 +17,7 @@ export type Album = {
   series_name: string | null;
   issue_number: number | null;
   publisher: string | null;
+  collection: string | null;
   writer: string | null;
   illustrator: string | null;
   legal_deposit: string | null;

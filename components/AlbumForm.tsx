@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
 import { SuggestInput } from "@/components/SuggestInput";
+import { normalizeForSearch } from "@/lib/search";
 import type { AlbumInput } from "@/types/album";
 
 export type AlbumFormValues = AlbumInput;
 
 // Per-field mobile-keyboard capitalisation (see the note in `field()`).
-// Titles read like a sentence; series / publisher / author names are proper
-// nouns; ISBN and legal deposit ("DL 2024") take no capitals at all.
+// Series/publisher/author/collection names go through `SuggestField`
+// instead, which hardcodes the same "words" behaviour directly.
 const AUTOCAPITALIZE: Partial<
   Record<keyof AlbumFormValues, "none" | "words" | "sentences">
 > = {
@@ -17,7 +18,6 @@ const AUTOCAPITALIZE: Partial<
   legal_deposit: "none",
   title: "sentences",
   comment: "sentences",
-  publisher: "words",
 };
 
 const emptyValues: AlbumFormValues = {
@@ -26,6 +26,7 @@ const emptyValues: AlbumFormValues = {
   series_name: null,
   issue_number: null,
   publisher: null,
+  collection: null,
   writer: null,
   illustrator: null,
   legal_deposit: null,
@@ -76,18 +77,25 @@ export function AlbumForm({
     update();
   }, []);
 
-  // Suggestions for Série/Scénariste/Dessinateur, drawn from every value
-  // already in the user's own collection (writer + illustrator merged —
-  // same "auteur" notion as the app's filters) — fetched once per mount in
-  // a single query, filtered client-side as the user types (see
-  // `SuggestField` below).
+  // Suggestions for Série/Scénariste/Dessinateur/Éditeur/Collection, drawn
+  // from every value already in the user's own collection (writer +
+  // illustrator merged — same "auteur" notion as the app's filters) —
+  // fetched once per mount in a single query, filtered client-side as the
+  // user types (see `SuggestField` below).
   const [seriesSuggestions, setSeriesSuggestions] = useState<string[]>([]);
   const [authorSuggestions, setAuthorSuggestions] = useState<string[]>([]);
+  const [publisherSuggestions, setPublisherSuggestions] = useState<string[]>([]);
+  // Collection ⇄ publisher pairs, kept raw (not deduped/grouped) so the
+  // collection field can narrow its suggestions to whichever publisher is
+  // currently entered — see `collectionSuggestions` below.
+  const [collectionPairs, setCollectionPairs] = useState<
+    { publisher: string; collection: string }[]
+  >([]);
   useEffect(() => {
     let ignore = false;
     getDataClient()
       .from("albums")
-      .select("series_name, writer, illustrator")
+      .select("series_name, writer, illustrator, publisher, collection")
       .then(({ data }) => {
         if (ignore || !data) return;
         setSeriesSuggestions(
@@ -98,11 +106,32 @@ export function AlbumForm({
             new Set(data.flatMap((a) => [a.writer, a.illustrator]).filter(Boolean)),
           ).sort() as string[],
         );
+        setPublisherSuggestions(
+          Array.from(new Set(data.map((a) => a.publisher).filter(Boolean))).sort() as string[],
+        );
+        setCollectionPairs(
+          data
+            .filter((a) => a.publisher && a.collection)
+            .map((a) => ({ publisher: a.publisher as string, collection: a.collection as string })),
+        );
       });
     return () => {
       ignore = true;
     };
   }, []);
+
+  // Collection suggestions, narrowed to the publisher currently entered (if
+  // any) — falls back to every known collection while no publisher is set
+  // yet, so the field stays useful whichever order the user fills them in.
+  const collectionSuggestions = useMemo(() => {
+    const publisher = values.publisher?.trim();
+    const pairs = publisher
+      ? collectionPairs.filter(
+          (p) => normalizeForSearch(p.publisher) === normalizeForSearch(publisher),
+        )
+      : collectionPairs;
+    return Array.from(new Set(pairs.map((p) => p.collection))).sort();
+  }, [collectionPairs, values.publisher]);
 
   // Merge in `initial` when it changes (e.g. an ISBN lookup resolves after
   // this form already mounted) without an effect: adjust state during
@@ -409,10 +438,25 @@ export function AlbumForm({
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className={labelClass}>Éditeur</label>
-          <input autoComplete="off" {...field("publisher")} className={inputClass} />
-        </div>
+        <SuggestField
+          label="Éditeur"
+          valueKey="publisher"
+          values={values}
+          setValues={setValues}
+          suggestions={publisherSuggestions}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
+
+        <SuggestField
+          label="Collection"
+          valueKey="collection"
+          values={values}
+          setValues={setValues}
+          suggestions={collectionSuggestions}
+          inputClass={inputClass}
+          labelClass={labelClass}
+        />
 
         <div className="space-y-1">
           <label className={labelClass}>Dépôt légal</label>
@@ -487,7 +531,7 @@ function SuggestField({
   labelClass,
 }: {
   label: string;
-  valueKey: "series_name" | "writer" | "illustrator";
+  valueKey: "series_name" | "writer" | "illustrator" | "publisher" | "collection";
   values: AlbumFormValues;
   setValues: React.Dispatch<React.SetStateAction<AlbumFormValues>>;
   suggestions: string[];
