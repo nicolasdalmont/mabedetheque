@@ -7,6 +7,22 @@ ex. `node scripts/db/run-migration.mjs db/migrations/000X_xxx.sql`, qui exécute
 tel quel via `pg`). Chacune est idempotente (`if not exists`, `drop policy if exists` puis
 recréation, `update ... where ... and not déjà fait`) pour pouvoir être rejouée sans risque.
 
+### ⚠️ Rafraîchir le cache de schéma de la Data API après une migration DDL
+
+La Data API de Neon (PostgREST) met en cache le schéma de la base pour ses performances et
+ne le recharge **pas automatiquement** après un DDL exécuté hors de son propre chemin (donc
+après toute migration de ce dossier — `psql`/`run-migration.mjs` passent par la connexion
+Postgres directe, pas par la Data API). Symptôme : la colonne/table existe bien en base et
+est correctement alimentée, mais l'app échoue avec une erreur du type *"Could not find the
+'xxx' column of 'albums' in the schema cache"*. Rencontré en pratique lors de l'ajout de
+`albums.collection` (0009).
+
+Correctif : dans la console Neon, **Postgres database → Data API → « Refresh schema
+cache »**. Alternatives : `NOTIFY pgrst, 'reload schema';` en SQL, ou l'API Neon
+(`PATCH /projects/{project_id}/branches/{branch_id}/data-api/{database_name}`). À faire
+systématiquement après une migration qui crée/modifie une table ou une colonne, avant de
+tester le changement dans l'app.
+
 ## Historique des migrations
 
 | Fichier | Contenu |
