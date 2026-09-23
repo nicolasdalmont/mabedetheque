@@ -220,7 +220,22 @@ le composant qui garantit que ces trois flux restent en parité de champs.
   (`onSearchCover`). Détail complet en [05](./05-stockage-couvertures.md).
 - `initial` peut changer après le montage (ex. un lookup ISBN asynchrone résout après coup)
   — fusionné dans l'état via le pattern React documenté "ajuster l'état pendant le rendu"
-  (comparaison `initial !== prevInitial` en render, pas un `useEffect`).
+  (comparaison `initial !== prevInitial` en render, pas un `useEffect`). **Piège** : cette
+  comparaison est par *identité* d'objet, pas par contenu. Un appelant qui recrée un
+  littéral à chaque rendu (`initial={{ isbn, ...prefill }}`) déclenche la fusion à chaque
+  rendu — y compris pour un changement d'état sans rapport avec `initial` (ex. sélection
+  d'une couverture) — et écrase alors les champs déjà modifiés à la main avec les valeurs
+  d'origine. `app/albums/new/page.tsx` mémoïse donc cet objet (`useMemo` sur
+  `[isbnInput, prefill]`) ; `app/albums/[id]/edit/page.tsx` passe directement l'état
+  `album`, stable par nature (seul `setAlbum` le recrée, sur un vrai changement).
+- `draftKey` (optionnel) : persiste les valeurs du formulaire dans `localStorage`
+  (préfixe `mabedetheque:album-draft:`) à chaque changement, et les restaure au montage —
+  pour qu'un rechargement de page ou une mise en arrière-plan (PWA mobile) en cours de
+  saisie n'oblige pas à tout ressaisir. L'appelant possède le cycle de vie de la clé et
+  doit appeler `clearAlbumDraft(draftKey)` (exporté par `AlbumForm.tsx`) dès que le
+  brouillon devient obsolète : retour arrière, enregistrement réussi, suppression.
+  `new/page.tsx` utilise la clé fixe `"new"` (un seul flux d'ajout possible à la fois) ;
+  `edit/page.tsx` utilise `edit-${id}`.
 - `extraActions` : slot pour un bouton additionnel à droite du bouton de soumission (ex. le
   bouton "Supprimer" en page d'édition).
 
