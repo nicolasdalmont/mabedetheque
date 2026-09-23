@@ -37,6 +37,28 @@ const emptyValues: AlbumFormValues = {
   is_hors_serie: false,
 };
 
+const DRAFT_STORAGE_PREFIX = "mabedetheque:album-draft:";
+
+/** Drops a form draft — call once the values it held are no longer
+ * relevant: after a successful save/delete, or when the user backs out
+ * of the form. `draftKey` must match the one passed to `AlbumForm`. */
+export function clearAlbumDraft(draftKey: string) {
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_PREFIX + draftKey);
+  } catch {
+    // Storage unavailable (private mode, quota) — nothing to clean up.
+  }
+}
+
+function readAlbumDraft(draftKey: string): Partial<AlbumFormValues> | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_PREFIX + draftKey);
+    return raw ? (JSON.parse(raw) as Partial<AlbumFormValues>) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AlbumForm({
   initial,
   coverPreview,
@@ -46,6 +68,7 @@ export function AlbumForm({
   submitLabel,
   extraActions,
   pending,
+  draftKey,
 }: {
   initial?: Partial<AlbumFormValues>;
   coverPreview?: string | null;
@@ -57,11 +80,28 @@ export function AlbumForm({
   submitLabel: string;
   extraActions?: React.ReactNode;
   pending?: boolean;
+  /** When set, form edits are persisted to localStorage under this key
+   * as they happen, and restored on mount — so a paste, a background
+   * reload, or a stray navigation doesn't force the user to retype
+   * fields they already filled in. Callers own the key's lifecycle: call
+   * `clearAlbumDraft(draftKey)` once the draft is no longer needed
+   * (saved, deleted, or the user backed out). */
+  draftKey?: string;
 }) {
-  const [values, setValues] = useState<AlbumFormValues>({
-    ...emptyValues,
-    ...initial,
+  const [values, setValues] = useState<AlbumFormValues>(() => {
+    const base = { ...emptyValues, ...initial };
+    const draft = draftKey ? readAlbumDraft(draftKey) : null;
+    return draft ? { ...base, ...draft } : base;
   });
+
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      localStorage.setItem(DRAFT_STORAGE_PREFIX + draftKey, JSON.stringify(values));
+    } catch {
+      // Storage unavailable — the draft just won't survive a reload.
+    }
+  }, [draftKey, values]);
   const [searchingCover, setSearchingCover] = useState(false);
   const [coverSearchError, setCoverSearchError] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);

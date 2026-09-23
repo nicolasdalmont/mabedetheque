@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ScanBarcode } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
-import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { AlbumForm, clearAlbumDraft, type AlbumFormValues } from "@/components/AlbumForm";
 import { AppHeader } from "@/components/AppHeader";
 import { IsbnScanner } from "@/components/IsbnScanner";
 import { BnfTextSearch } from "@/components/BnfTextSearch";
 import { useToast } from "@/components/Toast";
 import type { TextSearchCandidate } from "@/lib/bnf-text-search";
+
+// Single slot: only one "add album" flow can be in progress at a time.
+const DRAFT_KEY = "new";
 
 export default function NewAlbumPage() {
   const router = useRouter();
@@ -28,6 +31,16 @@ export default function NewAlbumPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+
+  // Stable reference unless isbnInput/prefill actually change — AlbumForm
+  // re-syncs its own state whenever this object's identity changes (to
+  // pick up a fresh ISBN lookup), so a new literal on every render here
+  // would wipe out in-progress edits on unrelated state changes (e.g.
+  // pasting a cover).
+  const initialValues = useMemo(
+    () => ({ isbn: isbnInput, ...prefill }),
+    [isbnInput, prefill],
+  );
 
   async function handleLookup(isbnOverride?: string) {
     const isbn = isbnOverride ?? isbnInput;
@@ -135,6 +148,7 @@ export default function NewAlbumPage() {
       });
       if (error) throw new Error(error.message);
 
+      clearAlbumDraft(DRAFT_KEY);
       success(`« ${values.title} » ajouté à votre bédéthèque.`);
       router.back();
     } catch (err) {
@@ -151,7 +165,10 @@ export default function NewAlbumPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              clearAlbumDraft(DRAFT_KEY);
+              router.back();
+            }}
             className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
           >
             ← Retour
@@ -210,13 +227,14 @@ export default function NewAlbumPage() {
         )}
 
         <AlbumForm
-          initial={{ isbn: isbnInput, ...prefill }}
+          initial={initialValues}
           coverPreview={coverPreview}
           onCoverFileSelected={handleCoverFileSelected}
           onSearchCover={handleSearchCover}
           onSubmit={handleSubmit}
           submitLabel="Enregistrer l'album"
           pending={saving}
+          draftKey={DRAFT_KEY}
         />
         {saveError ? (
           <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>

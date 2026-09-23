@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getDataClient } from "@/lib/neon-client";
-import { AlbumForm, type AlbumFormValues } from "@/components/AlbumForm";
+import { AlbumForm, clearAlbumDraft, type AlbumFormValues } from "@/components/AlbumForm";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -13,6 +13,7 @@ export default function EditAlbumPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { success, error: toastError } = useToast();
+  const draftKey = `edit-${id}`;
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +107,7 @@ export default function EditAlbumPage() {
         }).catch(() => {});
       }
 
+      clearAlbumDraft(draftKey);
       success("Modifications enregistrées.");
       router.back();
     } catch (err) {
@@ -152,6 +154,7 @@ export default function EditAlbumPage() {
         body: JSON.stringify({ coverUrl: album.cover_url }),
       }).catch(() => {});
 
+      clearAlbumDraft(draftKey);
       success(`« ${album.title} » supprimé.`);
       router.back();
     } catch (err) {
@@ -187,7 +190,10 @@ export default function EditAlbumPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              clearAlbumDraft(draftKey);
+              router.back();
+            }}
             className="-ml-2 inline-flex min-h-9 items-center rounded px-2 text-sm text-zinc-500 hover:underline"
           >
             ← Retour
@@ -249,6 +255,7 @@ export default function EditAlbumPage() {
           onSubmit={handleSubmit}
           submitLabel="Enregistrer les modifications"
           pending={saving}
+          draftKey={draftKey}
           extraActions={
             <button
               type="button"
