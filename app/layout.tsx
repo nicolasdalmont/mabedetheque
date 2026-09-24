@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 // and seemingly of Safari's own website-data cache — deleting the
 // home-screen shortcut and re-adding it does *not* bust this cache, only a
 // URL change does (see docs/08-pwa.md).
-const ICON_VERSION = 2;
+const ICON_VERSION = 3;
 
 export const metadata: Metadata = {
   title: "Ma Bédéthèque",

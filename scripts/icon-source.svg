@@ -1,5 +1,9 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="#FACC15"/>
+  <!-- Solid fill (not just a stroked outline) so that whatever automatic
+       light/dark/tinted transform iOS applies to this base icon on the
+       home screen keeps the glyph legible — see the matching note on
+       icon-source-dark.svg and "Piège" section in docs/08-pwa.md. -->
   <path d="M256 62
            c-108 0 -196 74 -196 165
            c0 60 39 112 98 141
@@ -9,8 +13,8 @@
            c14 3 28 4 43 4
            c108 0 196 -74 196 -165
            c0 -91 -88 -183 -196 -183 z"
-        fill="none" stroke="#111111" stroke-width="24" stroke-linejoin="round"/>
-  <g stroke="#111111" stroke-width="28" stroke-linecap="round">
+        fill="#111111"/>
+  <g stroke="#FACC15" stroke-width="30" stroke-linecap="round">
     <line x1="216" y1="148" x2="196" y2="304"/>
     <line x1="296" y1="148" x2="276" y2="304"/>
     <line x1="176" y1="190" x2="326" y2="190"/>

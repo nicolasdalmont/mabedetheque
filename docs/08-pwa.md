@@ -186,18 +186,36 @@ dev (certificat auto-signé non approuvé) ni la production (authentification re
 changements CSS/layout sont vérifiés via une maquette HTML statique équivalente servie en
 local (`python3 -m http.server`) plutôt que l'app réelle.
 
-## Piège : contraste du glyphe sur l'icône sombre à l'écran d'accueil iOS
+## Piège : contraste du glyphe sur l'icône d'écran d'accueil iOS
 
-`scripts/icon-source-dark.svg` (fond → `apple-touch-icon-dark.png` / `icon-*-dark.png` via
-`scripts/generate-icons.mjs`) doit dessiner le glyphe en **aplat plein**, pas en simple
-contour fin (`stroke` sans `fill`). Le rendu noir/teinté automatique qu'iOS applique aux
-icônes d'écran d'accueil (Réglages → Écran d'accueil → Apparence des icônes) garde lisibles
-les formes pleines à gros aplat (cf. les icônes tierces qui passent bien ce traitement) mais
-délave les traits fins sur fond sombre jusqu'à les rendre quasi invisibles. Le glyphe actuel
-est donc une bulle BD remplie en blanc (`fill="#FFFFFF"`) avec le `#` en creux noir
-(traits `stroke="#111111"` par-dessus), plutôt qu'une bulle en contour blanc avec un `#` en
-traits blancs comme la variante claire (qui, elle, reste lisible car fond jaune/noir déjà
-très contrasté nativement).
+`scripts/icon-source.svg` / `icon-source-dark.svg` (→ `apple-touch-icon*.png`,
+`icon-*.png` via `scripts/generate-icons.mjs`) doivent dessiner le glyphe en **aplat
+plein**, pas en simple contour fin (`stroke` sans `fill`). Le rendu clair/sombre/teinté
+qu'iOS applique aux icônes d'écran d'accueil (Réglages → Écran d'accueil et Dock →
+Apparence des icônes) garde lisibles les formes pleines à gros aplat (cf. les icônes
+tierces qui passent bien ce traitement) mais délave les traits fins jusqu'à les rendre
+quasi invisibles. Les deux glyphes sont donc une bulle BD remplie (`fill`) avec le `#` en
+creux de la couleur de fond (`stroke` par-dessus), plutôt qu'une bulle en contour avec un
+`#` en traits — dans les deux variantes, claire et sombre, pas seulement la sombre : voir
+plus bas pourquoi la variante *sombre* spécifiquement ne suffit probablement pas.
+
+## Piège : le `apple-touch-icon` par `media` (light/dark) ne semble jamais réellement utilisé
+
+`app/layout.tsx` déclare deux icônes Apple Touch via des media queries (voir plus haut,
+« Icône clair/sombre »), mais en pratique, un correctif appliqué **uniquement** sur
+`apple-touch-icon-dark.png` — d'abord son contenu (bulle pleine au lieu d'un contour),
+puis en changeant son URL pour contourner un éventuel cache (`?v=<n>`, voir plus bas) —
+n'a produit **aucun changement visible** sur un iPhone en apparence d'icônes
+« Automatique », malgré une suppression/réinstallation complète du raccourci entre chaque
+essai. Ça pointe vers Safari qui n'utilise tout simplement jamais ce fichier dédié pour
+l'icône d'écran d'accueil (cohérent avec le commentaire déjà présent dans le code : support
+« non documenté/incohérent ») et se rabat sur l'icône claire par défaut, à laquelle iOS
+applique ensuite sa propre transformation sombre/teintée automatique.
+
+**Conséquence pratique : la variante *claire* (`icon-source.svg`) doit elle-même être
+conçue pour rester lisible une fois transformée par iOS**, puisque c'est probablement elle
+qui sert de source dans tous les cas — d'où le passage en aplat plein ci-dessus appliqué
+aux deux variantes, pas seulement à la sombre.
 
 ## Piège : une icône modifiée sans changer d'URL n'arrive jamais sur un iPhone déjà passé par là
 
@@ -211,18 +229,14 @@ Deux caches distincts peuvent servir une icône périmée après un correctif su
    évaluées dans l'ordre, la première qui matche gagne), en `NetworkFirst` : le réseau est
    toujours tenté en premier, le cache ne sert que de repli hors ligne.
 
-2. **Le cache d'icône d'écran d'accueil d'iOS lui-même** — celui-ci s'est avéré être la vraie
-   cause du ticket qui a motivé cette note : même avec le service worker à jour (constaté via
-   `AppUpdater`, ouverture de l'app puis fermeture), et même en **supprimant le raccourci à
-   l'écran d'accueil puis en le recollant depuis un onglet Safari fraîchement rouvert**,
-   l'ancienne icône continuait de s'afficher. iOS/WebKit met en cache l'apple-touch-icon par
-   **URL exacte**, à un niveau indépendant à la fois du Cache Storage du service worker et
-   des données de site Safari (« Effacer historique et données » ne le vide pas non plus de
-   façon fiable) — remplacer le contenu d'un fichier sans changer son URL ne suffit donc pas.
-
-   Le contournement standard (et le seul fiable retrouvé en pratique) : **changer l'URL**.
-   `app/layout.tsx` définit une constante `ICON_VERSION`, ajoutée en `?v=<n>` à toutes les URL
-   d'icônes de la metadata `icons.apple`/`icons.icon`, et `public/manifest-dark.json` fait de
-   même pour ses `icons[].src`. **À incrémenter à chaque fois que le contenu d'un fichier sous
-   `public/icons/` change sans que son nom de fichier change** — sinon le correctif ne se
-   propagera jamais vers les appareils déjà passés par l'ancienne version.
+2. **Un cache côté iOS indépendant du service worker et des données de site Safari** —
+   probable mais pas confirmé avec certitude, puisque « changer l'URL » seul n'a pas non
+   plus résolu le ticket qui a motivé cette note (voir section précédente : le vrai
+   problème était plus probablement que le fichier changé n'était pas le bon).
+   `app/layout.tsx` définit tout de même une constante `ICON_VERSION`, ajoutée en `?v=<n>`
+   à toutes les URL d'icônes de la metadata `icons.apple`/`icons.icon`, et
+   `public/manifest.json`/`public/manifest-dark.json` font de même pour leurs
+   `icons[].src` — **à incrémenter à chaque fois que le contenu d'un fichier sous
+   `public/icons/` change sans que son nom de fichier change**, par précaution/défense en
+   profondeur, mais ne pas compter dessus comme unique explication en cas de nouveau
+   problème de ce type.
