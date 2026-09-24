@@ -185,3 +185,16 @@ visuelles pendant le développement de cette app ne peut pas atteindre le vrai s
 dev (certificat auto-signé non approuvé) ni la production (authentification requise) — les
 changements CSS/layout sont vérifiés via une maquette HTML statique équivalente servie en
 local (`python3 -m http.server`) plutôt que l'app réelle.
+
+## Piège : contraste du glyphe sur l'icône sombre à l'écran d'accueil iOS
+
+`scripts/icon-source-dark.svg` (fond → `apple-touch-icon-dark.png` / `icon-*-dark.png` via
+`scripts/generate-icons.mjs`) doit dessiner le glyphe en **aplat plein**, pas en simple
+contour fin (`stroke` sans `fill`). Le rendu noir/teinté automatique qu'iOS applique aux
+icônes d'écran d'accueil (Réglages → Écran d'accueil → Apparence des icônes) garde lisibles
+les formes pleines à gros aplat (cf. les icônes tierces qui passent bien ce traitement) mais
+délave les traits fins sur fond sombre jusqu'à les rendre quasi invisibles. Le glyphe actuel
+est donc une bulle BD remplie en blanc (`fill="#FFFFFF"`) avec le `#` en creux noir
+(traits `stroke="#111111"` par-dessus), plutôt qu'une bulle en contour blanc avec un `#` en
+traits blancs comme la variante claire (qui, elle, reste lisible car fond jaune/noir déjà
+très contrasté nativement).

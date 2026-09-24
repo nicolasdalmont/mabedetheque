@@ -1,5 +1,9 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="#111111"/>
+  <!-- Solid fill (not just a stroked outline): iOS's automatic dark/tinted
+       home-screen icon rendering keeps bold, mostly-solid glyphs legible but
+       washes out thin line art against a dark background — see the "Corriger
+       le contraste de l'icône sombre" commit. -->
   <path d="M256 62
            c-108 0 -196 74 -196 165
            c0 60 39 112 98 141
@@ -9,8 +13,8 @@
            c14 3 28 4 43 4
            c108 0 196 -74 196 -165
            c0 -91 -88 -183 -196 -183 z"
-        fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linejoin="round"/>
-  <g stroke="#FFFFFF" stroke-width="28" stroke-linecap="round">
+        fill="#FFFFFF"/>
+  <g stroke="#111111" stroke-width="30" stroke-linecap="round">
     <line x1="216" y1="148" x2="196" y2="304"/>
     <line x1="296" y1="148" x2="276" y2="304"/>
     <line x1="176" y1="190" x2="326" y2="190"/>
