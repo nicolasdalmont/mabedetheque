@@ -225,6 +225,11 @@ n'utilise jamais `apple-touch-icon-dark.png` pour l'écran d'accueil — est don
 probable, sans être formellement prouvée (pas de moyen d'inspecter ce que fait
 Safari/iOS en interne).
 
+Retour utilisateur : la bulle pleine en aplat est jugée moins élégante que l'ancien
+contour fin. Décision assumée de ne pas retoucher — priorité à la lisibilité sur l'écran
+d'accueil plutôt qu'au raffinement visuel, tant qu'un nouveau signalement ne remet pas ce
+compromis en question.
+
 ## Piège : une icône modifiée sans changer d'URL n'arrive jamais sur un iPhone déjà passé par là
 
 Deux caches distincts peuvent servir une icône périmée après un correctif sur les PNG dans
