@@ -199,20 +199,30 @@ est donc une bulle BD remplie en blanc (`fill="#FFFFFF"`) avec le `#` en creux n
 traits blancs comme la variante claire (qui, elle, reste lisible car fond jaune/noir déjà
 très contrasté nativement).
 
-## Piège : cache du service worker sur les icônes (`/icons/*`)
+## Piège : une icône modifiée sans changer d'URL n'arrive jamais sur un iPhone déjà passé par là
 
-La règle par défaut de Serwist pour les images (`defaultCache`, voir `app/sw.ts`) matche
-toute extension `.png` en `StaleWhileRevalidate` : elle répond instantanément avec la
-réponse déjà en cache et ne rafraîchit qu'en tâche de fond. Pour la plupart des images
-(couvertures) c'est le comportement voulu, mais pour les icônes d'app c'est un piège — un
-correctif visuel sur une icône peut sembler ne jamais arriver sur un appareil qui l'avait
-déjà chargée une fois, **y compris après avoir supprimé puis recollé le raccourci à l'écran
-d'accueil** : ce raccourci n'a aucun lien avec le Cache Storage du service worker, qui est
-une donnée de site rattachée à l'origine et persiste indépendamment.
+Deux caches distincts peuvent servir une icône périmée après un correctif sur les PNG dans
+`public/icons/` :
 
-`app/sw.ts` déclare donc une règle dédiée pour `/icons/*` **avant** `...defaultCache` (les
-règles sont évaluées dans l'ordre, la première qui matche gagne), en `NetworkFirst` plutôt
-que `StaleWhileRevalidate` : le réseau est toujours tenté en premier, le cache ne sert que
-de repli hors ligne. En cas de doute sur un appareil déjà utilisé avant ce correctif, la
-mise à jour du service worker (voir `AppUpdater`) suffit à corriger le comportement pour les
-requêtes suivantes — pas besoin de purge manuelle.
+1. **Le service worker.** La règle par défaut de Serwist pour les images (`defaultCache`,
+   voir `app/sw.ts`) matche toute extension `.png` en `StaleWhileRevalidate` : elle répond
+   instantanément avec la réponse déjà en cache et ne rafraîchit qu'en tâche de fond. `app/sw.ts`
+   déclare donc une règle dédiée pour `/icons/*` **avant** `...defaultCache` (les règles sont
+   évaluées dans l'ordre, la première qui matche gagne), en `NetworkFirst` : le réseau est
+   toujours tenté en premier, le cache ne sert que de repli hors ligne.
+
+2. **Le cache d'icône d'écran d'accueil d'iOS lui-même** — celui-ci s'est avéré être la vraie
+   cause du ticket qui a motivé cette note : même avec le service worker à jour (constaté via
+   `AppUpdater`, ouverture de l'app puis fermeture), et même en **supprimant le raccourci à
+   l'écran d'accueil puis en le recollant depuis un onglet Safari fraîchement rouvert**,
+   l'ancienne icône continuait de s'afficher. iOS/WebKit met en cache l'apple-touch-icon par
+   **URL exacte**, à un niveau indépendant à la fois du Cache Storage du service worker et
+   des données de site Safari (« Effacer historique et données » ne le vide pas non plus de
+   façon fiable) — remplacer le contenu d'un fichier sans changer son URL ne suffit donc pas.
+
+   Le contournement standard (et le seul fiable retrouvé en pratique) : **changer l'URL**.
+   `app/layout.tsx` définit une constante `ICON_VERSION`, ajoutée en `?v=<n>` à toutes les URL
+   d'icônes de la metadata `icons.apple`/`icons.icon`, et `public/manifest-dark.json` fait de
+   même pour ses `icons[].src`. **À incrémenter à chaque fois que le contenu d'un fichier sous
+   `public/icons/` change sans que son nom de fichier change** — sinon le correctif ne se
+   propagera jamais vers les appareils déjà passés par l'ancienne version.

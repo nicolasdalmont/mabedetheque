@@ -18,19 +18,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Bump this whenever an icon file under public/icons/ changes content
+// without changing its filename. iOS caches the apple-touch-icon by exact
+// URL at the WebKit/Springboard level, independently of the service worker
+// and seemingly of Safari's own website-data cache — deleting the
+// home-screen shortcut and re-adding it does *not* bust this cache, only a
+// URL change does (see docs/08-pwa.md).
+const ICON_VERSION = 2;
+
 export const metadata: Metadata = {
   title: "Ma Bédéthèque",
   description: "Gestionnaire de bibliothèque de bandes dessinées.",
   manifest: "/manifest.json",
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: `/icons/icon-192.png?v=${ICON_VERSION}`, sizes: "192x192", type: "image/png" },
+    ],
     // Best-effort light/dark home-screen icon on iOS (Safari's actual
     // support for switching the *installed* icon via media queries is
     // undocumented/inconsistent — this affects the icon at most at the
     // moment the user adds it to their home screen, not afterwards).
     apple: [
-      { url: "/icons/apple-touch-icon.png", media: "(prefers-color-scheme: light)" },
-      { url: "/icons/apple-touch-icon-dark.png", media: "(prefers-color-scheme: dark)" },
+      { url: `/icons/apple-touch-icon.png?v=${ICON_VERSION}`, media: "(prefers-color-scheme: light)" },
+      { url: `/icons/apple-touch-icon-dark.png?v=${ICON_VERSION}`, media: "(prefers-color-scheme: dark)" },
     ],
   },
   appleWebApp: {
