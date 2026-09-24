@@ -194,10 +194,12 @@ plein**, pas en simple contour fin (`stroke` sans `fill`). Le rendu clair/sombre
 qu'iOS applique aux icônes d'écran d'accueil (Réglages → Écran d'accueil et Dock →
 Apparence des icônes) garde lisibles les formes pleines à gros aplat (cf. les icônes
 tierces qui passent bien ce traitement) mais délave les traits fins jusqu'à les rendre
-quasi invisibles. Les deux glyphes sont donc une bulle BD remplie (`fill`) avec le `#` en
-creux de la couleur de fond (`stroke` par-dessus), plutôt qu'une bulle en contour avec un
-`#` en traits — dans les deux variantes, claire et sombre, pas seulement la sombre : voir
-plus bas pourquoi la variante *sombre* spécifiquement ne suffit probablement pas.
+quasi invisibles. Les deux glyphes sont donc une bulle BD remplie en **blanc** (`fill="#FFFFFF"`)
+avec le `#` en creux **noir** (`stroke="#111111"` par-dessus) — même glyphe blanc/noir dans
+les deux variantes, seul le fond change (jaune en clair, noir en sombre). Une première
+version de la variante claire utilisait le `#` en creux de la couleur de fond (jaune) plutôt
+que noir, jugée moins nette au retour utilisateur. Voir plus bas pourquoi la variante
+*sombre* seule ne suffisait pas à corriger le problème initial.
 
 ## Piège : le `apple-touch-icon` par `media` (light/dark) ne semble jamais réellement utilisé
 
@@ -216,6 +218,12 @@ applique ensuite sa propre transformation sombre/teintée automatique.
 conçue pour rester lisible une fois transformée par iOS**, puisque c'est probablement elle
 qui sert de source dans tous les cas — d'où le passage en aplat plein ci-dessus appliqué
 aux deux variantes, pas seulement à la sombre.
+
+Confirmé : c'est bien ce correctif sur la variante claire (pas les deux tentatives
+précédentes ciblant uniquement la sombre) qui a résolu le ticket. L'hypothèse — Safari
+n'utilise jamais `apple-touch-icon-dark.png` pour l'écran d'accueil — est donc la plus
+probable, sans être formellement prouvée (pas de moyen d'inspecter ce que fait
+Safari/iOS en interne).
 
 ## Piège : une icône modifiée sans changer d'URL n'arrive jamais sur un iPhone déjà passé par là
 
