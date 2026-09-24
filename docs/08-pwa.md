@@ -198,3 +198,21 @@ est donc une bulle BD remplie en blanc (`fill="#FFFFFF"`) avec le `#` en creux n
 (traits `stroke="#111111"` par-dessus), plutôt qu'une bulle en contour blanc avec un `#` en
 traits blancs comme la variante claire (qui, elle, reste lisible car fond jaune/noir déjà
 très contrasté nativement).
+
+## Piège : cache du service worker sur les icônes (`/icons/*`)
+
+La règle par défaut de Serwist pour les images (`defaultCache`, voir `app/sw.ts`) matche
+toute extension `.png` en `StaleWhileRevalidate` : elle répond instantanément avec la
+réponse déjà en cache et ne rafraîchit qu'en tâche de fond. Pour la plupart des images
+(couvertures) c'est le comportement voulu, mais pour les icônes d'app c'est un piège — un
+correctif visuel sur une icône peut sembler ne jamais arriver sur un appareil qui l'avait
+déjà chargée une fois, **y compris après avoir supprimé puis recollé le raccourci à l'écran
+d'accueil** : ce raccourci n'a aucun lien avec le Cache Storage du service worker, qui est
+une donnée de site rattachée à l'origine et persiste indépendamment.
+
+`app/sw.ts` déclare donc une règle dédiée pour `/icons/*` **avant** `...defaultCache` (les
+règles sont évaluées dans l'ordre, la première qui matche gagne), en `NetworkFirst` plutôt
+que `StaleWhileRevalidate` : le réseau est toujours tenté en premier, le cache ne sert que
+de repli hors ligne. En cas de doute sur un appareil déjà utilisé avant ce correctif, la
+mise à jour du service worker (voir `AppUpdater`) suffit à corriger le comportement pour les
+requêtes suivantes — pas besoin de purge manuelle.

@@ -38,6 +38,22 @@ const serwist = new Serwist({
         plugins: [new ExpirationPlugin({ maxEntries: 1, maxAgeSeconds: 30 * DAY })],
       }),
     },
+    // App icons (manifest, apple-touch-icon, favicon): defaultCache's
+    // extension-based image rule below would otherwise catch these under
+    // `StaleWhileRevalidate`, which answers instantly from whatever is
+    // already cached and only refreshes in the background. That's fine for
+    // photos, but these files are how iOS resolves the home-screen icon —
+    // deleting and re-adding the PWA doesn't clear this cache (it's site
+    // data tied to the origin, not to the home-screen shortcut), so a
+    // shipped icon fix can appear to never take effect. NetworkFirst always
+    // tries the network before falling back to cache.
+    {
+      matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith("/icons/"),
+      handler: new NetworkFirst({
+        cacheName: "app-icons",
+        plugins: [new ExpirationPlugin({ maxEntries: 16, maxAgeSeconds: 30 * DAY })],
+      }),
+    },
     // Album covers (Neon Object Storage, cross-origin): defaultCache's
     // extension-based image rule already matches these, but its 64-entry
     // cap is well below the size of the actual collection, and evicting a
