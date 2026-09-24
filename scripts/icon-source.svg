@@ -13,8 +13,8 @@
            c14 3 28 4 43 4
            c108 0 196 -74 196 -165
            c0 -91 -88 -183 -196 -183 z"
-        fill="#111111"/>
-  <g stroke="#FACC15" stroke-width="30" stroke-linecap="round">
+        fill="#FFFFFF"/>
+  <g stroke="#111111" stroke-width="30" stroke-linecap="round">
     <line x1="216" y1="148" x2="196" y2="304"/>
     <line x1="296" y1="148" x2="276" y2="304"/>
     <line x1="176" y1="190" x2="326" y2="190"/>
