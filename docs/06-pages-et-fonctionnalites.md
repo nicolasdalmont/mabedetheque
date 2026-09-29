@@ -180,7 +180,8 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
 
 Boîte à idées : formulaire de saisie libre (`content`), liste triée par date de création
 décroissante, filtrage par statut (Créée / Traitée / Terminée / Toutes via `IdeaCard`).
-Suppression via `ConfirmDialog` ; erreurs remontées en toast.
+Filtre affiché par défaut à l'ouverture de l'onglet : **Créée** (les idées ouvertes),
+pas « Toutes ». Suppression via `ConfirmDialog` ; erreurs remontées en toast.
 
 ## Onglet Stats — `app/stats/page.tsx`
 

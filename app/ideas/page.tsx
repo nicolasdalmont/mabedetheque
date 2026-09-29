@@ -24,7 +24,7 @@ export default function IdeasPage() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<IdeaStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<IdeaStatus | "all">("created");
   const [pendingDelete, setPendingDelete] = useState<Idea | null>(null);
 
   const [content, setContent] = useState("");
