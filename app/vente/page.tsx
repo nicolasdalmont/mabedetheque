@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
+import { AlbumThumb } from "@/components/AlbumThumb";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LocalAlbumSearch } from "@/components/LocalAlbumSearch";
@@ -162,18 +163,21 @@ export default function VentePage() {
         ) : (
           <ul className="divide-y divide-black/5 dark:divide-white/10">
             {filtered.map((album) => (
-              <li key={album.id} className="flex items-center justify-between gap-3 py-3">
+              <li key={album.id} className="flex items-center gap-3 py-3">
                 <Link
                   href={`/albums/${album.id}`}
                   onClick={() => user && sessionStorage.setItem(LAST_ALBUM_KEY, album.id)}
-                  className="min-w-0"
+                  className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-80"
                 >
-                  <p className="truncate text-sm font-medium">{album.title}</p>
-                  <p className="truncate text-xs text-zinc-500">
-                    {album.series_name
-                      ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}`
-                      : " "}
-                  </p>
+                  <AlbumThumb album={album} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{album.title}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {album.series_name
+                        ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}`
+                        : " "}
+                    </p>
+                  </div>
                 </Link>
                 <div className="flex shrink-0 items-center gap-2">
                   {album.sale_status === "a_vendre" ? (

@@ -141,13 +141,13 @@ Liste des tomes que l'utilisateur veut se procurer (`wishlist_items`).
   `seriesTitlesMatch()`), ou saisie 100% manuelle (seul `series_name` est requis). Le champ
   Série propose, en cours de saisie, les séries déjà présentes dans la collection (même
   mécanisme `SuggestInput` que sur `AlbumForm`, voir [07](./07-composants-et-hooks.md)).
-- **Bouton "Acheté"** (jaune plein) sur un item `a_acheter` → ouvre `BuyWishlistModal`, qui
-  reproduit l'expérience complète d'ajout d'album (recherche ISBN/scan, recherche
-  titre/série, tous les champs + couverture), préremplie avec ce que l'item wishlist
-  connaît déjà. À la validation : insertion dans `albums` **puis** suppression de l'item
-  wishlist correspondant. `BuyWishlistModal` est une **feuille plein écran sous `sm`**.
-- Les autres statuts affichent un bouton de bascule simple `a_acheter ⇄ achete`.
-- Lien **"Retirer"** (rouge) sur chaque ligne → `ConfirmDialog` → suppression de l'item.
+- **Bouton "Acheté"** (jaune plein) sur chaque ligne → `ConfirmDialog` (« Ajouter « titre » à
+  votre bédéthèque ? ») → `albums.is_wishlist = false`, `purchase_date` = aujourd'hui si vide :
+  l'album rejoint la collection, sans modale de saisie (la fiche est déjà complète, modifiable
+  ensuite via « Modifier »). Inverse : « Ajouter aux achats » sur le détail d'un album.
+- Lien **"Retirer"** (rouge) sur chaque ligne → `ConfirmDialog` → suppression de l'album et de
+  sa couverture.
+- Chaque ligne affiche une vignette de couverture (`AlbumThumb`, partagée avec l'onglet Ventes).
 - **Section "Séries incomplètes"** (déplacée ici depuis l'onglet Stats, sur demande
   explicite) : liste `findSeriesGaps(albums)`, un bouton `+ #N` par tome manquant
   (`gap.missingNumbers`) plutôt qu'un simple texte de plage — chaque clic insère
@@ -170,6 +170,7 @@ Gère les albums de la collection déclarés à vendre ou vendus (`albums.sale_s
   "Acheté" sur Achats) → `ConfirmDialog` ; lien **"Retirer"** (rouge, retour à `none`,
   immédiat). Pour un album vendu : badge grisé "Vendu" + lien "Annuler". Chaque changement
   émet un toast ("Marquer vendu" avec action **« Annuler »**).
+- Chaque ligne affiche une vignette de couverture (`components/AlbumThumb.tsx`), identique à celle de l'onglet Achats.
 - Après chaque changement de statut, `refetchActive()` (exposé par `useAlbums()`) est
   appelé pour que le pool de recherche `LocalAlbumSearch` reste synchronisé sans recharger
   la page.

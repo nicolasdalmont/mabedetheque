@@ -4,30 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useAlbums } from "@/hooks/useAlbums";
+import { AlbumThumb } from "@/components/AlbumThumb";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { compareAlbums } from "@/lib/sort";
 import { tomeLabel } from "@/lib/format";
 import type { Album } from "@/types/album";
-
-function Thumb({ album }: { album: Album }) {
-  const [broken, setBroken] = useState(false);
-  return (
-    <div className="flex aspect-[2/3] w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-zinc-100 dark:bg-zinc-900">
-      {album.cover_url && !broken ? (
-        // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
-        <img
-          src={album.cover_url}
-          alt=""
-          loading="lazy"
-          onError={() => setBroken(true)}
-          className="h-full w-full object-contain"
-        />
-      ) : null}
-    </div>
-  );
-}
 
 export default function WishlistPage() {
   const { wishlist, loading, error, refetch } = useAlbums();
@@ -128,7 +111,7 @@ export default function WishlistPage() {
                     href={`/albums/${album.id}`}
                     className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-80"
                   >
-                    <Thumb album={album} />
+                    <AlbumThumb album={album} />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{album.title}</p>
                       <p className="truncate text-xs text-zinc-500">
