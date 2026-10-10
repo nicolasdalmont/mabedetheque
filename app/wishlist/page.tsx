@@ -35,6 +35,7 @@ export default function WishlistPage() {
 
   const [sortKey, setSortKey] = useState<"title" | "series">("title");
   const [pendingDelete, setPendingDelete] = useState<Album | null>(null);
+  const [pendingBought, setPendingBought] = useState<Album | null>(null);
 
   const sorted = useMemo(
     () => wishlist.slice().sort((a, b) => compareAlbums(a, b, sortKey)),
@@ -143,7 +144,7 @@ export default function WishlistPage() {
                   <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleBought(album)}
+                      onClick={() => setPendingBought(album)}
                       className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
                     >
                       Acheté
@@ -162,6 +163,23 @@ export default function WishlistPage() {
           </ul>
         )}
 
+        <ConfirmDialog
+          open={pendingBought !== null}
+          tone="default"
+          title="Marquer comme acheté"
+          message={
+            pendingBought
+              ? `Ajouter « ${pendingBought.title} » à votre bédéthèque ?`
+              : ""
+          }
+          confirmLabel="Acheté"
+          onConfirm={() => {
+            const album = pendingBought;
+            setPendingBought(null);
+            if (album) handleBought(album);
+          }}
+          onCancel={() => setPendingBought(null)}
+        />
         <ConfirmDialog
           open={pendingDelete !== null}
           title="Retirer de la liste d'achats"

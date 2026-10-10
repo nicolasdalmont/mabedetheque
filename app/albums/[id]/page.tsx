@@ -31,6 +31,7 @@ export default function AlbumDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
   const [confirmMoveOpen, setConfirmMoveOpen] = useState(false);
+  const [confirmBoughtOpen, setConfirmBoughtOpen] = useState(false);
 
   // Re-fetch on mount and whenever the app regains focus — so coming back
   // here after editing (or a change made elsewhere) shows fresh data.
@@ -162,7 +163,7 @@ export default function AlbumDetailPage() {
               {album.is_wishlist ? (
                 <button
                   type="button"
-                  onClick={handleMarkBought}
+                  onClick={() => setConfirmBoughtOpen(true)}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-yellow-400 px-3 py-2 text-sm font-medium hover:bg-yellow-400/10"
                 >
                   <ShoppingCart size={15} aria-hidden="true" />
@@ -226,6 +227,18 @@ export default function AlbumDetailPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmBoughtOpen}
+        tone="default"
+        title="Marquer comme acheté"
+        message="Cet album sera ajouté à votre bédéthèque."
+        confirmLabel="Acheté"
+        onConfirm={() => {
+          setConfirmBoughtOpen(false);
+          handleMarkBought();
+        }}
+        onCancel={() => setConfirmBoughtOpen(false)}
+      />
       <ConfirmDialog
         open={confirmMoveOpen}
         title="Ajouter aux achats ?"
