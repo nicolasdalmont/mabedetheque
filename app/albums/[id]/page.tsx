@@ -81,8 +81,8 @@ export default function AlbumDetailPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="mx-auto w-40 shrink-0 sm:mx-0 sm:w-48">
-              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg border border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-zinc-900">
+            <div className="relative left-1/2 w-[95vw] shrink-0 -translate-x-1/2 sm:left-0 sm:w-96 sm:translate-x-0">
+              <div className="relative w-full">
                 {album.sale_status !== "none" ? (
                   <span className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
                     <Tag size={11} aria-hidden="true" />
@@ -106,10 +106,10 @@ export default function AlbumDetailPage() {
                     src={album.cover_url}
                     alt={album.title}
                     onError={() => setBroken(true)}
-                    className="h-full w-full object-contain"
+                    className="h-auto w-full"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center px-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="flex aspect-[2/3] items-center justify-center px-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
                     Pas de couverture
                   </div>
                 )}
