@@ -5,7 +5,6 @@ import { X, Search, Plus, Check, Loader2 } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumCard } from "@/components/AlbumCard";
 import { useToast } from "@/components/Toast";
-import { findSeriesGaps } from "@/lib/series-gaps";
 import type { Album } from "@/types/album";
 import type { FetchSeriesTomesResult } from "@/lib/bnf-series";
 
@@ -58,7 +57,6 @@ export function SeriesDetailModal({
   const ownedNumbers = new Set(
     ownedAlbums.map((a) => a.issue_number).filter((n): n is number => n != null),
   );
-  const localGap = findSeriesGaps(ownedAlbums)[0] ?? null;
   // Any writer already recorded for this series narrows the BnF search to
   // one author-authority record, which is far more complete than a bare
   // text search (verified: an unscoped search for "Lapinot" alone missed
@@ -154,14 +152,6 @@ export function SeriesDetailModal({
         <div className="mt-6 border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="mb-1 text-sm font-medium">Tomes manquants</h3>
 
-          {localGap ? (
-            <p className="mb-3 text-xs text-zinc-500">
-              Trous entre les tomes possédés ({localGap.range}) : {localGap.missing}
-            </p>
-          ) : (
-            <p className="mb-3 text-xs text-zinc-500">Aucun trou entre les tomes possédés.</p>
-          )}
-
           <button
             type="button"
             onClick={handleSearch}
@@ -229,30 +219,6 @@ export function SeriesDetailModal({
             )
           ) : null}
 
-          {localGap ? (
-            <div className="mt-3">
-              <p className="mb-2 text-xs text-zinc-500">
-                Ajouter directement un trou local aux achats (sans infos BnF) :
-              </p>
-              <ul className="flex flex-wrap gap-1.5">
-                {localGap.missingNumbers.map((n) => {
-                  const queued = isQueued(n);
-                  return (
-                    <li key={n}>
-                      <button
-                        type="button"
-                        onClick={() => handleAddToWishlist({ issueNumber: n })}
-                        disabled={queued}
-                        className={addButtonClass}
-                      >
-                        {queued ? <Check size={12} /> : <Plus size={12} />}#{n}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : null}
         </div>
       </div>
     </dialog>

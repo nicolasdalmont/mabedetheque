@@ -3,13 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
-import { useSession } from "@/hooks/useSession";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
-import { seriesTitlesMatch } from "@/lib/bnf-series";
-import { findSeriesGaps } from "@/lib/series-gaps";
 import { compareAlbums } from "@/lib/sort";
 import { tomeLabel } from "@/lib/format";
 import type { Album } from "@/types/album";
@@ -33,27 +30,16 @@ function Thumb({ album }: { album: Album }) {
 }
 
 export default function WishlistPage() {
-  const { user } = useSession();
-  const { albums, wishlist, loading, error, refetch } = useAlbums();
+  const { wishlist, loading, error, refetch } = useAlbums();
   const { success, error: toastError } = useToast();
-  const seriesGaps = useMemo(() => findSeriesGaps(albums), [albums]);
 
   const [sortKey, setSortKey] = useState<"title" | "series">("title");
   const [pendingDelete, setPendingDelete] = useState<Album | null>(null);
-  const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(
     () => wishlist.slice().sort((a, b) => compareAlbums(a, b, sortKey)),
     [wishlist, sortKey],
   );
-
-  // A gap tome is "already offered" once an achat album exists for it — the
-  // names can differ in wording (BnF vs local), hence the loose match.
-  const isInWishlist = (series: string, n: number) =>
-    addedGapTomes.has(`${series}#${n}`) ||
-    wishlist.some(
-      (w) => w.issue_number === n && w.series_name && seriesTitlesMatch(series, w.series_name),
-    );
 
   async function handleBought(album: Album) {
     const { error } = await getDataClient()
@@ -89,27 +75,6 @@ export default function WishlistPage() {
     }
     refetch();
     success("Retiré de la liste d'achats.");
-  }
-
-  async function handleAddGapTome(series: string, issueNumber: number) {
-    if (!user) return;
-    const { error } = await getDataClient()
-      .from("albums")
-      .insert({
-        owner_id: user.id,
-        title: `${series} #${issueNumber}`,
-        series_name: series,
-        issue_number: issueNumber,
-        cover_url: "",
-        is_wishlist: true,
-      });
-    if (error) {
-      toastError(error.message);
-      return;
-    }
-    setAddedGapTomes((prev) => new Set(prev).add(`${series}#${issueNumber}`));
-    refetch();
-    success(`${series} #${issueNumber} ajouté aux achats.`);
   }
 
   return (
@@ -196,49 +161,6 @@ export default function WishlistPage() {
             })}
           </ul>
         )}
-
-        <section className="rounded-lg border border-black/10 p-4 dark:border-white/10">
-          <h2 className="mb-1 text-sm font-medium">Séries incomplètes</h2>
-          <p className="mb-3 text-xs text-zinc-500">
-            Tomes manquants entre le premier et le dernier numéro possédé — un tome publié
-            au-delà de votre plus haut numéro possédé ne peut pas être détecté.
-          </p>
-          {seriesGaps.length ? (
-            <ul className="divide-y divide-black/5 dark:divide-white/10">
-              {seriesGaps.map((gap) => (
-                <li key={gap.series} className="flex flex-col gap-2 py-2">
-                  <div>
-                    <Link
-                      href={`/series?open=${encodeURIComponent(gap.series)}`}
-                      className="text-sm font-medium hover:underline"
-                    >
-                      {gap.series}
-                    </Link>
-                    <p className="text-xs text-zinc-500">Possédés : {gap.range}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {gap.missingNumbers.map((n) => {
-                      const added = isInWishlist(gap.series, n);
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => handleAddGapTome(gap.series, n)}
-                          disabled={added}
-                          className="rounded-md border border-black/15 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5"
-                        >
-                          {added ? "✓" : "+"} #{n}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">Aucun trou détecté.</p>
-          )}
-        </section>
 
         <ConfirmDialog
           open={pendingDelete !== null}
