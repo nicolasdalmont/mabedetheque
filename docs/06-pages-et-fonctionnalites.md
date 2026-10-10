@@ -265,7 +265,7 @@ avec `left-1/2 -translate-x-1/2` pour sortir du padding de page) et sur 384 px d
 bloc 2/3.
 
 **Achat ↔ collection** : sur un album d'achat (`is_wishlist`), bouton « Marquer comme acheté »
-(`is_wishlist = false`, `purchase_date` = aujourd'hui si vide). Inversement, sur un album de la
+(`is_wishlist = false`, `purchase_date` = aujourd'hui si vide), précédé d'un `ConfirmDialog` — comme le « Acheté » de l'onglet Achats — pour qu'aucun changement d'appartenance à la collection ne se fasse en un clic. Inversement, sur un album de la
 collection dont `sale_status = 'none'`, bouton **« Ajouter aux achats »** (après `ConfirmDialog`)
 pour corriger un ajout par erreur : `is_wishlist = true` et `purchase_date = null` (la date avait
 été posée par défaut à l'ajout, sans achat réel). Masqué pour les albums à vendre/vendus afin de
