@@ -50,7 +50,7 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current) onCancel();
       }}
-      className="w-full max-w-sm rounded-lg border border-black/10 bg-white p-6 text-zinc-900 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
+      className="m-auto w-full max-w-[min(24rem,calc(100%-2rem))] rounded-lg border border-black/10 bg-white p-6 text-zinc-900 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50"
     >
       {title ? <h2 className="mb-1 text-sm font-semibold">{title}</h2> : null}
       <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-300">{message}</p>
