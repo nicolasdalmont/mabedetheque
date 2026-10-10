@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppTabs } from "./AppTabs";
 import { RefreshButton } from "./RefreshButton";
 import { SignOutButton } from "./SignOutButton";
+import { ThemeButton } from "./ThemeButton";
 
 /**
  * The shared page header — same on every screen, so the logo, tab bar and
@@ -23,6 +24,7 @@ export function AppHeader() {
         <AppTabs />
       </div>
       <div className="flex shrink-0 items-center gap-3">
+        <ThemeButton />
         <RefreshButton />
         <SignOutButton />
       </div>

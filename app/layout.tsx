@@ -5,7 +5,9 @@ import { ManifestThemeSwitcher } from "@/components/ManifestThemeSwitcher";
 import { BottomNav } from "@/components/BottomNav";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { ThemeSync } from "@/components/ThemeSync";
 import { ToastProvider } from "@/components/Toast";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -61,11 +63,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
         <AppUpdater />
         <ManifestThemeSwitcher />
+        <ThemeSync />
         <ToastProvider>
           <OfflineBanner />
           <PullToRefresh />
