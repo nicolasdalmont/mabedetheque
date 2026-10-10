@@ -36,3 +36,11 @@ body {
   outline-offset: 2px;
   border-radius: 3px;
 }
+
+/* Press feedback: any enabled button turns yellow (the app accent) while
+   pressed. Unlayered on purpose — it must win over Tailwind's layered
+   `bg-*`/`text-*` utilities already set on individual buttons. */
+button:active:not(:disabled) {
+  background-color: #facc15; /* yellow-400 */
+  color: #000;
+}
