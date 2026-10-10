@@ -32,9 +32,28 @@ Voir [03-authentification.md](./03-authentification.md). Retourne
 
 En-tête partagé rendu par **chaque** page (Accueil + 6 onglets + Détail + Ajout +
 Édition) : logo (`<Link href="/" aria-label="Accueil">`, vers la page d'Accueil — voir
-[06](./06-pages-et-fonctionnalites.md)) + `AppTabs` à gauche, `RefreshButton` +
-`SignOutButton` à droite. Extrait pour que les en-têtes ne divergent plus (avant : logo
+[06](./06-pages-et-fonctionnalites.md)) + `AppTabs` à gauche, `ThemeButton` +
+`RefreshButton` + `SignOutButton` à droite. Extrait pour que les en-têtes ne divergent plus (avant : logo
 tantôt `<h1>` non cliquable, tantôt `<Link>`).
+
+### `ThemeButton` / `ThemeSync` (`lib/theme.ts`)
+
+Préférence de thème **Automatique / Clair / Sombre**. `ThemeButton` (dans `AppHeader`) fait
+défiler auto → clair → sombre (icônes `Monitor` / `Sun` / `Moon`) ; la préférence est dans
+`localStorage["theme"]` (absente = automatique), lue via `useSyncExternalStore`. Propre à
+chaque navigateur, non liée au compte.
+
+- **Pourquoi une classe** : le `dark:` de Tailwind était lié à `prefers-color-scheme`, donc
+  impossible à forcer. `globals.css` déclare `@custom-variant dark (&:where(.dark, .dark *))`
+  et les variables `--background`/`--foreground` sont sous `:root.dark` ; `applyTheme()`
+  pose `<html class="dark">` et `color-scheme`.
+- **Pas de flash** : `THEME_INIT_SCRIPT` est injecté en `<head>` (layout racine,
+  `suppressHydrationWarning` sur `<html>`) pour appliquer la classe avant le premier rendu.
+- **`ThemeSync`** (layout racine) : réapplique au montage, suit le changement de thème de
+  l'OS tant que le mode est « auto », et réagit à un changement fait dans un autre onglet.
+- Les `<meta name="theme-color">` (média-scopées par Next) sont forcées on/off par
+  `applyTheme()` quand le thème est imposé ; en auto, leur média d'origine est restauré.
+  `ManifestThemeSwitcher` (icône d'installation) reste basé sur l'OS.
 
 ### `RefreshButton` / `PullToRefresh` / `OfflineBanner`
 

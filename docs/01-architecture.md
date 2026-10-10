@@ -113,5 +113,6 @@ la requête (dérivé du JWT émis par Managed Better Auth). Voir
 
 Palette jaune/noir constante dans toute l'app : accent `#FACC15` (jaune), fond clair
 `zinc-50`/blanc, fond sombre `black`/`zinc-950`, bordures `black/10` ou `white/10` selon
-le thème. `theme-color` du manifest suit le `prefers-color-scheme` (`#FACC15` en clair,
-`#111111` en sombre — voir [08-pwa.md](./08-pwa.md)).
+le thème. Le thème (automatique / clair / sombre) se choisit via `ThemeButton` dans l'en-tête
+(voir [07](./07-composants-et-hooks.md)). `theme-color` suit le thème effectif (`#FACC15` en
+clair, `#111111` en sombre — voir [08-pwa.md](./08-pwa.md)).
