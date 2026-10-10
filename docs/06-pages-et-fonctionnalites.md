@@ -36,6 +36,8 @@ liste complète des albums (qui a déménagé vers son propre onglet, voir plus 
   → `/albums`), **Séries** (nombre de `series_name` distincts, → `/series`), **Achats**
   (items `wishlist_items` où `status = 'a_acheter'`, requête dédiée comme sur Stats,
   → `/wishlist`), **Ventes** (`sale_status === "a_vendre"`, → `/vente`).
+  Chaque carte porte un **chevron jaune** après le libellé et un fond très léger : sur mobile il
+  n'y a pas de survol, donc sans ça les cartes ressemblaient à de simples statistiques.
 - **Section « Derniers achats »** : les 6 albums dont la `purchase_date` est la plus
   récente, rendus avec `AlbumGrid` — **même composant** que la vue galerie de l'onglet
   Albums (voir [07](./07-composants-et-hooks.md)). Tri décroissant sur `purchase_date`
