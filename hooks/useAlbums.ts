@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
 import type { Album } from "@/types/album";
 
 export function useAlbums() {
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [allAlbums, setAllAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loaded = useRef(false);
@@ -27,7 +27,7 @@ export function useAlbums() {
         .then(({ data, error }) => {
           if (ignore) return;
           setError(error ? error.message : null);
-          setAlbums(data ?? []);
+          setAllAlbums(data ?? []);
           setLoading(false);
           loaded.current = true;
         });
@@ -56,5 +56,12 @@ export function useAlbums() {
 
   const refetch = () => fetchRef.current();
 
-  return { albums, loading, error, refetch };
+  // `albums` is the collection proper (what stats, gaps, etc. count); the
+  // "achat"-tagged ones (is_wishlist) are exposed separately, and `allAlbums`
+  // has both for the screens that show them together (gallery's "tous"
+  // scope, series detail).
+  const albums = useMemo(() => allAlbums.filter((a) => !a.is_wishlist), [allAlbums]);
+  const wishlist = useMemo(() => allAlbums.filter((a) => a.is_wishlist), [allAlbums]);
+
+  return { albums, wishlist, allAlbums, loading, error, refetch };
 }

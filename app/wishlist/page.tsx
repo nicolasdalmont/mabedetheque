@@ -1,106 +1,114 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { WishlistAddForm } from "@/components/WishlistAddForm";
-import { BuyWishlistModal } from "@/components/BuyWishlistModal";
 import { useToast } from "@/components/Toast";
+import { seriesTitlesMatch } from "@/lib/bnf-series";
 import { findSeriesGaps } from "@/lib/series-gaps";
-import { compareWishlistItems } from "@/lib/sort";
-import type { WishlistItem, WishlistStatus } from "@/types/wishlist";
-import { WISHLIST_STATUS_LABEL } from "@/types/wishlist";
+import { compareAlbums } from "@/lib/sort";
+import { tomeLabel } from "@/lib/format";
+import type { Album } from "@/types/album";
 
-const chipClass = (active: boolean) =>
-  `rounded-full border px-3 py-1 text-xs font-medium ${
-    active
-      ? "border-yellow-400 bg-yellow-400 text-black"
-      : "border-black/15 text-zinc-600 hover:bg-black/5 dark:border-white/20 dark:text-zinc-400 dark:hover:bg-white/5"
-  }`;
+function Thumb({ album }: { album: Album }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <div className="flex aspect-[2/3] w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-zinc-100 dark:bg-zinc-900">
+      {album.cover_url && !broken ? (
+        // eslint-disable-next-line @next/next/no-img-element -- remote, per-user covers
+        <img
+          src={album.cover_url}
+          alt=""
+          loading="lazy"
+          onError={() => setBroken(true)}
+          className="h-full w-full object-contain"
+        />
+      ) : null}
+    </div>
+  );
+}
 
 export default function WishlistPage() {
   const { user } = useSession();
-  const { albums } = useAlbums();
+  const { albums, wishlist, loading, error, refetch } = useAlbums();
   const { success, error: toastError } = useToast();
   const seriesGaps = useMemo(() => findSeriesGaps(albums), [albums]);
 
-  const [items, setItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<WishlistStatus | "all">("a_acheter");
   const [sortKey, setSortKey] = useState<"title" | "series">("title");
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Album | null>(null);
   const [addedGapTomes, setAddedGapTomes] = useState<Set<string>>(new Set());
-  const [buyingItem, setBuyingItem] = useState<WishlistItem | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<WishlistItem | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
-    getDataClient()
-      .from("wishlist_items")
-      .select("*")
-      .order("series_name", { ascending: true })
-      .order("issue_number", { ascending: true })
-      .then(({ data, error }) => {
-        if (ignore) return;
-        setError(error ? error.message : null);
-        setItems(data ?? []);
-        setLoading(false);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const sorted = useMemo(
+    () => wishlist.slice().sort((a, b) => compareAlbums(a, b, sortKey)),
+    [wishlist, sortKey],
+  );
 
-  const filtered = (statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter))
-    .slice()
-    .sort((a, b) => compareWishlistItems(a, b, sortKey));
+  // A gap tome is "already offered" once an achat album exists for it — the
+  // names can differ in wording (BnF vs local), hence the loose match.
+  const isInWishlist = (series: string, n: number) =>
+    addedGapTomes.has(`${series}#${n}`) ||
+    wishlist.some(
+      (w) => w.issue_number === n && w.series_name && seriesTitlesMatch(series, w.series_name),
+    );
 
-  async function handleToggleStatus(item: WishlistItem) {
-    const status: WishlistStatus = item.status === "a_acheter" ? "achete" : "a_acheter";
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status } : i)));
+  async function handleBought(album: Album) {
     const { error } = await getDataClient()
-      .from("wishlist_items")
-      .update({ status })
-      .eq("id", item.id);
-    if (error) {
-      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: item.status } : i)));
-      toastError(error.message);
-    }
-  }
-
-  async function confirmDeleteItem() {
-    const item = pendingDelete;
-    if (!item) return;
-    setPendingDelete(null);
-    setItems((prev) => prev.filter((i) => i.id !== item.id));
-    const { error } = await getDataClient().from("wishlist_items").delete().eq("id", item.id);
-    if (error) {
-      setItems((prev) => [...prev, item]);
-      toastError(error.message);
-    } else {
-      success("Tome retiré de la liste d'achats.");
-    }
-  }
-
-  async function handleAddGapTome(series: string, issueNumber: number) {
-    if (!user) return;
-    const key = `${series}#${issueNumber}`;
-    const { data, error } = await getDataClient()
-      .from("wishlist_items")
-      .insert({ owner_id: user.id, series_name: series, issue_number: issueNumber })
-      .select()
-      .single();
+      .from("albums")
+      .update({
+        is_wishlist: false,
+        purchase_date: album.purchase_date ?? new Date().toISOString().slice(0, 10),
+      })
+      .eq("id", album.id);
     if (error) {
       toastError(error.message);
       return;
     }
-    setItems((prev) => [...prev, data]);
-    setAddedGapTomes((prev) => new Set(prev).add(key));
+    refetch();
+    success(`« ${album.title} » ajouté à votre bédéthèque.`);
+  }
+
+  async function confirmDeleteItem() {
+    const album = pendingDelete;
+    if (!album) return;
+    setPendingDelete(null);
+    const { error } = await getDataClient().from("albums").delete().eq("id", album.id);
+    if (error) {
+      toastError(error.message);
+      return;
+    }
+    if (album.cover_url) {
+      await fetch("/api/covers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coverUrl: album.cover_url }),
+      }).catch(() => {});
+    }
+    refetch();
+    success("Retiré de la liste d'achats.");
+  }
+
+  async function handleAddGapTome(series: string, issueNumber: number) {
+    if (!user) return;
+    const { error } = await getDataClient()
+      .from("albums")
+      .insert({
+        owner_id: user.id,
+        title: `${series} #${issueNumber}`,
+        series_name: series,
+        issue_number: issueNumber,
+        cover_url: "",
+        is_wishlist: true,
+      });
+    if (error) {
+      toastError(error.message);
+      return;
+    }
+    setAddedGapTomes((prev) => new Set(prev).add(`${series}#${issueNumber}`));
+    refetch();
     success(`${series} #${issueNumber} ajouté aux achats.`);
   }
 
@@ -109,62 +117,13 @@ export default function WishlistPage() {
       <AppHeader />
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4">
-        {!showAddForm ? (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
-            >
-              + Ajouter
-            </button>
-          </div>
-        ) : null}
-
-        <p className="text-xs text-zinc-500">
-          Les tomes manquants peuvent aussi s&apos;ajouter directement depuis l&apos;onglet{" "}
-          <Link href="/series" className="underline">
-            Séries
-          </Link>
-          .
-        </p>
-
-        {showAddForm && user ? (
-          <WishlistAddForm
-            ownerId={user.id}
-            ownedAlbums={albums}
-            onAdded={(item) => {
-              setItems((prev) => [...prev, item]);
-              setShowAddForm(false);
-            }}
-            onCancel={() => setShowAddForm(false)}
-          />
-        ) : null}
-
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("a_acheter")}
-              className={chipClass(statusFilter === "a_acheter")}
-            >
-              À acheter
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("achete")}
-              className={chipClass(statusFilter === "achete")}
-            >
-              Acheté
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("all")}
-              className={chipClass(statusFilter === "all")}
-            >
-              Toutes
-            </button>
-          </div>
+          <Link
+            href="/albums/new?achat=1"
+            className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
+          >
+            + Ajouter un achat
+          </Link>
 
           <select
             className="rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-yellow-500 dark:border-white/20 dark:focus:border-yellow-400"
@@ -177,57 +136,64 @@ export default function WishlistPage() {
           </select>
         </div>
 
+        <p className="text-xs text-zinc-500">
+          Les tomes manquants peuvent aussi s&apos;ajouter directement depuis l&apos;onglet{" "}
+          <Link href="/series" className="underline">
+            Séries
+          </Link>
+          .
+        </p>
+
         {loading ? (
           <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <p className="py-16 text-center text-sm text-zinc-500">
-            {items.length === 0
-              ? "Aucun tome dans la liste d'achats pour le moment."
-              : "Aucun tome ne correspond à ce filtre."}
+            Aucun tome dans la liste d&apos;achats pour le moment.
           </p>
         ) : (
           <ul className="divide-y divide-black/5 dark:divide-white/10">
-            {filtered.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {item.series_name}
-                    {item.issue_number != null ? ` #${item.issue_number}` : ""}
-                  </p>
-                  <p className="truncate text-xs text-zinc-500">
-                    {[item.title, item.publisher].filter(Boolean).join(" · ") || " "}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {item.status === "a_acheter" ? (
+            {sorted.map((album) => {
+              const tome = tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie);
+              return (
+                <li key={album.id} className="flex items-center gap-3 py-3">
+                  <Link
+                    href={`/albums/${album.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-80"
+                  >
+                    <Thumb album={album} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{album.title}</p>
+                      <p className="truncate text-xs text-zinc-500">
+                        {[
+                          album.series_name ? `${album.series_name}${tome ? ` ${tome}` : ""}` : null,
+                          album.publisher,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || " "}
+                      </p>
+                    </div>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setBuyingItem(item)}
+                      onClick={() => handleBought(album)}
                       className="rounded-full border border-yellow-400 bg-yellow-400 px-3 py-1 text-xs font-medium text-black hover:bg-yellow-300"
                     >
                       Acheté
                     </button>
-                  ) : (
                     <button
                       type="button"
-                      onClick={() => handleToggleStatus(item)}
-                      className="rounded-full border border-black/15 px-3 py-1 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+                      onClick={() => setPendingDelete(album)}
+                      className="-my-1 inline-flex min-h-9 items-center rounded-md px-2 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                     >
-                      {WISHLIST_STATUS_LABEL[item.status]}
+                      Retirer
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(item)}
-                    className="-my-1 inline-flex min-h-9 items-center rounded-md px-2 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
-                  >
-                    Retirer
-                  </button>
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
 
@@ -252,7 +218,7 @@ export default function WishlistPage() {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {gap.missingNumbers.map((n) => {
-                      const added = addedGapTomes.has(`${gap.series}#${n}`);
+                      const added = isInWishlist(gap.series, n);
                       return (
                         <button
                           key={n}
@@ -274,28 +240,12 @@ export default function WishlistPage() {
           )}
         </section>
 
-        {buyingItem && user ? (
-          <BuyWishlistModal
-            item={buyingItem}
-            ownerId={user.id}
-            onDone={() => {
-              const bought = buyingItem;
-              setItems((prev) => prev.filter((i) => i.id !== bought.id));
-              setBuyingItem(null);
-              success(
-                `${bought.series_name}${bought.issue_number != null ? ` #${bought.issue_number}` : ""} ajouté à votre bédéthèque.`,
-              );
-            }}
-            onClose={() => setBuyingItem(null)}
-          />
-        ) : null}
-
         <ConfirmDialog
           open={pendingDelete !== null}
           title="Retirer de la liste d'achats"
           message={
             pendingDelete
-              ? `Retirer « ${pendingDelete.series_name}${pendingDelete.issue_number != null ? ` #${pendingDelete.issue_number}` : ""} » de la liste d'achats ?`
+              ? `Retirer « ${pendingDelete.title} » de la liste d'achats ? La fiche et sa couverture seront supprimées.`
               : ""
           }
           confirmLabel="Retirer"

@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Plus, Check, Loader2, ShoppingCart } from "lucide-react";
+import { X, Search, Plus, Check, Loader2 } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AlbumCard } from "@/components/AlbumCard";
+import { useToast } from "@/components/Toast";
 import { findSeriesGaps } from "@/lib/series-gaps";
 import type { Album } from "@/types/album";
 import type { FetchSeriesTomesResult } from "@/lib/bnf-series";
-
-type WishlistTome = { issue_number: number | null; title: string | null };
 
 type MissingTome = {
   issueNumber: number;
@@ -21,16 +20,18 @@ export function SeriesDetailModal({
   seriesName,
   albums,
   ownerId,
-  wishlistTomes,
+  onChanged,
   onClose,
 }: {
   seriesName: string;
+  /** Owned albums and achat-tagged ones (`is_wishlist`) of this series. */
   albums: Album[];
   ownerId: string;
-  /** Tomes of this series already on the achats list. */
-  wishlistTomes?: WishlistTome[];
+  /** Called after an achat is created so the parent can refetch. */
+  onChanged: () => void;
   onClose: () => void;
 }) {
+  const { error: toastError } = useToast();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const [result, setResult] = useState<FetchSeriesTomesResult | null>(null);
@@ -38,12 +39,12 @@ export function SeriesDetailModal({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [addedKeys, setAddedKeys] = useState<Set<number>>(new Set());
 
+  const ownedAlbums = albums.filter((a) => !a.is_wishlist);
+  const wishlistAlbums = albums.filter((a) => a.is_wishlist);
   const wishlistNumbers = new Set(
-    (wishlistTomes ?? [])
-      .map((w) => w.issue_number)
-      .filter((n): n is number => n != null),
+    wishlistAlbums.map((a) => a.issue_number).filter((n): n is number => n != null),
   );
-  // "Already offered" = on the wishlist already, or added during this modal.
+  // "Already offered" = on the achats list already, or added during this modal.
   const isQueued = (n: number) => wishlistNumbers.has(n) || addedKeys.has(n);
 
   useEffect(() => {
@@ -55,42 +56,9 @@ export function SeriesDetailModal({
   }
 
   const ownedNumbers = new Set(
-    albums.map((a) => a.issue_number).filter((n): n is number => n != null),
+    ownedAlbums.map((a) => a.issue_number).filter((n): n is number => n != null),
   );
-  const localGap = findSeriesGaps(albums)[0] ?? null;
-
-  // Owned albums + ghost vignettes for tomes on the achats list (from the
-  // wishlist, plus anything added during this modal session), interleaved in
-  // tome order so wishlist entries sit in their natural place in the series
-  // sequence. Wishlist tomes already owned aren't ghosted.
-  const wantedNumbers = new Set<number>();
-  const wantedTomes: { n: number | null; title: string | null }[] = [];
-  for (const w of wishlistTomes ?? []) {
-    if (w.issue_number != null && ownedNumbers.has(w.issue_number)) continue;
-    if (w.issue_number != null) wantedNumbers.add(w.issue_number);
-    wantedTomes.push({ n: w.issue_number, title: w.title });
-  }
-  for (const n of addedKeys) {
-    if (ownedNumbers.has(n) || wantedNumbers.has(n)) continue;
-    wantedNumbers.add(n);
-    wantedTomes.push({ n, title: null });
-  }
-  const gridItems: (
-    | { type: "owned"; album: Album; sort: number }
-    | { type: "wanted"; n: number | null; title: string | null; sort: number }
-  )[] = [
-    ...albums.map((a) => ({
-      type: "owned" as const,
-      album: a,
-      sort: a.issue_number ?? Number.MAX_SAFE_INTEGER,
-    })),
-    ...wantedTomes.map((w) => ({
-      type: "wanted" as const,
-      n: w.n,
-      title: w.title,
-      sort: w.n ?? Number.MAX_SAFE_INTEGER,
-    })),
-  ].sort((a, b) => a.sort - b.sort);
+  const localGap = findSeriesGaps(ownedAlbums)[0] ?? null;
   // Any writer already recorded for this series narrows the BnF search to
   // one author-authority record, which is far more complete than a bare
   // text search (verified: an unscoped search for "Lapinot" alone missed
@@ -123,16 +91,23 @@ export function SeriesDetailModal({
 
   async function handleAddToWishlist(tome: MissingTome) {
     const { error } = await getDataClient()
-      .from("wishlist_items")
+      .from("albums")
       .insert({
         owner_id: ownerId,
+        title: tome.title || `${seriesName} #${tome.issueNumber}`,
         series_name: seriesName,
         issue_number: tome.issueNumber,
-        title: tome.title ?? null,
         publisher: tome.publisher ?? null,
         isbn: tome.isbn ?? null,
+        cover_url: "",
+        is_wishlist: true,
       });
-    if (!error) setAddedKeys((prev) => new Set(prev).add(tome.issueNumber));
+    if (error) {
+      toastError(error.message);
+      return;
+    }
+    setAddedKeys((prev) => new Set(prev).add(tome.issueNumber));
+    onChanged();
   }
 
   const bnfMissing: MissingTome[] = (result?.tomes ?? [])
@@ -155,8 +130,8 @@ export function SeriesDetailModal({
         <h2 className="text-sm font-medium">
           {seriesName}{" "}
           <span className="text-zinc-500">
-            ({albums.length}
-            {wantedTomes.length ? ` · ${wantedTomes.length} souhaité${wantedTomes.length > 1 ? "s" : ""}` : ""})
+            ({ownedAlbums.length}
+            {wishlistAlbums.length ? ` · ${wishlistAlbums.length} souhaité${wishlistAlbums.length > 1 ? "s" : ""}` : ""})
           </span>
         </h2>
         <button
@@ -171,29 +146,9 @@ export function SeriesDetailModal({
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
-          {gridItems.map((item, i) =>
-            item.type === "owned" ? (
-              <AlbumCard key={item.album.id} album={item.album} />
-            ) : (
-              <div
-                key={`wanted-${item.n ?? `x${i}`}`}
-                className="flex flex-col overflow-hidden rounded-lg border border-dashed border-yellow-400/70 bg-yellow-400/5"
-                title="Tome sur la liste d'achats"
-              >
-                <div className="flex aspect-[2/3] w-full items-center justify-center bg-zinc-100 dark:bg-zinc-900">
-                  <ShoppingCart size={20} className="text-yellow-500" aria-hidden="true" />
-                </div>
-                <div className="flex flex-col gap-0.5 p-1.5 sm:p-2">
-                  <span className="truncate text-xs font-medium text-zinc-500 sm:text-sm">
-                    {item.title || "Tome à acheter"}
-                  </span>
-                  <span className="text-[11px] text-yellow-600 sm:text-xs dark:text-yellow-400">
-                    {item.n != null ? `#${item.n} · ` : ""}Dans les achats
-                  </span>
-                </div>
-              </div>
-            ),
-          )}
+          {albums.map((album) => (
+            <AlbumCard key={album.id} album={album} />
+          ))}
         </div>
 
         <div className="mt-6 border-t border-black/10 pt-4 dark:border-white/10">

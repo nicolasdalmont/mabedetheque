@@ -1,5 +1,4 @@
 import type { Idea } from "./idea";
-import type { WishlistItem } from "./wishlist";
 
 export type SaleStatus = "none" | "a_vendre" | "vendu";
 
@@ -26,16 +25,19 @@ export type Album = {
   cover_url: string;
   is_integrale: boolean;
   is_hors_serie: boolean;
+  /** Tag « achat » : album souhaité, pas encore dans la collection. */
+  is_wishlist: boolean;
   sale_status: SaleStatus;
   created_at: string;
   updated_at: string;
 };
 
-// sale_status is deliberately excluded — it's managed by its own dedicated
-// actions (edit page, Vente tab), not the general add/edit form.
+// sale_status and is_wishlist are deliberately excluded — managed by their own
+// dedicated actions (edit page / Vente tab, Achats tab / "add a purchase"
+// entry point), not the general add/edit form.
 export type AlbumInput = Omit<
   Album,
-  "id" | "owner_id" | "created_at" | "updated_at" | "sale_status"
+  "id" | "owner_id" | "created_at" | "updated_at" | "sale_status" | "is_wishlist"
 >;
 
 // Minimal Database shape for the Neon Data API client (PostgREST-generated
@@ -54,11 +56,6 @@ export type Database = {
         Row: Idea;
         Insert: Partial<Idea> & Pick<Idea, "content" | "owner_id">;
         Update: Partial<Idea>;
-      };
-      wishlist_items: {
-        Row: WishlistItem;
-        Insert: Partial<WishlistItem> & Pick<WishlistItem, "series_name" | "owner_id">;
-        Update: Partial<WishlistItem>;
       };
     };
     Views: Record<string, never>;

@@ -35,7 +35,11 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
                     ? `${album.series_name}${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie) ? ` ${tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)}` : ""}`
                     : null,
                   album.publisher,
-                  album.purchase_date ? `acheté le ${formatDate(album.purchase_date)}` : null,
+                  album.is_wishlist
+                    ? "achat"
+                    : album.purchase_date
+                      ? `acheté le ${formatDate(album.purchase_date)}`
+                      : null,
                 ]
                   .filter(Boolean)
                   .join(" · ") || "—"}
@@ -78,7 +82,15 @@ export function AlbumTable({ albums }: { albums: Album[] }) {
                   {tomeLabel(album.issue_number, album.is_integrale, album.is_hors_serie)?.replace(/^#/, "") ?? "—"}
                 </td>
                 <td className="px-3 py-2 text-zinc-500">{album.publisher ?? "—"}</td>
-                <td className="px-3 py-2 text-zinc-500">{formatDate(album.purchase_date)}</td>
+                <td className="px-3 py-2 text-zinc-500">
+                  {album.is_wishlist ? (
+                    <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-medium text-black">
+                      À acheter
+                    </span>
+                  ) : (
+                    formatDate(album.purchase_date)
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

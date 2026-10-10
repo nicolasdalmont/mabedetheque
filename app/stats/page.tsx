@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useAlbums } from "@/hooks/useAlbums";
-import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
 import { BarChart, type BarChartDatum } from "@/components/BarChart";
 import { KNOWN_DEAD_COVER_URL } from "@/lib/constants";
@@ -95,22 +94,7 @@ function topByValue(values: (string | null)[]): RankingItem[] {
 }
 
 export default function StatsPage() {
-  const { albums, loading, error } = useAlbums();
-  const [wishlistToBuy, setWishlistToBuy] = useState(0);
-
-  useEffect(() => {
-    let ignore = false;
-    getDataClient()
-      .from("wishlist_items")
-      .select("id")
-      .eq("status", "a_acheter")
-      .then(({ data }) => {
-        if (!ignore) setWishlistToBuy(data?.length ?? 0);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const { albums, wishlist, loading, error } = useAlbums();
 
   const totalAlbums = albums.length;
   const totalSeries = useMemo(
@@ -202,7 +186,7 @@ export default function StatsPage() {
           <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
             <StatCard label="Albums" value={totalAlbums} />
             <StatCard label="Séries" value={totalSeries} />
-            <StatCard label="À acheter" value={wishlistToBuy} />
+            <StatCard label="À acheter" value={wishlist.length} />
             <StatCard label="En vente" value={albumsForSale} />
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScanBarcode } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
@@ -12,11 +12,14 @@ import { BnfTextSearch } from "@/components/BnfTextSearch";
 import { useToast } from "@/components/Toast";
 import type { TextSearchCandidate } from "@/lib/bnf-text-search";
 
-// Single slot: only one "add album" flow can be in progress at a time.
-const DRAFT_KEY = "new";
-
-export default function NewAlbumPage() {
+// One slot per flavour: an "add album" and an "add achat" draft can't clash,
+// but each only allows one in progress at a time.
+function NewAlbumContent() {
   const router = useRouter();
+  // `?achat=1`: same lookup + form, but the album is saved with the "achat"
+  // tag (is_wishlist) instead of joining the collection.
+  const isAchat = useSearchParams().get("achat") === "1";
+  const DRAFT_KEY = isAchat ? "new-achat" : "new";
   const { user } = useSession();
   const { success } = useToast();
 
@@ -142,14 +145,21 @@ export default function NewAlbumPage() {
 
       const { error } = await getDataClient().from("albums").insert({
         ...values,
-        purchase_date: values.purchase_date ?? new Date().toISOString().slice(0, 10),
+        purchase_date: isAchat
+          ? values.purchase_date
+          : (values.purchase_date ?? new Date().toISOString().slice(0, 10)),
+        is_wishlist: isAchat,
         cover_url: coverUrl,
         owner_id: user.id,
       });
       if (error) throw new Error(error.message);
 
       clearAlbumDraft(DRAFT_KEY);
-      success(`« ${values.title} » ajouté à votre bédéthèque.`);
+      success(
+        isAchat
+          ? `« ${values.title} » ajouté aux achats.`
+          : `« ${values.title} » ajouté à votre bédéthèque.`,
+      );
       router.back();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -173,7 +183,7 @@ export default function NewAlbumPage() {
           >
             ← Retour
           </button>
-          <h1 className="text-lg font-semibold">Ajouter un album</h1>
+          <h1 className="text-lg font-semibold">{isAchat ? "Ajouter un achat" : "Ajouter un album"}</h1>
         </div>
 
         <div className="flex gap-2 rounded-lg border border-black/10 p-4 dark:border-white/10">
@@ -232,7 +242,7 @@ export default function NewAlbumPage() {
           onCoverFileSelected={handleCoverFileSelected}
           onSearchCover={handleSearchCover}
           onSubmit={handleSubmit}
-          submitLabel="Enregistrer l'album"
+          submitLabel={isAchat ? "Enregistrer l'achat" : "Enregistrer l'album"}
           pending={saving}
           draftKey={DRAFT_KEY}
         />
@@ -241,5 +251,13 @@ export default function NewAlbumPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function NewAlbumPage() {
+  return (
+    <Suspense>
+      <NewAlbumContent />
+    </Suspense>
   );
 }

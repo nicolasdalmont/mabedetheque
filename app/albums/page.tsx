@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { SearchBar } from "@/components/SearchBar";
-import { FilterSortBar } from "@/components/FilterSortBar";
+import { FilterSortBar, type CollectionScope } from "@/components/FilterSortBar";
 import { AlbumGrid } from "@/components/AlbumGrid";
 import { AlbumTable } from "@/components/AlbumTable";
 import { CardGridSkeleton } from "@/components/CardGridSkeleton";
@@ -22,7 +22,7 @@ const MISSING_LABEL: Record<string, string> = {
 };
 
 function HomeContent() {
-  const { albums, loading, error } = useAlbums();
+  const { allAlbums, loading, error } = useAlbums();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -37,6 +37,13 @@ function HomeContent() {
   const integrale = searchParams.get("integrale") === "1";
   const horsSerie = searchParams.get("hors_serie") === "1";
   const missing = searchParams.get("missing") ?? ""; // cover | tome | achat (depuis Stats › Anomalies)
+  // collection (default: achats hidden) | achats | tous
+  const scope: CollectionScope =
+    searchParams.get("scope") === "achats"
+      ? "achats"
+      : searchParams.get("scope") === "tous"
+        ? "tous"
+        : "collection";
   const sortKey = (searchParams.get("sort") as SortKey | null) ?? "title";
   const viewMode = (searchParams.get("view") as ViewMode | null) ?? "grid";
 
@@ -67,6 +74,14 @@ function HomeContent() {
         ?.scrollIntoView({ block: "center" });
     });
   }, [loading]);
+
+  const albums = useMemo(
+    () =>
+      scope === "tous"
+        ? allAlbums
+        : allAlbums.filter((a) => a.is_wishlist === (scope === "achats")),
+    [allAlbums, scope],
+  );
 
   const seriesOptions = useMemo(
     () =>
@@ -113,7 +128,7 @@ function HomeContent() {
   }, [albums, query, series, publisher, author, integrale, horsSerie, missing, sortKey]);
 
   const hasActiveFilters = Boolean(
-    query || series || publisher || author || integrale || horsSerie || missing,
+    query || series || publisher || author || integrale || horsSerie || missing || scope !== "collection",
   );
   const clearFilters = () =>
     updateParams({
@@ -124,25 +139,34 @@ function HomeContent() {
       integrale: "",
       hors_serie: "",
       missing: "",
+      scope: "",
     });
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
       <AppHeader />
 
-      {loading || albums.length > 0 ? (
-        <div>
+      {loading || allAlbums.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/albums/new"
             className="rounded-md bg-yellow-400 px-3 py-1.5 text-sm font-medium text-black hover:bg-yellow-300"
           >
             + Ajouter un album
           </Link>
+          <Link
+            href="/albums/new?achat=1"
+            className="rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+          >
+            + Ajouter un achat
+          </Link>
         </div>
       ) : null}
 
       <SearchBar value={query} onChange={(v) => updateParams({ q: v })} />
       <FilterSortBar
+        scope={scope}
+        onScopeChange={(v) => updateParams({ scope: v === "collection" ? "" : v })}
         seriesOptions={seriesOptions}
         publisherOptions={publisherOptions}
         authorOptions={authorOptions}
@@ -194,7 +218,7 @@ function HomeContent() {
         </p>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
-          {albums.length === 0 ? (
+          {allAlbums.length === 0 ? (
             <>
               <p>Votre bédéthèque est vide.</p>
               <Link

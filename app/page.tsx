@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAlbums } from "@/hooks/useAlbums";
-import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
 import { AlbumGrid } from "@/components/AlbumGrid";
 
@@ -22,22 +21,7 @@ function HomeStatCard({ href, label, value }: { href: string; label: string; val
 }
 
 export default function Home() {
-  const { albums, loading, error } = useAlbums();
-  const [wishlistToBuy, setWishlistToBuy] = useState(0);
-
-  useEffect(() => {
-    let ignore = false;
-    getDataClient()
-      .from("wishlist_items")
-      .select("id")
-      .eq("status", "a_acheter")
-      .then(({ data }) => {
-        if (!ignore) setWishlistToBuy(data?.length ?? 0);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const { albums, wishlist, loading, error } = useAlbums();
 
   const totalSeries = useMemo(
     () => new Set(albums.map((a) => a.series_name).filter(Boolean)).size,
@@ -77,7 +61,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
             <HomeStatCard href="/albums" label="Albums" value={albums.length} />
             <HomeStatCard href="/series" label="Séries" value={totalSeries} />
-            <HomeStatCard href="/wishlist" label="Achats" value={wishlistToBuy} />
+            <HomeStatCard href="/wishlist" label="Achats" value={wishlist.length} />
             <HomeStatCard href="/vente" label="Ventes" value={albumsForSale} />
           </div>
 

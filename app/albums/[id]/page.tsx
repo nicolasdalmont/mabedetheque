@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Layers, Pencil, Sparkles, Tag } from "lucide-react";
+import { Layers, Pencil, ShoppingCart, Sparkles, Tag } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
+import { useToast } from "@/components/Toast";
 import { formatDate } from "@/lib/format";
 import { SALE_STATUS_LABEL, type Album } from "@/types/album";
 
@@ -22,6 +23,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 export default function AlbumDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { success, error: toastError } = useToast();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,23 @@ export default function AlbumDetailPage() {
     };
   }, [id]);
 
+  // "Acheté" on an achat-tagged album: it joins the collection, purchase
+  // date defaulting to today (same default as adding an album directly).
+  async function handleMarkBought() {
+    if (!album) return;
+    const purchase_date = album.purchase_date ?? new Date().toISOString().slice(0, 10);
+    const { error } = await getDataClient()
+      .from("albums")
+      .update({ is_wishlist: false, purchase_date })
+      .eq("id", album.id);
+    if (error) {
+      toastError(error.message);
+      return;
+    }
+    setAlbum({ ...album, is_wishlist: false, purchase_date });
+    success(`« ${album.title} » ajouté à votre bédéthèque.`);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       <AppHeader />
@@ -89,6 +108,12 @@ export default function AlbumDetailPage() {
                     {SALE_STATUS_LABEL[album.sale_status]}
                   </span>
                 ) : null}
+                {album.is_wishlist && album.sale_status === "none" ? (
+                  <span className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
+                    <ShoppingCart size={11} aria-hidden="true" />
+                    Achat
+                  </span>
+                ) : null}
                 {album.is_integrale ? (
                   <span className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-medium text-black">
                     <Layers size={11} aria-hidden="true" />
@@ -114,6 +139,16 @@ export default function AlbumDetailPage() {
                   </div>
                 )}
               </div>
+              {album.is_wishlist ? (
+                <button
+                  type="button"
+                  onClick={handleMarkBought}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-yellow-400 px-3 py-2 text-sm font-medium hover:bg-yellow-400/10"
+                >
+                  <ShoppingCart size={15} aria-hidden="true" />
+                  Marquer comme acheté
+                </button>
+              ) : null}
               <Link
                 href={`/albums/${album.id}/edit`}
                 className="mt-3 flex items-center justify-center gap-2 rounded-md bg-yellow-400 px-3 py-2 text-sm font-medium text-black hover:bg-yellow-300"

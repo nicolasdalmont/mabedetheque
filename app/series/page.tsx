@@ -1,10 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
-import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
 import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import { SeriesCard } from "@/components/SeriesCard";
@@ -14,7 +13,14 @@ import { seriesTitlesMatch } from "@/lib/bnf-series";
 import { normalizeForSearch } from "@/lib/search";
 import type { Album } from "@/types/album";
 
-type SeriesSummary = { name: string; albums: Album[]; coverUrl: string | null };
+type SeriesSummary = {
+  name: string;
+  /** Owned albums *and* achat-tagged ones. */
+  albums: Album[];
+  ownedCount: number;
+  hasWishlist: boolean;
+  coverUrl: string | null;
+};
 
 // `onChange` writes to the URL (router.replace), same as the Albums search
 // bar — buffer keystrokes locally and debounce before propagating, entirely
@@ -61,10 +67,23 @@ function SeriesFilterInput({
 // are missing for a meaningful chunk of the collection (see Stats).
 function buildSeriesList(albums: Album[]): SeriesSummary[] {
   const bySeries = new Map<string, Album[]>();
+  const add = (name: string, a: Album) => {
+    if (!bySeries.has(name)) bySeries.set(name, []);
+    bySeries.get(name)!.push(a);
+  };
   for (const a of albums) {
-    if (!a.series_name) continue;
-    if (!bySeries.has(a.series_name)) bySeries.set(a.series_name, []);
-    bySeries.get(a.series_name)!.push(a);
+    if (a.series_name && !a.is_wishlist) add(a.series_name, a);
+  }
+  // An achat's series_name can come from a BnF search (BnF's own wording)
+  // rather than our local convention — attach it to the owned series it
+  // matches on significant words instead of spawning a near-duplicate series.
+  for (const a of albums) {
+    if (!a.series_name || !a.is_wishlist) continue;
+    const target = bySeries.has(a.series_name)
+      ? a.series_name
+      : ([...bySeries.keys()].find((name) => seriesTitlesMatch(name, a.series_name!)) ??
+        a.series_name);
+    add(target, a);
   }
 
   const list: SeriesSummary[] = [];
@@ -76,13 +95,19 @@ function buildSeriesList(albums: Album[]): SeriesSummary[] {
       return a.title.localeCompare(b.title);
     });
     const withCover = sorted.find((a) => a.cover_url && a.cover_url !== KNOWN_DEAD_COVER_URL);
-    list.push({ name, albums: sorted, coverUrl: withCover?.cover_url ?? null });
+    list.push({
+      name,
+      albums: sorted,
+      ownedCount: sorted.filter((a) => !a.is_wishlist).length,
+      hasWishlist: sorted.some((a) => a.is_wishlist),
+      coverUrl: withCover?.cover_url ?? null,
+    });
   }
   return list.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function SeriesContent() {
-  const { albums, loading, error } = useAlbums();
+  const { allAlbums: albums, loading, error, refetch } = useAlbums();
   const { user } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -138,43 +163,6 @@ function SeriesContent() {
       return true;
     });
   }, [seriesList, seriesNameFilter, authorFilter, integraleFilter, horsSerieFilter]);
-
-  const [wishlist, setWishlist] = useState<
-    { series_name: string; issue_number: number | null; title: string | null }[]
-  >([]);
-  useEffect(() => {
-    let ignore = false;
-    getDataClient()
-      .from("wishlist_items")
-      .select("series_name, issue_number, title")
-      .then(({ data }) => {
-        if (!ignore) setWishlist(data ?? []);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-  // wishlist_items.series_name can come from a BnF search result (BnF's own
-  // wording) or from a local series name (our sort-friendly convention) —
-  // compare on significant words, same as the BnF series matching, rather
-  // than exact string equality which would miss half of them.
-  const seriesWithWishlistItem = useMemo(() => {
-    const matched = new Set<string>();
-    for (const series of seriesList) {
-      if (wishlist.some((w) => seriesTitlesMatch(series.name, w.series_name))) {
-        matched.add(series.name);
-      }
-    }
-    return matched;
-  }, [seriesList, wishlist]);
-  // Tomes on the achats list for the currently-open series — the detail
-  // modal ghosts them into the album grid and won't offer them again.
-  const openSeriesWishlistTomes = useMemo(() => {
-    if (!openSeries) return [];
-    return wishlist
-      .filter((w) => seriesTitlesMatch(openSeries, w.series_name))
-      .map((w) => ({ issue_number: w.issue_number, title: w.title }));
-  }, [openSeries, wishlist]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -262,8 +250,8 @@ function SeriesContent() {
               key={s.name}
               name={s.name}
               coverUrl={s.coverUrl}
-              count={s.albums.length}
-              hasWishlistItem={seriesWithWishlistItem.has(s.name)}
+              count={s.ownedCount}
+              hasWishlistItem={s.hasWishlist}
               onClick={() => setOpenSeries(s.name)}
             />
           ))}
@@ -275,7 +263,7 @@ function SeriesContent() {
           seriesName={activeSeries.name}
           albums={activeSeries.albums}
           ownerId={user.id}
-          wishlistTomes={openSeriesWishlistTomes}
+          onChanged={refetch}
           onClose={() => setOpenSeries(null)}
         />
       ) : null}

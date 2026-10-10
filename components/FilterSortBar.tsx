@@ -7,7 +7,17 @@ const sortLabels: Record<SortKey, string> = {
   legal_deposit: "Dépôt légal",
 };
 
+export type CollectionScope = "collection" | "achats" | "tous";
+
+const scopeLabels: Record<CollectionScope, string> = {
+  collection: "Collection",
+  achats: "Achats",
+  tous: "Tous",
+};
+
 export function FilterSortBar({
+  scope,
+  onScopeChange,
   seriesOptions,
   publisherOptions,
   authorOptions,
@@ -26,6 +36,10 @@ export function FilterSortBar({
   viewMode,
   onViewModeChange,
 }: {
+  /** Which albums are listed: the owned collection (default), the
+   * "achat"-tagged ones, or both. */
+  scope: CollectionScope;
+  onScopeChange: (value: CollectionScope) => void;
   seriesOptions: string[];
   publisherOptions: string[];
   /** Merged, de-duplicated writer + illustrator names — picking one matches
@@ -52,6 +66,19 @@ export function FilterSortBar({
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <select
+        className={selectClass}
+        value={scope}
+        onChange={(e) => onScopeChange(e.target.value as CollectionScope)}
+        aria-label="Afficher la collection, les achats ou tout"
+      >
+        {Object.entries(scopeLabels).map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+      </select>
+
       <select
         className={selectClass}
         value={series}

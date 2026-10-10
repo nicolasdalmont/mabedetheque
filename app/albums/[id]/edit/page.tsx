@@ -198,9 +198,12 @@ export default function EditAlbumPage() {
           >
             ← Retour
           </button>
-          <h1 className="text-lg font-semibold">Modifier l&apos;album</h1>
+          <h1 className="text-lg font-semibold">
+            {album.is_wishlist ? "Modifier l\u2019achat" : "Modifier l\u2019album"}
+          </h1>
         </div>
 
+        {album.is_wishlist ? null : (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">
           <span className="text-xs font-medium text-zinc-500">Vente :</span>
           {album.sale_status === "none" ? (
@@ -246,6 +249,7 @@ export default function EditAlbumPage() {
             </>
           )}
         </div>
+        )}
 
         <AlbumForm
           initial={album}
