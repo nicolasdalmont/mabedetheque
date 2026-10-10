@@ -258,6 +258,12 @@ série reprend aussi « — intégrale » ou « — hors série » (au lieu de �
 les métadonnées (dates via `formatDate`) + bouton **« Modifier »** → `/albums/[id]/edit`.
 Re-fetch au retour de focus.
 
+La couverture est affichée **sans cadre** (ni bordure, ni fond, ni ratio 2/3 forcé : l'image
+garde sa hauteur naturelle) sur 95 % de la largeur de l'écran en mobile (`w-[95vw]` recentré
+avec `left-1/2 -translate-x-1/2` pour sortir du padding de page) et sur 384 px dès `sm`
+(le double des 192 px précédents). Seul le placeholder « Pas de couverture » conserve un
+bloc 2/3.
+
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)
 
 Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
