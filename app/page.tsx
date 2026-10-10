@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { AlbumGrid } from "@/components/AlbumGrid";
@@ -12,10 +13,15 @@ function HomeStatCard({ href, label, value }: { href: string; label: string; val
   return (
     <Link
       href={href}
-      className="rounded-lg border border-black/10 p-4 text-center transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+      className="rounded-lg border border-black/10 bg-black/[0.03] p-4 text-center transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/5"
     >
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
-      <p className="text-sm text-zinc-500">{label}</p>
+      {/* Chevron: hover doesn't exist on touch, so it's the affordance that
+          says "this card is a link". */}
+      <p className="flex items-center justify-center gap-0.5 text-sm text-zinc-500">
+        {label}
+        <ChevronRight size={16} className="text-yellow-500" aria-hidden="true" />
+      </p>
     </Link>
   );
 }
