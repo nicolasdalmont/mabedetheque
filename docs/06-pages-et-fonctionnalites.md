@@ -264,6 +264,13 @@ avec `left-1/2 -translate-x-1/2` pour sortir du padding de page) et sur 384 px d
 (le double des 192 px précédents). Seul le placeholder « Pas de couverture » conserve un
 bloc 2/3.
 
+**Achat ↔ collection** : sur un album d'achat (`is_wishlist`), bouton « Marquer comme acheté »
+(`is_wishlist = false`, `purchase_date` = aujourd'hui si vide). Inversement, sur un album de la
+collection dont `sale_status = 'none'`, bouton **« Ajouter aux achats »** (après `ConfirmDialog`)
+pour corriger un ajout par erreur : `is_wishlist = true` et `purchase_date = null` (la date avait
+été posée par défaut à l'ajout, sans achat réel). Masqué pour les albums à vendre/vendus afin de
+ne pas mélanger les statuts.
+
 ## Édition d'album (`app/albums/[id]/edit/page.tsx`)
 
 Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
