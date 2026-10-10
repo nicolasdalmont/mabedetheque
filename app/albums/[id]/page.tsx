@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Layers, Pencil, ShoppingCart, Sparkles, Tag } from "lucide-react";
 import { getDataClient } from "@/lib/neon-client";
 import { AppHeader } from "@/components/AppHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { formatDate } from "@/lib/format";
 import { SALE_STATUS_LABEL, type Album } from "@/types/album";
@@ -29,6 +30,7 @@ export default function AlbumDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
+  const [confirmMoveOpen, setConfirmMoveOpen] = useState(false);
 
   // Re-fetch on mount and whenever the app regains focus — so coming back
   // here after editing (or a change made elsewhere) shows fresh data.
@@ -76,6 +78,24 @@ export default function AlbumDetailPage() {
     }
     setAlbum({ ...album, is_wishlist: false, purchase_date });
     success(`« ${album.title} » ajouté à votre bédéthèque.`);
+  }
+
+  // Inverse of "Acheté": an album added to the collection by mistake goes
+  // back to the achats list. The purchase date (defaulted to today when the
+  // album was added) is cleared since nothing was actually bought.
+  async function handleMoveToWishlist() {
+    if (!album) return;
+    const { error } = await getDataClient()
+      .from("albums")
+      .update({ is_wishlist: true, purchase_date: null })
+      .eq("id", album.id);
+    setConfirmMoveOpen(false);
+    if (error) {
+      toastError(error.message);
+      return;
+    }
+    setAlbum({ ...album, is_wishlist: true, purchase_date: null });
+    success(`« ${album.title} » déplacé vers les achats.`);
   }
 
   return (
@@ -148,6 +168,15 @@ export default function AlbumDetailPage() {
                   <ShoppingCart size={15} aria-hidden="true" />
                   Marquer comme acheté
                 </button>
+              ) : album.sale_status === "none" ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmMoveOpen(true)}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-yellow-400 px-3 py-2 text-sm font-medium hover:bg-yellow-400/10"
+                >
+                  <ShoppingCart size={15} aria-hidden="true" />
+                  Ajouter aux achats
+                </button>
               ) : null}
               <Link
                 href={`/albums/${album.id}/edit`}
@@ -197,6 +226,15 @@ export default function AlbumDetailPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmMoveOpen}
+        title="Ajouter aux achats ?"
+        message="Cet album sera retiré de votre collection et placé dans la liste des achats."
+        confirmLabel="Ajouter aux achats"
+        tone="default"
+        onConfirm={handleMoveToWishlist}
+        onCancel={() => setConfirmMoveOpen(false)}
+      />
     </div>
   );
 }
