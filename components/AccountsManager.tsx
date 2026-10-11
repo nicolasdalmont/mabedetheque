@@ -190,7 +190,7 @@ export function AccountsManager() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex max-w-2xl items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Comptes</h2>
         {!showCreate ? (
           <button type="button" onClick={openCreate} className={`${buttonClass} inline-flex items-center gap-1.5`}>
@@ -201,7 +201,7 @@ export function AccountsManager() {
       </div>
 
       {result ? (
-        <div className="max-w-md space-y-2 rounded-xl border border-yellow-500/40 bg-yellow-50 p-4 text-sm dark:bg-yellow-950/30">
+        <div className="space-y-2 rounded-xl border border-yellow-500/40 bg-yellow-50 p-4 text-sm dark:bg-yellow-950/30">
           <p>
             {result.kind === "created" ? "Compte créé pour" : "Mot de passe réinitialisé pour"}{" "}
             <strong>{result.name || result.email}</strong>. Transmettez-lui ce mot de passe
@@ -223,7 +223,7 @@ export function AccountsManager() {
       {showCreate ? (
         <form
           onSubmit={handleCreate}
-          className="max-w-md space-y-3 rounded-xl border border-black/10 p-4 dark:border-white/10"
+          className="space-y-3 rounded-xl border border-black/10 p-4 dark:border-white/10"
         >
           <div className="space-y-1">
             <label htmlFor="new-name" className="text-sm font-medium">Prénom Nom</label>
@@ -261,7 +261,7 @@ export function AccountsManager() {
       ) : !members ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : (
-        <ul className="flex max-w-2xl flex-col divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/10">
+        <ul className="flex flex-col divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/10">
           {members.map((m) => {
             const isSelf = m.id === user?.id;
             return (

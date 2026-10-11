@@ -228,7 +228,11 @@ export default function AccountPage() {
             {forced ? null : <IdentityForm initialName={user.name ?? ""} email={user.email} />}
             <PasswordForm forced={forced} userId={user.id} />
           </div>
-          {user.role === "admin" && !forced ? <AccountsManager /> : null}
+          {user.role === "admin" && !forced ? (
+            <div className="lg:max-w-4xl">
+              <AccountsManager />
+            </div>
+          ) : null}
         </div>
       )}
     </div>
