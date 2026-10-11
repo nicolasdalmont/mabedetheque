@@ -49,7 +49,6 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
     setError(null);
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") ?? "");
-    const typedName = String(formData.get("name") ?? "").trim();
     const password = String(formData.get("password") ?? "");
 
     const { data, error } = await safeAuthCall(
@@ -60,14 +59,7 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
       setError(error.message ?? "Connexion impossible.");
       return;
     }
-    // Compte sans nom (ex. créé sans) : on retient le « Prénom Nom » saisi.
-    let name = data?.user?.name?.trim() || null;
-    if (!name && typedName) {
-      const { error: nameError } = await safeAuthCall(
-        getNeonClient().auth.updateUser({ name: typedName }),
-      );
-      if (!nameError) name = typedName;
-    }
+    const name = data?.user?.name?.trim() || null;
     setPending(false);
     saveRemembered({ email, name });
     router.push("/");
@@ -123,33 +115,19 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
       {isPasswordOnly ? (
         <input type="hidden" name="email" value={remembered!.email} />
       ) : (
-        <>
-          <div className="space-y-1">
-            <label htmlFor="name" className="text-sm font-medium">
-              Prénom Nom
-            </label>
-            <input
-              id="name"
-              name="name"
-              autoComplete="name"
-              placeholder="Prénom Nom"
-              className={inputClass}
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className={inputClass}
-            />
-          </div>
-        </>
+        <div className="space-y-1">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className={inputClass}
+          />
+        </div>
       )}
 
       <div className="space-y-1">
