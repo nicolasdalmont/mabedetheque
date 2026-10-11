@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getNeonClient } from "@/lib/neon-client";
 
-type SessionUser = { id: string; email: string; name?: string | null };
+export type SessionUser = {
+  id: string;
+  email: string;
+  name?: string | null;
+  // Plugin admin de Better Auth : "admin" ou "user" (absent = "user").
+  role?: string | null;
+};
 
 export function useSession() {
   const router = useRouter();

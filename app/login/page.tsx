@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
+import {
+  loadRemembered,
+  saveRemembered,
+  type RememberedAccount,
+} from "@/lib/remembered-account";
 
 const cardClass =
   "w-full max-w-sm space-y-4 rounded-xl border border-black/10 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-zinc-950";
@@ -10,27 +15,6 @@ const inputClass =
   "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
 const buttonClass =
   "w-full rounded-md bg-yellow-400 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-yellow-300 disabled:opacity-50";
-
-const REMEMBERED_KEY = "mabedetheque:remembered-account";
-
-type RememberedAccount = { email: string; name: string | null };
-
-function loadRemembered(): RememberedAccount | null {
-  try {
-    const raw = localStorage.getItem(REMEMBERED_KEY);
-    return raw ? (JSON.parse(raw) as RememberedAccount) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveRemembered(account: RememberedAccount) {
-  try {
-    localStorage.setItem(REMEMBERED_KEY, JSON.stringify(account));
-  } catch {
-    // ignore (private browsing, storage disabled...)
-  }
-}
 
 // Sign-in happens client-side (not a Server Action): the browser's Neon
 // client caches the session's JWT (from the `set-auth-jwt` response header)
@@ -65,17 +49,27 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
     setError(null);
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") ?? "");
+    const typedName = String(formData.get("name") ?? "").trim();
     const password = String(formData.get("password") ?? "");
 
     const { data, error } = await safeAuthCall(
       getNeonClient().auth.signIn.email({ email, password }),
     );
-    setPending(false);
     if (error) {
+      setPending(false);
       setError(error.message ?? "Connexion impossible.");
       return;
     }
-    saveRemembered({ email, name: data?.user?.name ?? null });
+    // Compte sans nom (ex. créé sans) : on retient le « Prénom Nom » saisi.
+    let name = data?.user?.name?.trim() || null;
+    if (!name && typedName) {
+      const { error: nameError } = await safeAuthCall(
+        getNeonClient().auth.updateUser({ name: typedName }),
+      );
+      if (!nameError) name = typedName;
+    }
+    setPending(false);
+    saveRemembered({ email, name });
     router.push("/");
   }
 
@@ -129,19 +123,33 @@ function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
       {isPasswordOnly ? (
         <input type="hidden" name="email" value={remembered!.email} />
       ) : (
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className={inputClass}
-          />
-        </div>
+        <>
+          <div className="space-y-1">
+            <label htmlFor="name" className="text-sm font-medium">
+              Prénom Nom
+            </label>
+            <input
+              id="name"
+              name="name"
+              autoComplete="name"
+              placeholder="Prénom Nom"
+              className={inputClass}
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className={inputClass}
+            />
+          </div>
+        </>
       )}
 
       <div className="space-y-1">
