@@ -144,6 +144,10 @@ admins seulement (`/comptes` ne fait plus que rediriger vers `/compte`). Liste d
   temporaire** généré (`lib/temp-password.ts`, « mot-123 », `crypto.getRandomValues`),
   modifiable. Il est affiché une seule fois dans un encart (avec bouton Copier) pour que
   l'admin le transmette à la main.
+- **Modifier** (`admin.updateUser`) : Prénom Nom et email d'un autre compte (formulaire en
+  ligne). Les albums étant rattachés à l'identifiant du compte, pas à l'email, ils suivent ;
+  seul l'identifiant de connexion change (à communiquer à la personne). Son propre nom se
+  modifie dans le bloc Identité.
 - **Réinitialiser** (`admin.setUserPassword`) : nouveau mot de passe temporaire, même encart.
 - **Promouvoir / Rétrograder** (`admin.setRole`), jamais sur son propre compte.
 - **Stats** par compte : nombre d'albums et dernière connexion (voir plus bas).

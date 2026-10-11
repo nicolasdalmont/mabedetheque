@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, KeyRound, Plus } from "lucide-react";
+import { Copy, KeyRound, Pencil, Plus } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
@@ -47,6 +47,11 @@ export function AccountsManager() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<TempResult | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editPending, setEditPending] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await safeAuthCall(
@@ -126,6 +131,39 @@ export function AccountsManager() {
       toast.error(`Mot de passe réinitialisé, mais le changement forcé n'a pas pu être activé (${flagError}).`);
     }
     setResult({ kind: "reset", name: member.name, email: member.email, password: tempPassword });
+  }
+
+  function openEdit(member: Member) {
+    setEditName(member.name);
+    setEditEmail(member.email);
+    setEditError(null);
+    setEditingId(member.id);
+  }
+
+  async function handleEdit(e: React.FormEvent, member: Member) {
+    e.preventDefault();
+    const nextName = editName.trim();
+    const nextEmail = editEmail.trim();
+    const data: { name?: string; email?: string } = {};
+    if (nextName !== member.name) data.name = nextName;
+    if (nextEmail !== member.email) data.email = nextEmail;
+    if (Object.keys(data).length === 0) {
+      setEditingId(null);
+      return;
+    }
+    setEditPending(true);
+    setEditError(null);
+    const { error } = await safeAuthCall(
+      getNeonClient().auth.admin.updateUser({ userId: member.id, data }),
+    );
+    setEditPending(false);
+    if (error) {
+      setEditError(error.message ?? "Enregistrement impossible.");
+      return;
+    }
+    setEditingId(null);
+    toast.success("Compte mis à jour");
+    await load();
   }
 
   async function handleRole(member: Member) {
@@ -228,6 +266,31 @@ export function AccountsManager() {
             const isSelf = m.id === user?.id;
             return (
               <li key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                {editingId === m.id ? (
+                  <form onSubmit={(e) => handleEdit(e, m)} className="w-full space-y-3">
+                    <div className="space-y-1">
+                      <label htmlFor={`edit-name-${m.id}`} className="text-sm font-medium">Prénom Nom</label>
+                      <input id={`edit-name-${m.id}`} value={editName} onChange={(e) => setEditName(e.target.value)} required maxLength={80} className={inputClass} />
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor={`edit-email-${m.id}`} className="text-sm font-medium">Email</label>
+                      <input id={`edit-email-${m.id}`} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required className={inputClass} />
+                      <p className="text-xs text-zinc-500">
+                        L&apos;email sert à la connexion et à la récupération du mot de passe : prévenez la personne.
+                      </p>
+                    </div>
+                    {editError ? <p className="text-sm text-red-600 dark:text-red-400">{editError}</p> : null}
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={editPending} className={buttonClass}>
+                        {editPending ? "Enregistrement..." : "Enregistrer"}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} className={ghostButtonClass}>
+                        Annuler
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                <>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-sm font-medium text-black">
                   {(m.name || m.email).slice(0, 1).toUpperCase()}
                 </span>
@@ -245,6 +308,10 @@ export function AccountsManager() {
                 </div>
                 {!isSelf ? (
                   <div className="flex gap-2">
+                    <button type="button" onClick={() => openEdit(m)} className={ghostButtonClass}>
+                      <Pencil size={14} aria-hidden="true" />
+                      Modifier
+                    </button>
                     <button type="button" onClick={() => handleRole(m)} className={ghostButtonClass}>
                       {m.role === "admin" ? "Rétrograder" : "Promouvoir"}
                     </button>
@@ -254,6 +321,8 @@ export function AccountsManager() {
                     </button>
                   </div>
                 ) : null}
+                </>
+                )}
               </li>
             );
           })}
