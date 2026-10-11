@@ -186,7 +186,7 @@ Accessible à tous via l'icône utilisateur de l'en-tête (`AccountButton`).
 - Les blocs Identité et Mot de passe sont côte à côte (une colonne sur mobile) ; pour un
   admin, la gestion des comptes s'affiche en dessous.
 
-### Stats de « Comptes » : dernière connexion et nombre d'albums
+### Stats de la gestion des comptes : dernière connexion et nombre d'albums
 
 Migration 0012. Deux obstacles : la RLS interdit à un admin de lire les albums des autres
 comptes, et Better Auth **supprime la session à la déconnexion** (la date de dernière
@@ -198,7 +198,7 @@ connexion s'y perdrait).
   nombre d'albums (mêmes critères que `useAlbums()` : hors achats `is_wishlist` et hors
   vendus) et la plus récente entre `last_seen_at` et l'activité de session
   (`neon_auth.session."updatedAt"`).
-- Sans la migration, la liste « Comptes » s'affiche simplement sans stats.
+- Sans la migration, la liste des comptes s'affiche simplement sans stats.
 
 ## Mot de passe oublié et Resend
 

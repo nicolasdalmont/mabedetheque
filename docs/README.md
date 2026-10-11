@@ -34,5 +34,5 @@ voit que ses propres données, via RLS Postgres — rien n'empêche plusieurs co
 
 Toute la donnée applicative vit dans les tables Postgres `albums`, `ideas` (et
 `account_flags` pour la gestion des comptes), protégées par Row Level Security.
-Les comptes sont créés par un administrateur (écran « Comptes »), chacun avec sa propre
+Les comptes sont créés par un administrateur (depuis « Mon compte »), chacun avec sa propre
 bédéthèque.
