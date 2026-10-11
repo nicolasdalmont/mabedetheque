@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { AccountsManager } from "@/components/AccountsManager";
 import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
@@ -12,7 +11,7 @@ import { clearPasswordChangeFlag, fetchMustChangePassword } from "@/lib/password
 import { loadRemembered, saveRemembered } from "@/lib/remembered-account";
 
 const cardClass =
-  "w-full max-w-md space-y-4 rounded-xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-950";
+  "w-full space-y-4 rounded-xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-950";
 const inputClass =
   "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-yellow-500 sm:text-sm dark:border-white/20 dark:focus:border-yellow-400";
 const buttonClass =
@@ -224,18 +223,12 @@ export default function AccountPage() {
       {loading || !user ? (
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {forced ? null : <IdentityForm initialName={user.name ?? ""} email={user.email} />}
-          <PasswordForm forced={forced} userId={user.id} />
-          {user.role === "admin" && !forced ? (
-            <Link
-              href="/comptes"
-              className="flex w-full max-w-md items-center gap-2 rounded-xl border border-black/10 px-4 py-3 text-sm font-medium hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
-            >
-              <Users size={18} aria-hidden="true" />
-              Gérer les comptes
-            </Link>
-          ) : null}
+        <div className="flex flex-col gap-6">
+          <div className={forced ? "max-w-md" : "grid items-start gap-4 md:grid-cols-2 lg:max-w-4xl"}>
+            {forced ? null : <IdentityForm initialName={user.name ?? ""} email={user.email} />}
+            <PasswordForm forced={forced} userId={user.id} />
+          </div>
+          {user.role === "admin" && !forced ? <AccountsManager /> : null}
         </div>
       )}
     </div>

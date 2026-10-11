@@ -36,6 +36,9 @@ tester le changement dans l'app.
 | `0007_integrale.sql` | Colonne `albums.is_integrale` + backfill depuis les commentaires |
 | `0008_hors_serie.sql` | Colonne `albums.is_hors_serie` |
 | `0009_collection.sql` | Colonne `albums.collection` + backfill depuis les commentaires |
+| `0010_wishlist_albums.sql` | Les achats deviennent des albums `is_wishlist = true` |
+| `0011_account_flags.sql` | Table `account_flags` + `flag_password_change()` (changement de mot de passe forcé) |
+| `0012_account_stats.sql` | `account_flags.last_seen_at`, `touch_last_seen()`, `admin_account_stats()` |
 
 ## Table `albums`
 
@@ -161,6 +164,22 @@ create table ideas (
 
 Index : `owner_id`, `status`. "Boîte à idées" pour les suggestions d'amélioration de l'app,
 avec un statut de suivi simple (même principe que sur d'autres apps de l'utilisateur).
+
+## Table `account_flags`
+
+Une ligne par compte **au plus** (`user_id text` = id Better Auth, comme `owner_id`) :
+`must_change_password` (mot de passe temporaire à remplacer, voir
+[03](./03-authentification.md#changement-de-mot-de-passe-forcé)), `last_seen_at`
+(dernière présence), `updated_at`. Pas de ligne = rien d'exigé.
+
+RLS différente des autres tables : un utilisateur ne peut que **lire et mettre à jour sa
+propre ligne** (pas d'INSERT/DELETE), et les écritures « de l'extérieur » passent par trois
+fonctions `SECURITY DEFINER` (`search_path = public`, `EXECUTE` retiré à `public` et
+`anonymous`, accordé à `authenticated`) : `flag_password_change(target)` et
+`admin_account_stats()` relisent le rôle dans `neon_auth."user"` (`id::text =
+(select auth.user_id())` et `role = 'admin'`) et lèvent `42501` sinon ; `touch_last_seen()`
+upserte uniquement la ligne de l'appelant. C'est le seul endroit où l'app lit le schéma
+`neon_auth`.
 
 ## Row Level Security
 

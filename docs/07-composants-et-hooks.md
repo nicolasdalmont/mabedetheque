@@ -24,7 +24,8 @@ Hook central de récupération de la table `albums`. Retourne
 ### `useSession()` (`hooks/useSession.ts`)
 
 Voir [03-authentification.md](./03-authentification.md). Retourne
-`{ user, loading, signOut }`.
+`{ user, loading, signOut }` ; `user` = `{ id, email, name, role }`
+(`role` : `"admin"` / `"user"`, plugin admin de Better Auth).
 
 ## Composants de navigation / layout
 
@@ -33,7 +34,7 @@ Voir [03-authentification.md](./03-authentification.md). Retourne
 En-tête partagé rendu par **chaque** page (Accueil + 6 onglets + Détail + Ajout +
 Édition) : logo (`<Link href="/" aria-label="Accueil">`, vers la page d'Accueil — voir
 [06](./06-pages-et-fonctionnalites.md)) + `AppTabs` à gauche, `ThemeButton` +
-`RefreshButton` + `SignOutButton` à droite. Extrait pour que les en-têtes ne divergent plus (avant : logo
+`RefreshButton` + `AccountButton` + `SignOutButton` à droite. Extrait pour que les en-têtes ne divergent plus (avant : logo
 tantôt `<h1>` non cliquable, tantôt `<Link>`).
 
 ### `ThemeButton` / `ThemeSync` (`lib/theme.ts`)
@@ -119,6 +120,24 @@ qu'interdit la règle ESLint `react-hooks/set-state-in-effect`).
 
 Icône seule (`LogOut` de lucide-react, pas de texte) — `useSession()` pour l'action et
 pour ne rien rendre si aucun utilisateur n'est connecté.
+
+### `AccountButton` (`components/AccountButton.tsx`)
+
+Icône `UserRound` vers `/compte` (« Mon compte »), rien si aucun utilisateur n'est connecté.
+
+### `AccountsManager` (`components/AccountsManager.tsx`)
+
+Liste et actions d'administration des comptes (création, réinitialisation, rôle, stats),
+rendue par `/compte` pour les admins. Voir [03](./03-authentification.md#gestion-des-comptes).
+
+### `PasswordChangeGate` (`components/PasswordChangeGate.tsx`)
+
+Composant sans rendu monté une fois dans `app/layout.tsx`. À chaque changement de route
+tant que le résultat n'est pas « en ordre » : lit la session, appelle une fois
+`touchLastSeen()` (dernière connexion) et, si `account_flags.must_change_password` est levé,
+redirige vers `/compte`. `/login` remet son état à zéro (nouvelle connexion revérifiée) ;
+hors-ligne ou session absente, il ne bloque rien. Détail dans
+[03](./03-authentification.md#changement-de-mot-de-passe-forcé).
 
 ### `ManifestThemeSwitcher` (`components/ManifestThemeSwitcher.tsx`)
 

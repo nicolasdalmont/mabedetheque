@@ -108,16 +108,123 @@ jamais qu'à vérifier `.error`.
 
 ## Page de connexion (`app/login/page.tsx`)
 
-- Formulaire email/mot de passe uniquement.
+- Formulaire **email + mot de passe** uniquement (le nom du compte n'y est pas demandé : il
+  vient du compte, fixé à la création par l'admin puis éditable depuis « Mon compte »).
 - Mémorise le dernier compte connecté dans `localStorage`
-  (`mabedetheque:remembered-account`, clé `REMEMBERED_KEY`) pour proposer un sélecteur de
-  compte ("picker") plutôt que de redemander l'email à chaque connexion — trois modes
-  d'affichage (`picker` / `password` / `full`).
-- Comprend aussi un flux de réinitialisation de mot de passe (`onForgotPassword`).
+  (`mabedetheque:remembered-account`, helpers dans `lib/remembered-account.ts`) : l'écran
+  affiche alors l'**identité** de ce compte (initiale + Prénom Nom) et ne redemande que le
+  mot de passe. Trois modes d'affichage (`picker` / `password` / `full`) ; « Utiliser un
+  autre compte » ouvre le formulaire complet email + mot de passe (aussi le cas à la
+  première connexion sur un appareil). « Mon compte » met à jour le nom mémorisé.
+- Flux « Mot de passe oublié ? » : voir [Mot de passe oublié](#mot-de-passe-oublié-et-resend).
+
+## Gestion des comptes
+
+Pas d'inscription publique : comme dans todolist-familiale, **un administrateur crée les
+comptes** depuis l'application. Chaque compte a sa propre bédéthèque (RLS sur `owner_id`) :
+un nouveau compte démarre avec une collection vide.
+
+### Rôle administrateur
+
+Neon Managed Better Auth embarque le plugin **admin** de Better Auth (colonne
+`neon_auth."user".role`, `'admin'` ou `'user'`), appelé côté navigateur via
+`getNeonClient().auth.admin.*`. Le rôle est exposé dans la session (`useSession().user.role`).
+**Le tout premier admin ne peut pas être créé depuis l'app** : console Neon → Auth → Users →
+menu « ⋯ » du compte → *Make admin* (puis se reconnecter pour que la session le voie).
+La vérification qui compte est côté Better Auth / SQL ; `role === "admin"` côté client ne
+sert qu'à afficher les écrans.
+
+### Gestion des comptes (`components/AccountsManager.tsx`, admin uniquement)
+
+Affichée **directement sur « Mon compte »** sous les blocs identité et mot de passe, pour les
+admins seulement (`/comptes` ne fait plus que rediriger vers `/compte`). Liste des comptes
+(`admin.listUsers`) avec :
+
+- **Ajouter un compte** (`admin.createUser`) : Prénom Nom, email, rôle, **mot de passe
+  temporaire** généré (`lib/temp-password.ts`, « mot-123 », `crypto.getRandomValues`),
+  modifiable. Il est affiché une seule fois dans un encart (avec bouton Copier) pour que
+  l'admin le transmette à la main.
+- **Réinitialiser** (`admin.setUserPassword`) : nouveau mot de passe temporaire, même encart.
+- **Promouvoir / Rétrograder** (`admin.setRole`), jamais sur son propre compte.
+- **Stats** par compte : nombre d'albums et dernière connexion (voir plus bas).
+
+Volontairement **absent** : la suppression de compte (elle laisserait les albums du compte
+orphelins en base ; à concevoir avec leur nettoyage si besoin).
+
+### Changement de mot de passe forcé
+
+Un compte créé ou réinitialisé par un admin porte un mot de passe temporaire : il doit en
+choisir un à sa première connexion.
+
+- **Pourquoi une table à nous** : Better Auth géré par Neon n'accepte pas de champ
+  personnalisé sur `neon_auth."user"`. Le drapeau vit dans `public.account_flags`
+  (migration 0011, voir [02](./02-donnees.md)). **Pas de ligne = rien d'exigé**, donc les
+  comptes antérieurs à la fonctionnalité ne sont pas touchés (un compte créé avant son
+  déploiement ne déclenche pas le changement forcé : il faut le « Réinitialiser »).
+- **Qui pose le drapeau** : l'admin, juste après `createUser` / `setUserPassword`, via
+  `rpc('flag_password_change')` (`lib/password-flag.ts`), fonction `SECURITY DEFINER` qui
+  relit le rôle dans `neon_auth."user"` — la RLS interdit à un admin d'écrire la ligne d'un
+  autre compte. Si la pose échoue, le compte est quand même créé et l'admin en est averti
+  par un toast.
+- **Qui l'efface** : l'utilisateur, sur sa propre ligne (policy UPDATE), après
+  `changePassword`.
+- **Application** : `PasswordChangeGate` (monté dans le layout) redirige vers `/compte` tant
+  que le drapeau est levé ; `/compte` passe alors en **mode forcé** (seul le formulaire de
+  mot de passe, le mot de passe actuel étant le temporaire) puis renvoie vers l'accueil.
+  Garde de confort côté client : ce qu'un utilisateur peut contourner ne lui ouvre de toute
+  façon que ses propres données.
+
+### « Mon compte » (`app/compte/page.tsx`)
+
+Accessible à tous via l'icône utilisateur de l'en-tête (`AccountButton`).
+
+- **Identité** : Prénom Nom (`auth.updateUser({ name })`). L'email est affiché en lecture
+  seule : il sert à la connexion et à la récupération du mot de passe (le changer
+  demanderait une vérification par email).
+- **Mot de passe** : `auth.changePassword({ currentPassword, newPassword,
+  revokeOtherSessions: true })`, 8 caractères minimum.
+- Les blocs Identité et Mot de passe sont côte à côte (une colonne sur mobile) ; pour un
+  admin, la gestion des comptes s'affiche en dessous.
+
+### Stats de « Comptes » : dernière connexion et nombre d'albums
+
+Migration 0012. Deux obstacles : la RLS interdit à un admin de lire les albums des autres
+comptes, et Better Auth **supprime la session à la déconnexion** (la date de dernière
+connexion s'y perdrait).
+
+- `touch_last_seen()` (`SECURITY DEFINER`, appelée par `PasswordChangeGate` une fois par
+  chargement de l'app) écrit `account_flags.last_seen_at` pour l'utilisateur courant.
+- `admin_account_stats()` (`SECURITY DEFINER`, réservée aux admins) renvoie, par compte, le
+  nombre d'albums (mêmes critères que `useAlbums()` : hors achats `is_wishlist` et hors
+  vendus) et la plus récente entre `last_seen_at` et l'activité de session
+  (`neon_auth.session."updatedAt"`).
+- Sans la migration, la liste « Comptes » s'affiche simplement sans stats.
+
+## Mot de passe oublié et Resend
+
+« Mot de passe oublié ? » (écran de connexion) utilise le flux **code à 6 chiffres par
+email** de Better Auth (`forgetPassword.emailOtp` puis `emailOtp.resetPassword`), l'email
+étant envoyé par **Neon**, pas par l'app. Par défaut c'est le fournisseur partagé de Neon
+(test uniquement). Pour envoyer depuis le domaine du projet via **Resend**, comme Woro :
+console Neon → Auth → configuration de l'email → **fournisseur SMTP personnalisé** :
+
+| Champ | Valeur |
+|---|---|
+| Hôte | `smtp.resend.com` |
+| Port | `465` |
+| Utilisateur | `resend` |
+| Mot de passe | clé API Resend |
+| Expéditeur | une adresse d'un domaine **vérifié dans Resend** |
+
+Aucune clé Resend n'est lue par l'app (contrairement à Woro, qui appelle Resend en HTTP) :
+c'est une configuration de la console Neon, à rejouer par branche. Le domaine et les
+enregistrements DNS se gèrent comme décrit dans la doc de Woro (`docs/07-domaine-et-email.md`).
+Après configuration, utiliser l'envoi de test de la console puis le flux réel sur un
+compte de test.
 
 ## `useSession()` (`hooks/useSession.ts`)
 
-Hook client exposant `{ user, loading, signOut }`. Charge la session au montage via
+Hook client exposant `{ user, loading, signOut }` ; `user` inclut `role` (plugin admin). Charge la session au montage via
 `getNeonClient().auth.getSession()`. `signOut()` appelle `auth.signOut()` puis redirige
 vers `/login`. Utilisé par `SignOutButton`, et par chaque page/composant ayant besoin de
 `user.id` pour poser `owner_id` sur un insert (nouvel album, item wishlist, idée...).

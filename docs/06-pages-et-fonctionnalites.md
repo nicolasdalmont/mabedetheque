@@ -2,7 +2,7 @@
 
 Toutes les pages (y compris Détail / Ajout / Édition d'un album) partagent le même
 en-tête, le composant `AppHeader` : logo cliquable vers `/` + barre d'onglets `AppTabs`
-à gauche, bouton **Actualiser** + bouton de déconnexion à droite (voir
+à gauche, bouton **Actualiser**, icône **Mon compte** + bouton de déconnexion à droite (voir
 [07](./07-composants-et-hooks.md)). Le bouton d'action principal d'un onglet (ex.
 "+ Ajouter un album") vit dans sa **propre ligne juste sous l'en-tête**, jamais dans
 l'en-tête lui-même.
@@ -288,6 +288,14 @@ Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
   (best-effort), toast de confirmation, `router.back()`.
 - Toast « Modifications enregistrées » à la sauvegarde.
 
+## Mon compte — `app/compte/page.tsx`
+
+Blocs **Identité** (Prénom Nom éditable, email en lecture seule) et **Mot de passe** côte à
+côte ; pour un admin, la **gestion des comptes** (liste avec nombre d'albums et dernière
+connexion, création avec mot de passe temporaire, réinitialisation, promotion/rétrogradation)
+s'affiche en dessous. En **mode forcé** (mot de passe temporaire), seul le formulaire de mot
+de passe est affiché. Détail dans [03](./03-authentification.md#gestion-des-comptes).
+
 ## Résumé des routes applicatives
 
 | Route | Page |
@@ -302,4 +310,6 @@ Même `AlbumForm`, préchargé depuis l'album existant. Particularités :
 | `/albums/new` | Ajout d'album |
 | `/albums/[id]` | Détail d'un album (lecture seule) |
 | `/albums/[id]/edit` | Édition/suppression d'un album |
-| `/login` | Connexion |
+| `/login` | Connexion (identité du dernier compte, ou email + mot de passe) ; mot de passe oublié |
+| `/compte` | Mon compte (identité, mot de passe, changement forcé ; gestion des comptes pour un admin) |
+| `/comptes` | Redirige vers `/compte` |

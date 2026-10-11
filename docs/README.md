@@ -32,5 +32,7 @@ voit que ses propres données, via RLS Postgres — rien n'empêche plusieurs co
   achats, accessible via le logo de l'en-tête.
 - **6 onglets** : Albums (`/albums`), Séries, Achats, Ventes, Idées, Stats.
 
-Toute la donnée applicative vit dans 3 tables Postgres (`albums`, `wishlist_items`,
-`ideas`), chacune protégée par Row Level Security sur `owner_id`.
+Toute la donnée applicative vit dans les tables Postgres `albums`, `ideas` (et
+`account_flags` pour la gestion des comptes), protégées par Row Level Security.
+Les comptes sont créés par un administrateur (écran « Comptes »), chacun avec sa propre
+bédéthèque.
