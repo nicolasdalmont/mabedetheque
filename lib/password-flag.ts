@@ -39,3 +39,30 @@ export async function flagPasswordChange(userId: string): Promise<string | null>
     return "erreur réseau";
   }
 }
+
+// Horodate la présence de l'utilisateur connecté (account_flags.last_seen_at,
+// migration 0012) pour la « dernière connexion » vue par les admins. Best effort :
+// un échec (hors-ligne, migration pas encore appliquée) ne doit rien bloquer.
+export async function touchLastSeen(): Promise<void> {
+  try {
+    await getDataClient().rpc("touch_last_seen");
+  } catch {
+    // ignoré
+  }
+}
+
+export type AccountStats = { albumCount: number; lastSeenAt: string | null };
+
+// Admin uniquement : stats par identifiant de compte. Map vide en cas d'échec.
+export async function fetchAccountStats(): Promise<Map<string, AccountStats>> {
+  const stats = new Map<string, AccountStats>();
+  try {
+    const { data } = await getDataClient().rpc("admin_account_stats");
+    for (const row of data ?? []) {
+      stats.set(row.user_id, { albumCount: row.album_count, lastSeenAt: row.last_seen_at });
+    }
+  } catch {
+    // ignoré : la liste s'affiche sans stats
+  }
+  return stats;
+}

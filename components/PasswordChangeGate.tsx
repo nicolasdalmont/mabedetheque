@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getNeonClient } from "@/lib/neon-client";
-import { fetchMustChangePassword } from "@/lib/password-flag";
+import { fetchMustChangePassword, touchLastSeen } from "@/lib/password-flag";
 
 // Renvoie vers « Mon compte » tant que l'utilisateur connecté n'a pas
 // remplacé le mot de passe temporaire posé par un administrateur
@@ -18,10 +18,12 @@ export function PasswordChangeGate() {
   const pathname = usePathname();
   const router = useRouter();
   const settled = useRef(false);
+  const touched = useRef(false);
 
   useEffect(() => {
     if (pathname === "/login") {
       settled.current = false;
+      touched.current = false;
       return;
     }
     if (settled.current) return;
@@ -31,6 +33,11 @@ export function PasswordChangeGate() {
       try {
         const { data } = await getNeonClient().auth.getSession();
         if (ignore || !data?.user) return;
+        // Une fois par chargement de l'app / par connexion.
+        if (!touched.current) {
+          touched.current = true;
+          touchLastSeen();
+        }
         const mustChange = await fetchMustChangePassword();
         if (ignore) return;
         if (mustChange) {

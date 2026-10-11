@@ -58,7 +58,12 @@ export type Database = {
         Update: Partial<Idea>;
       };
       account_flags: {
-        Row: { user_id: string; must_change_password: boolean; updated_at: string };
+        Row: {
+          user_id: string;
+          must_change_password: boolean;
+          last_seen_at: string | null;
+          updated_at: string;
+        };
         Insert: { user_id: string; must_change_password?: boolean };
         Update: { must_change_password?: boolean };
       };
@@ -68,6 +73,11 @@ export type Database = {
       flag_password_change: {
         Args: { target_user_id: string };
         Returns: void;
+      };
+      touch_last_seen: { Args: Record<string, never>; Returns: void };
+      admin_account_stats: {
+        Args: Record<string, never>;
+        Returns: { user_id: string; album_count: number; last_seen_at: string | null }[];
       };
     };
   };

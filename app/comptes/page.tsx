@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
-import { flagPasswordChange } from "@/lib/password-flag";
+import { fetchAccountStats, flagPasswordChange, type AccountStats } from "@/lib/password-flag";
 import { generateTempPassword } from "@/lib/temp-password";
 
 const inputClass =
@@ -22,6 +22,17 @@ type Member = { id: string; name: string; email: string; role: Role };
 // Mot de passe temporaire à transmettre : reste affiché jusqu'à fermeture.
 type TempResult = { kind: "created" | "reset"; name: string; email: string; password: string };
 
+const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+
+function formatStats(stat: AccountStats | undefined): string | null {
+  if (!stat) return null;
+  const albums = `${stat.albumCount} album${stat.albumCount > 1 ? "s" : ""}`;
+  const seen = stat.lastSeenAt
+    ? `dernière connexion ${dateFormat.format(new Date(stat.lastSeenAt))}`
+    : "jamais connecté";
+  return `${albums} · ${seen}`;
+}
+
 export default function AccountsPage() {
   const router = useRouter();
   const toast = useToast();
@@ -29,6 +40,7 @@ export default function AccountsPage() {
   const isAdmin = user?.role === "admin";
 
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [stats, setStats] = useState<Map<string, AccountStats>>(new Map());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
@@ -48,6 +60,7 @@ export default function AccountsPage() {
       return;
     }
     const users = (data as { users?: Record<string, unknown>[] } | null)?.users ?? [];
+    fetchAccountStats().then(setStats);
     setMembers(
       users.map((u) => ({
         id: String(u.id),
@@ -235,6 +248,9 @@ export default function AccountsPage() {
                   <p className="truncate text-xs text-zinc-500">
                     {m.email} · {m.role === "admin" ? "Administrateur" : "Utilisateur"}
                   </p>
+                  {formatStats(stats.get(m.id)) ? (
+                    <p className="truncate text-xs text-zinc-500">{formatStats(stats.get(m.id))}</p>
+                  ) : null}
                 </div>
                 {!isSelf ? (
                   <div className="flex gap-2">
