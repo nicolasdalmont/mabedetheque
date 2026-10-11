@@ -57,9 +57,19 @@ export type Database = {
         Insert: Partial<Idea> & Pick<Idea, "content" | "owner_id">;
         Update: Partial<Idea>;
       };
+      account_flags: {
+        Row: { user_id: string; must_change_password: boolean; updated_at: string };
+        Insert: { user_id: string; must_change_password?: boolean };
+        Update: { must_change_password?: boolean };
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      flag_password_change: {
+        Args: { target_user_id: string };
+        Returns: void;
+      };
+    };
   };
 };
 

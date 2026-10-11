@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AppUpdater } from "@/components/AppUpdater";
 import { ManifestThemeSwitcher } from "@/components/ManifestThemeSwitcher";
 import { BottomNav } from "@/components/BottomNav";
+import { PasswordChangeGate } from "@/components/PasswordChangeGate";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ThemeSync } from "@/components/ThemeSync";
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeSync />
         <ToastProvider>
           <OfflineBanner />
+          <PasswordChangeGate />
           <PullToRefresh />
           {/* Room for the fixed bottom nav (hidden on lg+, see BottomNav). */}
           <div className="flex flex-1 flex-col pb-16 lg:pb-0">{children}</div>

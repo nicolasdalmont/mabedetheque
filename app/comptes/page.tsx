@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
+import { flagPasswordChange } from "@/lib/password-flag";
 import { generateTempPassword } from "@/lib/temp-password";
 
 const inputClass =
@@ -80,7 +81,7 @@ export default function AccountsPage() {
     e.preventDefault();
     setPending(true);
     setCreateError(null);
-    const { error } = await safeAuthCall(
+    const { data, error } = await safeAuthCall(
       getNeonClient().auth.admin.createUser({
         name: name.trim(),
         email: email.trim(),
@@ -88,10 +89,17 @@ export default function AccountsPage() {
         role,
       }),
     );
-    setPending(false);
     if (error) {
+      setPending(false);
       setCreateError(error.message ?? "Création impossible.");
       return;
+    }
+    // Le compte existe déjà : un échec ici n'annule pas la création, on prévient.
+    const newId = (data as { user?: { id?: string } } | null)?.user?.id;
+    const flagError = newId ? await flagPasswordChange(newId) : "identifiant du compte introuvable";
+    setPending(false);
+    if (flagError) {
+      toast.error(`Compte créé, mais le changement de mot de passe forcé n'a pas pu être activé (${flagError}).`);
     }
     setShowCreate(false);
     setResult({ kind: "created", name: name.trim(), email: email.trim(), password });
@@ -107,6 +115,10 @@ export default function AccountsPage() {
     if (error) {
       toast.error(error.message ?? "Réinitialisation impossible.");
       return;
+    }
+    const flagError = await flagPasswordChange(member.id);
+    if (flagError) {
+      toast.error(`Mot de passe réinitialisé, mais le changement forcé n'a pas pu être activé (${flagError}).`);
     }
     setResult({ kind: "reset", name: member.name, email: member.email, password: tempPassword });
   }
@@ -151,7 +163,7 @@ export default function AccountsPage() {
           <p>
             {result.kind === "created" ? "Compte créé pour" : "Mot de passe réinitialisé pour"}{" "}
             <strong>{result.name || result.email}</strong>. Transmettez-lui ce mot de passe
-            temporaire (il ne sera plus affiché) ; il pourra le changer depuis « Mon compte ».
+            temporaire (il ne sera plus affiché) ; elle devra en choisir un nouveau dès sa première connexion.
           </p>
           <div className="flex items-center gap-2">
             <code className="rounded bg-black/10 px-2 py-1 font-mono dark:bg-white/10">{result.password}</code>

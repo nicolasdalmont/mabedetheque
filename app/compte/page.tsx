@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
+import { clearPasswordChangeFlag, fetchMustChangePassword } from "@/lib/password-flag";
 import { loadRemembered, saveRemembered } from "@/lib/remembered-account";
 
 const cardClass =
@@ -83,7 +85,8 @@ function IdentityForm({ initialName, email }: { initialName: string; email: stri
   );
 }
 
-function PasswordForm() {
+function PasswordForm({ forced, userId }: { forced: boolean; userId: string }) {
+  const router = useRouter();
   const toast = useToast();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -106,11 +109,23 @@ function PasswordForm() {
         revokeOtherSessions: true,
       }),
     );
-    setPending(false);
     if (error) {
+      setPending(false);
       setError(error.message ?? "Changement impossible.");
       return;
     }
+    if (forced) {
+      const clearError = await clearPasswordChangeFlag(userId);
+      setPending(false);
+      if (clearError) {
+        setError(`Mot de passe modifié, mais la validation a échoué (${clearError}). Réessayez.`);
+        return;
+      }
+      toast.success("Mot de passe modifié");
+      router.replace("/");
+      return;
+    }
+    setPending(false);
     setCurrent("");
     setNext("");
     setConfirm("");
@@ -121,6 +136,12 @@ function PasswordForm() {
     <form onSubmit={handleSubmit} className={cardClass}>
       <div>
         <h2 className="text-base font-semibold">Mot de passe</h2>
+        {forced ? (
+          <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
+            Votre compte utilise un mot de passe temporaire : choisissez le vôtre pour continuer
+            (l&apos;actuel est le mot de passe temporaire reçu).
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-zinc-500">
           Mot de passe perdu ? Depuis l&apos;écran de connexion, « Mot de passe oublié ? » envoie
           un code par email.
@@ -180,6 +201,20 @@ function PasswordForm() {
 
 export default function AccountPage() {
   const { user, loading } = useSession();
+  const [forced, setForced] = useState(false);
+
+  // Drapeau posé par un administrateur (mot de passe temporaire) : le
+  // PasswordChangeGate redirige ici et le formulaire passe en mode « forcé ».
+  useEffect(() => {
+    if (!user) return;
+    let ignore = false;
+    fetchMustChangePassword().then((value) => {
+      if (!ignore) setForced(value);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6">
@@ -190,9 +225,9 @@ export default function AccountPage() {
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : (
         <div className="flex flex-col gap-4">
-          <IdentityForm initialName={user.name ?? ""} email={user.email} />
-          <PasswordForm />
-          {user.role === "admin" ? (
+          {forced ? null : <IdentityForm initialName={user.name ?? ""} email={user.email} />}
+          <PasswordForm forced={forced} userId={user.id} />
+          {user.role === "admin" && !forced ? (
             <Link
               href="/comptes"
               className="flex w-full max-w-md items-center gap-2 rounded-xl border border-black/10 px-4 py-3 text-sm font-medium hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
