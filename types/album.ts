@@ -74,6 +74,10 @@ export type Database = {
         Args: { target_user_id: string };
         Returns: void;
       };
+      find_shared_cover: {
+        Args: { p_isbn: string };
+        Returns: string | null;
+      };
       touch_last_seen: { Args: Record<string, never>; Returns: void };
       admin_account_stats: {
         Args: Record<string, never>;

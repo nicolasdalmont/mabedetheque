@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { auth } from "@/lib/auth/server";
-import { uploadCover, deleteCover } from "@/lib/storage";
+import { uploadCover, deleteCover, copyCover } from "@/lib/storage";
 
 const MAX_WIDTH = 900;
 const WEBP_QUALITY = 82;
@@ -39,7 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ url });
     }
 
-    const { sourceUrl } = (await request.json()) as { sourceUrl?: string };
+    const { sourceUrl, copyFromUrl } = (await request.json()) as {
+      sourceUrl?: string;
+      copyFromUrl?: string;
+    };
+    if (copyFromUrl) {
+      return NextResponse.json({ url: await copyCover(copyFromUrl) });
+    }
     if (!sourceUrl) {
       return NextResponse.json({ error: "sourceUrl manquant." }, { status: 400 });
     }

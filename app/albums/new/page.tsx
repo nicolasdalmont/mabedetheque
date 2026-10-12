@@ -7,10 +7,22 @@ import { getDataClient } from "@/lib/neon-client";
 import { useSession } from "@/hooks/useSession";
 import { AlbumForm, clearAlbumDraft, type AlbumFormValues } from "@/components/AlbumForm";
 import { AppHeader } from "@/components/AppHeader";
+import { SharedCoverDialog } from "@/components/SharedCoverDialog";
 import { IsbnScanner } from "@/components/IsbnScanner";
 import { BnfTextSearch } from "@/components/BnfTextSearch";
 import { useToast } from "@/components/Toast";
 import type { TextSearchCandidate } from "@/lib/bnf-text-search";
+
+// Couverture du même ISBN chez un autre compte (migration 0013). Best effort :
+// une erreur (hors-ligne, migration absente) revient à « pas de proposition ».
+async function findSharedCover(isbn: string): Promise<string | null> {
+  try {
+    const { data } = await getDataClient().rpc("find_shared_cover", { p_isbn: isbn });
+    return typeof data === "string" && data ? data : null;
+  } catch {
+    return null;
+  }
+}
 
 // One slot per flavour: an "add album" and an "add achat" draft can't clash,
 // but each only allows one in progress at a time.
@@ -34,6 +46,12 @@ function NewAlbumContent() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  // Couverture d'un autre compte (même ISBN) : proposée en priorité. Copiée
+  // vers un nouvel objet à l'enregistrement seulement (voir copyCover).
+  const [sharedCoverProposal, setSharedCoverProposal] = useState<string | null>(null);
+  const [sharedCoverUrl, setSharedCoverUrl] = useState<string | null>(null);
+  // Résultat de la recherche externe, mis de côté le temps de la question.
+  const [pendingLookupCover, setPendingLookupCover] = useState<string | null>(null);
 
   // Stable reference unless isbnInput/prefill actually change — AlbumForm
   // re-syncs its own state whenever this object's identity changes (to
@@ -51,10 +69,13 @@ function NewAlbumContent() {
     setSearching(true);
     setSearchError(null);
     try {
+      const sharedPromise = findSharedCover(isbn);
       const res = await fetch(`/api/isbn/${encodeURIComponent(isbn)}`);
       const data = await res.json();
+      const shared = await sharedPromise;
       if (!res.ok) {
         setSearchError(data.error ?? "Recherche impossible.");
+        if (shared) setSharedCoverProposal(shared);
         return;
       }
       setPrefill({
@@ -67,14 +88,39 @@ function NewAlbumContent() {
         illustrator: data.illustrator ?? null,
         legal_deposit: data.legal_deposit ?? null,
       });
-      if (data.cover_url) {
-        setRemoteCoverUrl(data.cover_url);
-        setCoverPreview(data.cover_url);
-        setCoverFile(null);
+      if (shared) {
+        setPendingLookupCover(data.cover_url ?? null);
+        setSharedCoverProposal(shared);
+      } else if (data.cover_url) {
+        applyLookupCover(data.cover_url);
       }
     } finally {
       setSearching(false);
     }
+  }
+
+  function applyLookupCover(url: string) {
+    setRemoteCoverUrl(url);
+    setSharedCoverUrl(null);
+    setCoverPreview(url);
+    setCoverFile(null);
+  }
+
+  function acceptSharedCover() {
+    if (!sharedCoverProposal) return;
+    setSharedCoverUrl(sharedCoverProposal);
+    setRemoteCoverUrl(null);
+    setCoverFile(null);
+    setCoverPreview(sharedCoverProposal);
+    setSharedCoverProposal(null);
+    setPendingLookupCover(null);
+  }
+
+  // « Non » : la recherche de couverture habituelle suit son cours.
+  function rejectSharedCover() {
+    setSharedCoverProposal(null);
+    if (pendingLookupCover) applyLookupCover(pendingLookupCover);
+    setPendingLookupCover(null);
   }
 
   function handleScanned(isbn: string) {
@@ -106,14 +152,13 @@ function NewAlbumContent() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Recherche impossible.");
     if (!data.cover_url) throw new Error("Aucune couverture trouvée pour cet ISBN.");
-    setRemoteCoverUrl(data.cover_url);
-    setCoverPreview(data.cover_url);
-    setCoverFile(null);
+    applyLookupCover(data.cover_url);
   }
 
   function handleCoverFileSelected(file: File) {
     setCoverFile(file);
     setRemoteCoverUrl(null);
+    setSharedCoverUrl(null);
     setCoverPreview(URL.createObjectURL(file));
   }
 
@@ -131,6 +176,15 @@ function NewAlbumContent() {
         const res = await fetch("/api/covers", { method: "POST", body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Échec de l'upload.");
+        coverUrl = data.url;
+      } else if (sharedCoverUrl) {
+        const res = await fetch("/api/covers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ copyFromUrl: sharedCoverUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Échec de la copie de la couverture.");
         coverUrl = data.url;
       } else if (remoteCoverUrl) {
         const res = await fetch("/api/covers", {
@@ -249,6 +303,11 @@ function NewAlbumContent() {
         {saveError ? (
           <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
         ) : null}
+        <SharedCoverDialog
+          coverUrl={sharedCoverProposal}
+          onAccept={acceptSharedCover}
+          onReject={rejectSharedCover}
+        />
       </div>
     </div>
   );

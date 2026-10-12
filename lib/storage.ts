@@ -50,3 +50,24 @@ export async function deleteCover(coverUrl: string): Promise<void> {
   const key = coverUrl.slice(prefix.length);
   await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
+
+function bucketPrefix(): string {
+  return `${process.env.NEON_STORAGE_ENDPOINT!.replace(/\/$/, "")}/${bucket}/`;
+}
+
+/**
+ * Copies a cover already in our bucket to a NEW key and returns its URL.
+ * Used when a user adopts the cover of another account's album with the same
+ * ISBN: covers are never shared by URL, because deleting or replacing one
+ * album's cover deletes the object (DELETE /api/covers) and would break the
+ * other album. Refuses anything outside our bucket.
+ */
+export async function copyCover(sourceUrl: string): Promise<string> {
+  if (!sourceUrl.startsWith(bucketPrefix())) {
+    throw new Error("URL de couverture non autorisée.");
+  }
+  const res = await fetch(sourceUrl, { signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error("Couverture source introuvable.");
+  const contentType = res.headers.get("content-type") ?? "image/webp";
+  return uploadCover(new Uint8Array(await res.arrayBuffer()), contentType);
+}
