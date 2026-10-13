@@ -348,7 +348,7 @@ export function AccountsManager() {
                   ) : null}
                 </div>
                 {!isSelf ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button type="button" onClick={() => openEdit(m)} className={ghostButtonClass}>
                       <Pencil size={14} aria-hidden="true" />
                       Modifier
