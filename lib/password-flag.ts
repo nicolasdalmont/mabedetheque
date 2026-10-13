@@ -66,3 +66,20 @@ export async function fetchAccountStats(): Promise<Map<string, AccountStats>> {
   }
   return stats;
 }
+
+// Admin uniquement (vérifié côté SQL, migration 0015) : supprime les données de
+// l'app de `userId` et renvoie les URL de couvertures à purger du stockage, ou
+// un message d'erreur. Le compte lui-même est supprimé séparément (removeUser).
+export async function deleteAccountData(
+  userId: string,
+): Promise<{ covers: string[]; error: string | null }> {
+  try {
+    const { data, error } = await getDataClient().rpc("admin_delete_account_data", {
+      target_user_id: userId,
+    });
+    if (error) return { covers: [], error: error.message ?? "erreur inconnue" };
+    return { covers: (data as string[] | null) ?? [], error: null };
+  } catch {
+    return { covers: [], error: "erreur réseau" };
+  }
+}

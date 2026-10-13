@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, KeyRound, Pencil, Plus } from "lucide-react";
+import { Copy, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useSession } from "@/hooks/useSession";
 import { getNeonClient, safeAuthCall } from "@/lib/neon-client";
-import { fetchAccountStats, flagPasswordChange, type AccountStats } from "@/lib/password-flag";
+import { deleteAccountData, fetchAccountStats, flagPasswordChange, type AccountStats } from "@/lib/password-flag";
 import { generateTempPassword } from "@/lib/temp-password";
 
 const inputClass =
@@ -52,6 +53,8 @@ export function AccountsManager() {
   const [editEmail, setEditEmail] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, setEditPending] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Member | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await safeAuthCall(
@@ -163,6 +166,44 @@ export function AccountsManager() {
     }
     setEditingId(null);
     toast.success("Compte mis à jour");
+    await load();
+  }
+
+  // Ordre : données (rejouable si la suite échoue) → compte Better Auth →
+  // purge des couvertures (best effort). Un admin ne peut pas se supprimer :
+  // pas de bouton sur sa ligne, et la fonction SQL le refuse aussi.
+  async function confirmDelete() {
+    const member = pendingDelete;
+    if (!member || member.id === user?.id) return;
+    setDeleting(true);
+    const { covers, error: dataError } = await deleteAccountData(member.id);
+    if (dataError) {
+      setDeleting(false);
+      setPendingDelete(null);
+      toast.error(`Suppression impossible (${dataError}).`);
+      return;
+    }
+    await Promise.allSettled(
+      covers.map((coverUrl) =>
+        fetch("/api/covers", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coverUrl }),
+        }),
+      ),
+    );
+    const { error } = await safeAuthCall(
+      getNeonClient().auth.admin.removeUser({ userId: member.id }),
+    );
+    setDeleting(false);
+    setPendingDelete(null);
+    if (error) {
+      toast.error(
+        `Données supprimées, mais le compte n'a pas pu l'être (${error.message ?? "erreur inconnue"}). Réessayez.`,
+      );
+    } else {
+      toast.success("Compte supprimé");
+    }
     await load();
   }
 
@@ -319,6 +360,14 @@ export function AccountsManager() {
                       <KeyRound size={14} aria-hidden="true" />
                       Réinitialiser
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDelete(m)}
+                      className={`${ghostButtonClass} text-red-600 dark:text-red-400`}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                      Supprimer
+                    </button>
                   </div>
                 ) : null}
                 </>
@@ -328,6 +377,15 @@ export function AccountsManager() {
           })}
         </ul>
       )}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Supprimer le compte"
+        message={`Supprimer définitivement le compte de ${pendingDelete?.name || pendingDelete?.email || ""} ? Ses albums, achats, idées et couvertures seront effacés. Cette action est irréversible.`}
+        confirmLabel="Supprimer le compte"
+        pending={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </section>
   );
 }
