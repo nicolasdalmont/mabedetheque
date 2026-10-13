@@ -268,6 +268,10 @@ function NewAlbumContent() {
             {searching ? "Recherche..." : "Rechercher"}
           </button>
         </div>
+        <p className="-mt-3 text-xs text-zinc-500">
+          Scannez le code-barres au dos de l&apos;album ou tapez son ISBN. Si l&apos;ISBN est
+          introuvable, cherchez par titre ou série ci-dessous, ou remplissez la fiche à la main.
+        </p>
         {searchError ? (
           <p className="text-sm text-amber-600 dark:text-amber-400">
             {searchError} Vous pouvez continuer en saisie 100% manuelle ci-dessous.

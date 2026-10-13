@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { BarChart3 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { BarChart, type BarChartDatum } from "@/components/BarChart";
@@ -181,6 +183,14 @@ export default function StatsPage() {
         <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
       ) : error ? (
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
+      ) : totalAlbums === 0 ? (
+        <EmptyState
+          icon={BarChart3}
+          title="Pas encore de statistiques"
+          description="Ajoutez des albums pour voir la répartition par éditeur, par auteur et par année, ainsi que les anomalies à corriger."
+          actionHref="/albums/new"
+          actionLabel="+ Ajouter un album"
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">

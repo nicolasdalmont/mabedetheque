@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AppHeader } from "@/components/AppHeader";
 import { AlbumGrid } from "@/components/AlbumGrid";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 const RECENT_PURCHASES_COUNT = 6;
 
@@ -64,6 +65,9 @@ export default function Home() {
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : (
         <>
+          {albums.length <= 3 ? (
+            <OnboardingChecklist albumCount={albums.length} wishlistCount={wishlist.length} />
+          ) : null}
           <div className="grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
             <HomeStatCard href="/albums" label="Albums" value={albums.length} />
             <HomeStatCard href="/series" label="Séries" value={totalSeries} />

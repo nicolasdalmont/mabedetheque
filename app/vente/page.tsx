@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Tag } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { getDataClient } from "@/lib/neon-client";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
@@ -154,11 +156,17 @@ export default function VentePage() {
           <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : saleAlbums.length === 0 ? (
+          <EmptyState
+            icon={Tag}
+            title="Aucun album en vente"
+            description="Pour mettre un album en vente, ouvrez sa fiche et passez-le « à vendre ». Une fois vendu, il disparaît de la collection mais reste ici."
+            actionHref="/albums"
+            actionLabel="Parcourir mes albums"
+          />
         ) : filtered.length === 0 ? (
           <p className="py-16 text-center text-sm text-zinc-500">
-            {saleAlbums.length === 0
-              ? "Aucun album en vente pour le moment."
-              : "Aucun album ne correspond à ce filtre."}
+            Aucun album ne correspond à ce filtre.
           </p>
         ) : (
           <ul className="divide-y divide-black/5 dark:divide-white/10">

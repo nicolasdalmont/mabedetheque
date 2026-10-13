@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { getDataClient } from "@/lib/neon-client";
 import { useAlbums } from "@/hooks/useAlbums";
 import { AlbumThumb } from "@/components/AlbumThumb";
@@ -98,9 +100,13 @@ export default function WishlistPage() {
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : sorted.length === 0 ? (
-          <p className="py-16 text-center text-sm text-zinc-500">
-            Aucun tome dans la liste d&apos;achats pour le moment.
-          </p>
+          <EmptyState
+            icon={ShoppingCart}
+            title="Votre liste d'achats est vide"
+            description="Notez ici les tomes que vous voulez acheter. Une fois achetés, ils rejoignent votre collection en un clic."
+            actionHref="/albums/new?achat=1"
+            actionLabel="+ Ajouter un achat"
+          />
         ) : (
           <ul className="divide-y divide-black/5 dark:divide-white/10">
             {sorted.map((album) => {

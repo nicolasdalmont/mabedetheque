@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getDataClient } from "@/lib/neon-client";
+import { Lightbulb } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { useSession } from "@/hooks/useSession";
 import { AppHeader } from "@/components/AppHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -142,11 +144,15 @@ export default function IdeasPage() {
           <p className="py-16 text-center text-sm text-zinc-500">Chargement...</p>
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : ideas.length === 0 ? (
+          <EmptyState
+            icon={Lightbulb}
+            title="Aucune idée pour le moment"
+            description="Une boîte à idées : notez ici une amélioration ou une envie pour l'app, puis suivez-la de « Créée » à « Terminée »."
+          />
         ) : filtered.length === 0 ? (
           <p className="py-16 text-center text-sm text-zinc-500">
-            {ideas.length === 0
-              ? "Aucune idée pour le moment — ajoutez la première !"
-              : "Aucune idée ne correspond à ce filtre."}
+            Aucune idée ne correspond à ce filtre.
           </p>
         ) : (
           <div className="flex flex-col gap-3">

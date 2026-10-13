@@ -2,6 +2,8 @@
 
 import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Library } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useSession } from "@/hooks/useSession";
 import { AppHeader } from "@/components/AppHeader";
@@ -229,9 +231,13 @@ function SeriesContent() {
       ) : error ? (
         <p className="py-16 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : seriesList.length === 0 ? (
-        <p className="py-16 text-center text-sm text-zinc-500">
-          Aucun album n&apos;a de série renseignée.
-        </p>
+        <EmptyState
+          icon={Library}
+          title="Aucune série pour le moment"
+          description="Les séries se construisent automatiquement à partir des albums de votre collection : vous y verrez aussi les tomes manquants."
+          actionHref="/albums/new"
+          actionLabel="+ Ajouter un album"
+        />
       ) : visibleSeriesList.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
           <p>Aucune série ne correspond à ce filtre.</p>
