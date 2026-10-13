@@ -47,6 +47,11 @@ liste complète des albums (qui a déménagé vers son propre onglet, voir plus 
   est vide).
 - Basée sur `useAlbums()` : exclut donc les albums `sale_status = 'vendu'`, comme partout
   ailleurs où ce hook est utilisé.
+- **Checklist de démarrage** (`OnboardingChecklist`, voir [07](./07-composants-et-hooks.md)),
+  au-dessus des compteurs tant que la collection compte **3 albums ou moins** (seuil pour ne
+  pas la remontrer aux utilisateurs établis qui n'ont simplement pas de liste d'achats) :
+  premier album, premier tome en achats, installation de la PWA. Disparaît quand tout est
+  fait ou via « Masquer ».
 
 ## Onglet Albums (`app/albums/page.tsx`)
 
@@ -80,8 +85,9 @@ Galerie (par défaut, `AlbumGrid`) ou vue liste (`AlbumTable`) de la collection 
 - **Compteur + reset** sous la barre de filtres : `X albums` ou `Y sur Z albums` quand un
   filtre est actif, avec un bouton **« Effacer les filtres »** (efface `q`/`series`/
   `publisher`/`author`, pas le tri ni la vue).
-- **États vides distincts** : collection vraiment vide → « Votre bédéthèque est vide » +
-  CTA « Ajouter votre premier album » (et le bouton d'ajout de la barre est masqué) ;
+- **États vides distincts** : collection vraiment vide → `EmptyState` « Votre bédéthèque est
+  vide » (explique le scan/ISBN) + CTA « Ajouter votre premier album » (et le bouton d'ajout
+  de la barre est masqué) ;
   filtre sans résultat → « Aucun album ne correspond à ce filtre » + bouton reset.
 
 ## Onglet Séries (`app/series/page.tsx`)
@@ -186,6 +192,16 @@ décroissante, filtrage par statut (Créée / Traitée / Terminée / Toutes via 
 Filtre affiché par défaut à l'ouverture de l'onglet : **Créée** (les idées ouvertes),
 pas « Toutes ». Suppression via `ConfirmDialog` ; erreurs remontées en toast.
 
+**Vue admin et réponses** (migration 0014) : un administrateur (`user.role === "admin"`)
+voit les idées de **tous** les comptes pour les récolter. Chaque carte est étiquetée du nom
+de l'auteur (`auth.admin.listUsers`, comme l'écran Comptes ; « Vous » pour les siennes), avec
+une bascule « Tous les comptes / Mes idées » en plus du filtre de statut. Il peut changer le
+statut de n'importe quelle idée et y **répondre** (`reply` + `replied_at`) ; l'auteur voit la
+réponse sous son idée. Un utilisateur ordinaire ne voit toujours que les siennes. Pas de
+suppression de l'idée d'un autre compte, même pour l'admin (voir
+[02](./02-donnees.md#table-ideas)). Les états vides (aucune idée / aucune ne correspond au
+filtre) utilisent `EmptyState` pour le premier cas.
+
 ## Onglet Stats — `app/stats/page.tsx`
 
 **4 cartes chiffrées** (`StatCard`) : Albums, Séries, À acheter (requête dédiée sur
@@ -220,6 +236,9 @@ réservé aux séries valeur/année) :
   "Inconnue" affiché en dernier.
 
 ## Ajout d'album (`app/albums/new/page.tsx`)
+
+Une ligne d'aide sous le champ ISBN rappelle les trois voies (scan, saisie, recherche par
+titre/série, sinon saisie manuelle) — pensée pour un nouvel utilisateur.
 
 1. Saisie ou scan (`IsbnScanner`, caméra EAN-13) de l'ISBN → "Rechercher" appelle
    `/api/isbn/[isbn]`, préremplit tous les champs (`AlbumForm` via sa prop `initial`) et la

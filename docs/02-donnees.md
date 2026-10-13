@@ -40,6 +40,7 @@ tester le changement dans l'app.
 | `0011_account_flags.sql` | Table `account_flags` + `flag_password_change()` (changement de mot de passe forcé) |
 | `0012_account_stats.sql` | `account_flags.last_seen_at`, `touch_last_seen()`, `admin_account_stats()` |
 | `0013_find_shared_cover.sql` | `find_shared_cover(isbn)` : couverture du même ISBN chez un autre compte |
+| `0014_ideas_admin_reply.sql` | `ideas.reply` / `replied_at`, `is_admin()`, policies admin sur `ideas`, trigger `ideas_guard_reply` |
 
 ## Table `albums`
 
@@ -158,6 +159,8 @@ create table ideas (
   content text not null,
   status text not null default 'created'
     check (status in ('created', 'processed', 'done')),
+  reply text,            -- réponse de l'admin (0014)
+  replied_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -165,6 +168,17 @@ create table ideas (
 
 Index : `owner_id`, `status`. "Boîte à idées" pour les suggestions d'amélioration de l'app,
 avec un statut de suivi simple (même principe que sur d'autres apps de l'utilisateur).
+
+**Visibilité admin et réponse (0014)** : en plus des policies propriétaire habituelles,
+deux policies `ideas_admin_select` / `ideas_admin_update` donnent à un administrateur la
+lecture et la mise à jour (statut, réponse) des idées de **tous** les comptes — ni
+INSERT ni DELETE : la suppression reste celle de l'auteur. Elles s'appuient sur
+`is_admin()`, fonction `SECURITY DEFINER` (même raison que `flag_password_change()` : un
+utilisateur ne peut pas lire `neon_auth."user"` depuis une policy), appelée en
+`(select is_admin())` comme `auth.user_id()`. La policy d'UPDATE du propriétaire portant
+sur toute la ligne, un **trigger** `ideas_guard_reply` lève `42501` si un non-admin modifie
+`reply`/`replied_at` — sans lui, un auteur pourrait s'écrire sa propre « réponse
+de l'admin ».
 
 ## Table `account_flags`
 

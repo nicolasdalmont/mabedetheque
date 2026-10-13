@@ -341,7 +341,25 @@ ouvert. Une image qui ne charge pas (`onError`) vaut « non ». Utilisé par
   longue série de valeurs (ex. un an par décennie). Réservé aux séries valeur/catégorie ;
   les classements (Top 10 auteurs/éditeurs) utilisent un `RankingList` local à
   `app/stats/page.tsx` (barre horizontale proportionnelle au premier du classement).
-- **`IdeaCard`** : carte d'idée avec sélecteur de statut coloré et suppression.
+- **`IdeaCard`** : carte d'idée avec statut coloré, suppression et **réponse de l'admin**
+  (bloc jaune « Réponse de l'administrateur » + date, visible par l'auteur). Props
+  `isAdmin` (bouton « Répondre » / « Modifier la réponse » ; valider un champ vide retire
+  la réponse), `author` (étiquette du compte, vue admin uniquement ; « Vous » pour ses
+  propres idées) et `canDelete` (= l'idée appartient à l'utilisateur courant : la RLS ne
+  laisse supprimer que les siennes, même pour l'admin). Le sélecteur de statut n'est
+  interactif que pour l'admin ou l'auteur, sinon simple pastille.
+- **`EmptyState`** (`components/EmptyState.tsx`) : état vide partagé (icône lucide jaune,
+  titre, phrase expliquant à quoi sert l'onglet, bouton d'action optionnel). Utilisé par
+  Albums (collection vide), Séries, Achats, Ventes, Idées et Stats. Il ne sert qu'au cas
+  « rien du tout » : « aucun résultat pour ce filtre » reste un message distinct avec son
+  bouton « Effacer les filtres ».
+- **`OnboardingChecklist`** (`components/OnboardingChecklist.tsx`) : carte « Bienvenue »
+  de l'Accueil (voir [06](./06-pages-et-fonctionnalites.md#accueil-apppagetsx)). Étapes
+  cochées d'après les données déjà chargées (`albumCount`, `wishlistCount`) et le mode
+  d'affichage (`display-mode: standalone`, ou `navigator.standalone` sur iOS). « Masquer »
+  est mémorisé en `localStorage` (clé `onboarding-dismissed`), donc **par navigateur**, pas
+  par compte : volontairement sans colonne en base. Lecture via `useSyncExternalStore`
+  (snapshot serveur = « masqué » pour ne pas flasher à l'hydratation).
 - **`lib/format.ts`** — `formatDate` / `formatDateTime` (`Intl.DateTimeFormat("fr-FR")`) :
   formatage de date unifié, utilisé par `AlbumTable` et `IdeaCard` (la vue Liste affichait
   l'ISO brut avant). `tomeLabel(issueNumber, isIntegrale, isHorsSerie)` : libellé unique
