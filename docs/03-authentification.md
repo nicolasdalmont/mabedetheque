@@ -152,8 +152,18 @@ admins seulement (`/comptes` ne fait plus que rediriger vers `/compte`). Liste d
 - **Promouvoir / Rétrograder** (`admin.setRole`), jamais sur son propre compte.
 - **Stats** par compte : nombre d'albums et dernière connexion (voir plus bas).
 
-Volontairement **absent** : la suppression de compte (elle laisserait les albums du compte
-orphelins en base ; à concevoir avec leur nettoyage si besoin).
+- **Supprimer** (`ConfirmDialog`, irréversible), jamais sur son propre compte : pas de
+  bouton sur sa ligne **et** la fonction SQL refuse aussi (`42501`), pour qu'on ne puisse pas
+  se retrouver sans administrateur. Séquence dans `confirmDelete()` : (1)
+  `admin_delete_account_data(target)` (migration 0015) efface albums, achats, idées et
+  `account_flags` du compte et renvoie ses URL de couvertures ; (2) `auth.admin.removeUser` ;
+  (3) purge des couvertures via `DELETE /api/covers` (best effort). **Pourquoi cet ordre** :
+  les données d'abord, car la fonction est idempotente — si `removeUser` échoue, un message
+  l'indique et on peut relancer ; l'inverse aurait laissé des lignes orphelines
+  inaccessibles depuis l'interface (le compte n'apparaît plus dans la liste). La suppression
+  passe par une fonction `SECURITY DEFINER` parce que la RLS interdit à un admin d'écrire
+  dans les lignes d'un autre compte. Une couverture n'est jamais partagée par URL
+  (`copyCover`), donc la purger ne casse pas l'album d'un autre compte.
 
 ### Changement de mot de passe forcé
 

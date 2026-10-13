@@ -127,7 +127,8 @@ Icône `UserRound` vers `/compte` (« Mon compte »), rien si aucun utilisateur 
 
 ### `AccountsManager` (`components/AccountsManager.tsx`)
 
-Liste et actions d'administration des comptes (création, réinitialisation, rôle, stats),
+Liste et actions d'administration des comptes (création, modification, réinitialisation,
+rôle, suppression, stats),
 rendue par `/compte` pour les admins. Voir [03](./03-authentification.md#gestion-des-comptes).
 
 ### `PasswordChangeGate` (`components/PasswordChangeGate.tsx`)

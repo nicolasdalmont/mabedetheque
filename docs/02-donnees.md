@@ -41,6 +41,7 @@ tester le changement dans l'app.
 | `0012_account_stats.sql` | `account_flags.last_seen_at`, `touch_last_seen()`, `admin_account_stats()` |
 | `0013_find_shared_cover.sql` | `find_shared_cover(isbn)` : couverture du même ISBN chez un autre compte |
 | `0014_ideas_admin_reply.sql` | `ideas.reply` / `replied_at`, `is_admin()`, policies admin sur `ideas`, trigger `ideas_guard_reply` |
+| `0015_admin_delete_account.sql` | `admin_delete_account_data(target)` : purge des données d'un compte supprimé par un admin |
 
 ## Table `albums`
 
@@ -196,7 +197,12 @@ fonctions `SECURITY DEFINER` (`search_path = public`, `EXECUTE` retiré à `publ
 upserte uniquement la ligne de l'appelant. C'est le seul endroit où l'app lit le schéma
 `neon_auth`.
 
-`find_shared_cover(p_isbn)` (0013) est la seule autre fonction `SECURITY DEFINER` : elle lit
+`admin_delete_account_data(target_user_id)` (0015, `SECURITY DEFINER`, admin uniquement, refuse
+de viser l'appelant) supprime albums, `wishlist_items` (table héritée), idées et `account_flags`
+d'un compte et renvoie les URL de couvertures à purger ; voir
+[03](./03-authentification.md#gestion-des-comptes-componentsaccountsmanagertsx-admin-uniquement).
+
+`find_shared_cover(p_isbn)` (0013) est une autre fonction `SECURITY DEFINER` : elle lit
 `albums` au-delà de la RLS pour proposer la couverture d'un autre compte, et ne renvoie que
 l'URL (voir [05](./05-stockage-couvertures.md#couverture-dun-autre-compte-même-isbn)).
 
