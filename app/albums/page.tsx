@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAlbums } from "@/hooks/useAlbums";
+import { BookOpen } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { AppHeader } from "@/components/AppHeader";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterSortBar, type CollectionScope } from "@/components/FilterSortBar";
@@ -217,30 +219,26 @@ function HomeContent() {
           {error}
         </p>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
-          {allAlbums.length === 0 ? (
-            <>
-              <p>Votre bédéthèque est vide.</p>
-              <Link
-                href="/albums/new"
-                className="rounded-md bg-yellow-400 px-3 py-1.5 font-medium text-black hover:bg-yellow-300"
-              >
-                + Ajouter votre premier album
-              </Link>
-            </>
-          ) : (
-            <>
-              <p>Aucun album ne correspond à ce filtre.</p>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="rounded-md border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
-              >
-                Effacer les filtres
-              </button>
-            </>
-          )}
-        </div>
+        allAlbums.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="Votre bédéthèque est vide"
+            description="Scannez le code-barres d'un album ou saisissez son ISBN : titre, auteurs, éditeur et couverture sont retrouvés automatiquement."
+            actionHref="/albums/new"
+            actionLabel="+ Ajouter votre premier album"
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-zinc-500">
+            <p>Aucun album ne correspond à ce filtre.</p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-md border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+            >
+              Effacer les filtres
+            </button>
+          </div>
+        )
       ) : viewMode === "grid" ? (
         <AlbumGrid albums={filtered} />
       ) : (
