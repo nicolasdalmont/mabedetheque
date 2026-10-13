@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getDataClient } from "@/lib/neon-client";
+import { getDataClient, getNeonClient, safeAuthCall } from "@/lib/neon-client";
 import { Lightbulb } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useSession } from "@/hooks/useSession";
@@ -29,6 +29,12 @@ export default function IdeasPage() {
   const [statusFilter, setStatusFilter] = useState<IdeaStatus | "all">("created");
   const [pendingDelete, setPendingDelete] = useState<Idea | null>(null);
 
+  // Admin : voit les idées de tous les comptes (RLS) ; `authors` fait
+  // correspondre owner_id → nom pour les étiqueter.
+  const isAdmin = user?.role === "admin";
+  const [authors, setAuthors] = useState<Record<string, string>>({});
+  const [scope, setScope] = useState<"all" | "mine">("all");
+
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,9 +55,33 @@ export default function IdeasPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    let ignore = false;
+    safeAuthCall(
+      getNeonClient().auth.admin.listUsers({ query: { limit: 200, sortBy: "name" } }),
+    ).then(({ data }) => {
+      if (ignore) return;
+      const users = (data as { users?: Record<string, unknown>[] } | null)?.users ?? [];
+      setAuthors(
+        Object.fromEntries(
+          users.map((u) => [String(u.id), String(u.name || u.email || "Compte inconnu")]),
+        ),
+      );
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [isAdmin]);
+
   const filtered = useMemo(
-    () => (statusFilter === "all" ? ideas : ideas.filter((i) => i.status === statusFilter)),
-    [ideas, statusFilter],
+    () =>
+      ideas.filter(
+        (i) =>
+          (statusFilter === "all" || i.status === statusFilter) &&
+          (!isAdmin || scope === "all" || i.owner_id === user?.id),
+      ),
+    [ideas, statusFilter, isAdmin, scope, user?.id],
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,6 +108,18 @@ export default function IdeasPage() {
     setIdeas((prev) => prev.map((i) => (i.id === idea.id ? { ...i, status } : i)));
     const { error } = await getDataClient().from("ideas").update({ status }).eq("id", idea.id);
     if (error) toastError(error.message);
+  }
+
+  async function handleReply(idea: Idea, text: string) {
+    const patch = text
+      ? { reply: text, replied_at: new Date().toISOString() }
+      : { reply: null, replied_at: null };
+    const { error } = await getDataClient().from("ideas").update(patch).eq("id", idea.id);
+    if (error) {
+      toastError(error.message);
+      throw new Error(error.message);
+    }
+    setIdeas((prev) => prev.map((i) => (i.id === idea.id ? { ...i, ...patch } : i)));
   }
 
   async function confirmDeleteIdea() {
@@ -124,6 +166,17 @@ export default function IdeasPage() {
           </div>
         </form>
 
+        {isAdmin ? (
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setScope("all")} className={chipClass(scope === "all")}>
+              Tous les comptes
+            </button>
+            <button type="button" onClick={() => setScope("mine")} className={chipClass(scope === "mine")}>
+              Mes idées
+            </button>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setStatusFilter("all")} className={chipClass(statusFilter === "all")}>
             Toutes
@@ -160,7 +213,17 @@ export default function IdeasPage() {
               <IdeaCard
                 key={idea.id}
                 idea={idea}
+                author={
+                  isAdmin
+                    ? idea.owner_id === user?.id
+                      ? "Vous"
+                      : (authors[idea.owner_id] ?? "Compte inconnu")
+                    : null
+                }
+                isAdmin={isAdmin}
+                canDelete={idea.owner_id === user?.id}
                 onChangeStatus={(status) => handleChangeStatus(idea, status)}
+                onReply={(text) => handleReply(idea, text)}
                 onDelete={() => setPendingDelete(idea)}
               />
             ))}
