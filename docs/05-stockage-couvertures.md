@@ -36,11 +36,16 @@ Object Storage restent côté serveur.
 
 ### `POST` — upload
 
-Accepte deux formats de requête :
+Accepte trois formats de requête :
 1. **`multipart/form-data`** avec un champ `file` — upload d'une photo prise/choisie par
    l'utilisateur (galerie ou fichiers, voir `AlbumForm`) ou collée depuis le presse-papiers.
 2. **JSON `{ sourceUrl }`** — rapatriement d'une couverture trouvée par la recherche ISBN
    (Google Books / Open Library / URL BnF), téléchargée serveur puis traitée normalement.
+3. **JSON `{ copyFromUrl }`** — copie d'une couverture déjà dans notre bucket (celle d'un
+   autre compte, voir [Couverture d'un autre compte](#couverture-dun-autre-compte-même-isbn)).
+   Pas de passage par `sharp` : l'objet est déjà un WebP traité, `copyCover()`
+   (`lib/storage.ts`) le relit et le ré-écrit sous une **nouvelle clé**. Refuse toute URL
+   hors du préfixe du bucket (`copyFromUrl` ne doit pas servir à faire fetch un hôte quelconque).
 
 Traitement identique dans les deux cas (`processAndUpload`) :
 ```ts
@@ -63,6 +68,30 @@ Reçoit `{ coverUrl }`, appelle `deleteCover()`. Utilisée :
 - lors du remplacement d'une couverture existante en édition (l'ancienne est purgée
   **après** que la mise à jour de la ligne a réussi, et seulement si l'URL a réellement
   changé) — best-effort (`.catch(() => {})`), un échec de purge ne bloque jamais la sauvegarde.
+
+## Couverture d'un autre compte (même ISBN)
+
+À l'ajout d'un album, si un **autre compte** possède déjà cet ISBN avec une couverture, l'app
+la propose en priorité (`SharedCoverDialog`, « Est-ce la bonne couverture ? »).
+
+- **Lecture** : la RLS interdit de lire les albums des autres comptes ; la fonction
+  `find_shared_cover(p_isbn)` (migration 0013, `SECURITY DEFINER`, voir
+  [02](./02-donnees.md)) ne renvoie que l'**URL** de couverture, jamais le propriétaire ni
+  une autre donnée. Exclut ses propres albums, les couvertures vides et `KNOWN_DEAD_COVER_URL`
+  (ci-dessous) ; ISBN comparé sans tirets ni espaces ; préfère l'album le plus récemment mis à jour.
+- **Pourquoi COPIER plutôt que partager l'URL** : supprimer un album ou remplacer sa
+  couverture supprime l'objet (`DELETE`, ci-dessus). Deux albums pointant vers la même clé
+  casseraient l'un l'autre. Les URL étant immuables, la copie sous une nouvelle clé règle
+  tout. Elle n'a lieu **qu'à l'enregistrement** (`sharedCoverUrl` en état, copie via
+  `{ copyFromUrl }`), pas à l'acceptation de la popup : annuler le formulaire ne laisse
+  aucun objet orphelin.
+- **Oui** : l'aperçu passe à la couverture partagée. **Non** (ou image illisible, via
+  `onError` sur l'aperçu) : la couverture trouvée par la recherche ISBN, mise de côté
+  pendant la question (`pendingLookupCover`), est appliquée comme avant.
+- Choisir un fichier local ou relancer « Rechercher une couverture » remplace la couverture
+  partagée choisie.
+- Best effort : si `find_shared_cover` échoue (hors-ligne, migration absente), aucune
+  proposition, la recherche habituelle s'applique.
 
 ## Flux d'upload côté client
 

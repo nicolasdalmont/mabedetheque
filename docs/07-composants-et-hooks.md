@@ -294,6 +294,13 @@ l'item wishlist (`series_name`, `issue_number`, `title`, `publisher`, `cover_url
 À la soumission : upload couverture → `insert` dans `albums` → `delete` de l'item
 `wishlist_items` correspondant → `onDone()` (le parent retire l'item de sa liste locale).
 
+### `SharedCoverDialog` (`components/SharedCoverDialog.tsx`)
+
+`<dialog>` contrôlé (même mécanique que `ConfirmDialog`) avec l'aperçu de la couverture
+trouvée chez un autre compte : « Oui, utiliser » / « Non, chercher ». `coverUrl` non nul =
+ouvert. Une image qui ne charge pas (`onError`) vaut « non ». Utilisé par
+`app/albums/new/page.tsx`, voir [05](./05-stockage-couvertures.md#couverture-dun-autre-compte-même-isbn).
+
 ## Feedback : confirmations et toasts
 
 - **`ConfirmDialog` (`components/ConfirmDialog.tsx`)** — LA boîte de confirmation de l'app,

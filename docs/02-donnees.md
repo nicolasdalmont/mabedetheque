@@ -39,6 +39,7 @@ tester le changement dans l'app.
 | `0010_wishlist_albums.sql` | Les achats deviennent des albums `is_wishlist = true` |
 | `0011_account_flags.sql` | Table `account_flags` + `flag_password_change()` (changement de mot de passe forcé) |
 | `0012_account_stats.sql` | `account_flags.last_seen_at`, `touch_last_seen()`, `admin_account_stats()` |
+| `0013_find_shared_cover.sql` | `find_shared_cover(isbn)` : couverture du même ISBN chez un autre compte |
 
 ## Table `albums`
 
@@ -180,6 +181,10 @@ fonctions `SECURITY DEFINER` (`search_path = public`, `EXECUTE` retiré à `publ
 (select auth.user_id())` et `role = 'admin'`) et lèvent `42501` sinon ; `touch_last_seen()`
 upserte uniquement la ligne de l'appelant. C'est le seul endroit où l'app lit le schéma
 `neon_auth`.
+
+`find_shared_cover(p_isbn)` (0013) est la seule autre fonction `SECURITY DEFINER` : elle lit
+`albums` au-delà de la RLS pour proposer la couverture d'un autre compte, et ne renvoie que
+l'URL (voir [05](./05-stockage-couvertures.md#couverture-dun-autre-compte-même-isbn)).
 
 ## Row Level Security
 

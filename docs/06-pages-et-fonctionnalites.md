@@ -224,6 +224,9 @@ réservé aux séries valeur/année) :
 1. Saisie ou scan (`IsbnScanner`, caméra EAN-13) de l'ISBN → "Rechercher" appelle
    `/api/isbn/[isbn]`, préremplit tous les champs (`AlbumForm` via sa prop `initial`) et la
    couverture si trouvée.
+   Si un **autre compte** a déjà cet ISBN avec une couverture, une popup la propose en
+   priorité (« Est-ce la bonne couverture ? ») ; oui = copiée à l'enregistrement, non = la
+   couverture de la recherche s'applique (voir [05](./05-stockage-couvertures.md#couverture-dun-autre-compte-même-isbn)).
 2. Alternative : `BnfTextSearch` (titre/série) — si le candidat choisi a un ISBN, rebascule
    automatiquement sur le lookup ISBN complet (pour récupérer aussi la couverture) ; sinon
    préremplit seulement les champs texte disponibles. Une fois un ISBN trouvé, ce bloc se
